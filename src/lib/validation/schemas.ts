@@ -141,3 +141,24 @@ export const agentsDashboardQuerySchema = z.object({
     .preprocess((v) => (v === undefined || v === null || v === '' ? '7d' : v), agentsTimeRange)
     .default('7d'),
 })
+
+// GHL Webhook payload validation
+export const ghlWebhookPayloadSchema = z.object({
+  type: z.string().optional(),
+  event: z.string().optional(),
+  'Event-Name': z.string().optional(),
+  contactId: z.string().optional(),
+  email: z.string().email().optional(),
+  contact: z
+    .object({
+      id: z.string().optional(),
+      email: z.string().email().optional(),
+      firstName: z.string().optional(),
+      first_name: z.string().optional(),
+      lastName: z.string().optional(),
+      last_name: z.string().optional(),
+      companyName: z.string().optional(),
+      name: z.string().optional(),
+    })
+    .optional(),
+}).passthrough()
