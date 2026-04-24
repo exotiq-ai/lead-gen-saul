@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { calculateCost } from '@/lib/utils/costs'
+import { parseQuery } from '@/lib/validation/parse'
+import { economicsQuerySchema } from '@/lib/validation/schemas'
 
 export const runtime = 'nodejs'
-
-const DEMO_TENANT = '00000000-0000-0000-0000-000000000001'
 
 function seededRandom(seed: number): number {
   const x = Math.sin(seed + 42.7) * 10000
@@ -33,9 +33,10 @@ function generateDemoTokenData(): TokenDay[] {
   })
 }
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url)
-  const tenantId = searchParams.get('tenant_id') ?? DEMO_TENANT
+export async function GET(req: NextRequest) {
+  const parsed = parseQuery(economicsQuerySchema, req.nextUrl)
+  if (!parsed.success) return parsed.response
+  const { tenant_id: tenantId } = parsed.data
 
   const supabase = createServerClient()
   const now = new Date()

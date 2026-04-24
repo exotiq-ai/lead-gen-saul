@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-
-const DEMO_TENANT_ID = '00000000-0000-0000-0000-000000000001'
+import { parseQuery } from '@/lib/validation/parse'
+import { leadsListQuerySchema } from '@/lib/validation/schemas'
 
 const LEAD_SELECT_FIELDS = [
   'id',
@@ -34,33 +34,25 @@ const SORT_MAP: Record<SortOption, { column: string; ascending: boolean }> = {
 }
 
 export async function GET(req: NextRequest) {
-  const params = req.nextUrl.searchParams
-  const tenantId = params.get('tenant_id') ?? DEMO_TENANT_ID
-
-  const page = Math.max(1, parseInt(params.get('page') ?? '1', 10))
-  const limit = Math.min(200, Math.max(1, parseInt(params.get('limit') ?? '50', 10)))
+  const parsed = parseQuery(leadsListQuerySchema, req.nextUrl)
+  if (!parsed.success) return parsed.response
+  const q = parsed.data
+  const tenantId = q.tenant_id
+  const page = q.page
+  const limit = q.limit
   const offset = (page - 1) * limit
 
-  const search = params.get('search')?.trim()
-  const statusParam = params.get('status')
-  const sourceParam = params.get('source')
-  const assignedTo = params.get('assigned_to')
-  const redFlagsOnly = params.get('red_flags_only') === 'true'
-  const stageId = params.get('stage_id')
-  const scoreMin = params.get('score_min')
-  const scoreMax = params.get('score_max')
-  const sortParam = (params.get('sort') ?? 'score_desc') as SortOption
-
-  if (!SORT_MAP[sortParam]) {
-    return NextResponse.json(
-      { error: 'Invalid sort. Must be one of: score_desc, score_asc, created_desc, activity_desc' },
-      { status: 400 }
-    )
-  }
+  const search = q.search
+  const statusParam = q.status
+  const sourceParam = q.source
+  const assignedTo = q.assigned_to
+  const redFlagsOnly = q.red_flags_only
+  const stageId = q.stage_id
+  const sortParam = q.sort
+  const sort = SORT_MAP[sortParam]
 
   try {
     const supabase = createServerClient()
-    const sort = SORT_MAP[sortParam]
 
     let query = supabase
       .from('leads')
@@ -71,7 +63,7 @@ export async function GET(req: NextRequest) {
 
     if (search) {
       query = query.or(
-        `company_name.ilike.%${search}%,first_name.ilike.%${search}%,last_name.ilike.%${search}%`
+        `company_name.ilike.%${search}%,first_name.ilike.%${search}%,last_name.ilike.%${search}%`,
       )
     }
 
@@ -109,14 +101,12 @@ export async function GET(req: NextRequest) {
       query = query.eq('stage_id', stageId)
     }
 
-    if (scoreMin) {
-      const min = parseInt(scoreMin, 10)
-      if (!isNaN(min)) query = query.gte('score', min)
+    if (q.score_min != null) {
+      query = query.gte('score', q.score_min)
     }
 
-    if (scoreMax) {
-      const max = parseInt(scoreMax, 10)
-      if (!isNaN(max)) query = query.lte('score', max)
+    if (q.score_max != null) {
+      query = query.lte('score', q.score_max)
     }
 
     const { data, error, count } = await query

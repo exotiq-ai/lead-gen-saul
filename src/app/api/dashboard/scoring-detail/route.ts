@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { parseQuery } from '@/lib/validation/parse'
+import { scoringDetailQuerySchema } from '@/lib/validation/schemas'
 
 export const runtime = 'nodejs'
-
-const DEMO_TENANT_ID = '00000000-0000-0000-0000-000000000001'
 
 const FLAG_SEVERITY: Record<string, string> = {
   below_fleet_minimum: 'high',
@@ -30,7 +30,9 @@ function round1(n: number): number {
 }
 
 export async function GET(req: NextRequest) {
-  const tenantId = req.nextUrl.searchParams.get('tenant_id') ?? DEMO_TENANT_ID
+  const parsed = parseQuery(scoringDetailQuerySchema, req.nextUrl)
+  if (!parsed.success) return parsed.response
+  const { tenant_id: tenantId } = parsed.data
 
   try {
     const supabase = createServerClient()

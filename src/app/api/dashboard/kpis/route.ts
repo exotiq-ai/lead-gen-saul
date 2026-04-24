@@ -1,5 +1,7 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { parseQuery } from '@/lib/validation/parse'
+import { requiredTenantIdQuerySchema } from '@/lib/validation/schemas'
 
 export const runtime = 'nodejs'
 
@@ -8,12 +10,10 @@ function trend(current: number, previous: number): number {
   return Math.round(((current - previous) / previous) * 1000) / 10
 }
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url)
-  const tenantId = searchParams.get('tenant_id')
-  if (!tenantId) {
-    return NextResponse.json({ error: 'tenant_id required' }, { status: 400 })
-  }
+export async function GET(req: NextRequest) {
+  const parsed = parseQuery(requiredTenantIdQuerySchema, req.nextUrl)
+  if (!parsed.success) return parsed.response
+  const { tenant_id: tenantId } = parsed.data
 
   const supabase = createServerClient()
   const now = new Date()

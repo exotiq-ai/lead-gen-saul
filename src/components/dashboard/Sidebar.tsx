@@ -3,17 +3,21 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
+import useSWR from 'swr'
 import {
   SquaresFour,
   Funnel,
   Users,
   ChartBar,
   MagnifyingGlass,
+  PaperPlaneTilt,
   Robot,
   CurrencyDollar,
   Gear,
 } from '@phosphor-icons/react'
 import { TenantSelector } from './TenantSelector'
+
+const EXOTIQ_TENANT = '00000000-0000-0000-0000-000000000001'
 
 interface NavItem {
   label: string
@@ -27,13 +31,23 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Leads', href: '/dashboard/leads', icon: Users },
   { label: 'Scoring', href: '/dashboard/scoring', icon: ChartBar },
   { label: 'Enrichment', href: '/dashboard/enrichment', icon: MagnifyingGlass },
+  { label: 'Outreach', href: '/dashboard/outreach', icon: PaperPlaneTilt },
   { label: 'Agents', href: '/dashboard/agents', icon: Robot },
   { label: 'Economics', href: '/dashboard/economics', icon: CurrencyDollar },
   { label: 'Settings', href: '/dashboard/settings', icon: Gear },
 ]
 
+const outreachFetcher = (url: string) =>
+  fetch(url).then((r) => r.json() as Promise<{ pending_count?: number }>)
+
 export function Sidebar() {
   const pathname = usePathname()
+  const { data: outreachMeta } = useSWR(
+    `/api/outreach/queue?tenant_id=${EXOTIQ_TENANT}&status=pending&limit=1`,
+    outreachFetcher,
+    { refreshInterval: 30_000, revalidateOnFocus: true, shouldRetryOnError: false },
+  )
+  const pendingOutreach = outreachMeta?.pending_count ?? 0
 
   function isActive(href: string) {
     if (href === '/dashboard') return pathname === '/dashboard'
@@ -72,7 +86,7 @@ export function Sidebar() {
               <Link
                 href={item.href}
                 className={[
-                  'flex items-center gap-3 px-3 py-2.5 rounded-[6px] text-[13.5px] font-medium transition-all duration-200 relative group',
+                  'flex w-full items-center gap-3 px-3 py-2.5 rounded-[6px] text-[13.5px] font-medium transition-all duration-200 relative group',
                   active
                     ? 'bg-[var(--color-saul-bg-700)] text-[var(--color-saul-text-primary)]'
                     : 'text-[var(--color-saul-text-secondary)] hover:bg-[var(--color-saul-bg-600)] hover:text-[var(--color-saul-text-primary)]',
@@ -100,6 +114,14 @@ export function Sidebar() {
                   aria-hidden="true"
                 />
                 {item.label}
+                {item.href === '/dashboard/outreach' && pendingOutreach > 0 && (
+                  <span
+                    className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-[rgba(0,212,170,0.2)] text-[10px] font-mono font-bold text-[var(--color-saul-cyan)] flex items-center justify-center"
+                    title="Pending approval"
+                  >
+                    {pendingOutreach > 9 ? '9+' : pendingOutreach}
+                  </span>
+                )}
               </Link>
             </motion.div>
           )

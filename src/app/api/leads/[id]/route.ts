@@ -1,18 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-
-const DEMO_TENANT_ID = '00000000-0000-0000-0000-000000000001'
+import { parseQuery } from '@/lib/validation/parse'
+import { leadDetailQuerySchema, leadIdParamSchema } from '@/lib/validation/schemas'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const tenantId = req.nextUrl.searchParams.get('tenant_id') ?? DEMO_TENANT_ID
   const { id } = await params
-
-  if (!id) {
-    return NextResponse.json({ error: 'Lead ID is required' }, { status: 400 })
+  const idResult = leadIdParamSchema.safeParse(id)
+  if (!idResult.success) {
+    return NextResponse.json({ error: 'Invalid lead id' }, { status: 400 })
   }
+
+  const parsed = parseQuery(leadDetailQuerySchema, req.nextUrl)
+  if (!parsed.success) return parsed.response
+  const tenantId = parsed.data.tenant_id
 
   try {
     const supabase = createServerClient()
@@ -20,7 +23,8 @@ export async function GET(
     const [leadResult, activitiesResult, enrichmentsResult] = await Promise.all([
       supabase
         .from('leads')
-        .select(`
+        .select(
+          `
           *,
           pipeline_stages!stage_id (
             id,
@@ -31,15 +35,16 @@ export async function GET(
             is_terminal,
             terminal_type
           )
-        `)
-        .eq('id', id)
+        `,
+        )
+        .eq('id', idResult.data)
         .eq('tenant_id', tenantId)
         .single(),
 
       supabase
         .from('lead_activities')
         .select('id, lead_id, tenant_id, activity_type, channel, metadata, created_at')
-        .eq('lead_id', id)
+        .eq('lead_id', idResult.data)
         .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false })
         .limit(20),
@@ -47,7 +52,7 @@ export async function GET(
       supabase
         .from('enrichments')
         .select('*')
-        .eq('lead_id', id)
+        .eq('lead_id', idResult.data)
         .eq('tenant_id', tenantId)
         .order('requested_at', { ascending: false }),
     ])

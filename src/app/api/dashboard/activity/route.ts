@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-
-const DEMO_TENANT_ID = '00000000-0000-0000-0000-000000000001'
+import { parseQuery } from '@/lib/validation/parse'
+import { activityQuerySchema } from '@/lib/validation/schemas'
 
 const ACTIVITY_LABELS: Record<string, string> = {
   dm_sent: 'DM Sent',
@@ -15,7 +15,9 @@ const ACTIVITY_LABELS: Record<string, string> = {
 }
 
 export async function GET(req: NextRequest) {
-  const tenantId = req.nextUrl.searchParams.get('tenant_id') ?? DEMO_TENANT_ID
+  const parsed = parseQuery(activityQuerySchema, req.nextUrl)
+  if (!parsed.success) return parsed.response
+  const { tenant_id: tenantId } = parsed.data
 
   try {
     const supabase = createServerClient()

@@ -1,3 +1,29 @@
+# Saul LeadGen Engine
+
+Next.js 16 dashboard + Supabase + TypeScript. **Phase 2** adds Zod on all API routes, enrichment (`/api/enrichment/*`), scoring (`/api/scoring/*`), outreach approval queue (`/dashboard/outreach`), GHL webhooks, and the OpenClaw-style **Agents** page.
+
+## Environment
+
+Copy `.env.local` and set at least:
+
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon key (client) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role (API routes) |
+| `APOLLO_API_KEY` | Apollo enrichment (optional; dry-run if missing) |
+| `GHL_WEBHOOK_SECRET` | HMAC key; caller sends `X-Saul-Hmac` = hex SHA256 of raw body |
+| `GHL_SKIP_SIGNATURE` | `true` to skip verification (local only) |
+| `GHL_DEFAULT_TENANT_ID` | Optional UUID for webhook lead resolution |
+| `SAUL_MODEL_NAME` | Shown on Agents page (cosmetic) |
+
+## Database
+
+- **Never run** [`supabase/all_migrations.sql`](supabase/all_migrations.sql) on a project that already has tables (you will get `relation "tenants" already exists`). That file is only for a **completely empty** database.
+- **If you already have 001–005 applied** and only need outreach (Phase 2): run
+  [`supabase/apply_006_outreach_idempotent.sql`](supabase/apply_006_outreach_idempotent.sql) in the Supabase SQL editor (safe to re-run), then `npm run seed` if you want demo outreach rows.
+- For a new empty DB, run `001` through `006` in order from [`supabase/migrations/`](supabase/migrations/), or use the full concat file only once. Details: [`supabase/MIGRATIONS.md`](supabase/MIGRATIONS.md).
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

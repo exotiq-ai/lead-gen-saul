@@ -3,10 +3,16 @@
  * Generates 500 realistic leads for the Exotiq tenant (exotic car rental operators).
  *
  * Usage:
- *   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npx ts-node scripts/seed.ts
+ *   npm run seed
+ * (loads .env.local via dotenv; or set SUPABASE_URL / NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)
  */
 
+import { resolve } from 'path'
+import { config } from 'dotenv'
 import { createClient } from '@supabase/supabase-js'
+
+config({ path: resolve(process.cwd(), '.env.local') })
+config({ path: resolve(process.cwd(), '.env') })
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS & FIXTURES
@@ -727,11 +733,14 @@ function assignStagesToLeads(leads: SeedLead[], stageIdMap: Record<string, strin
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function seed() {
-  const supabaseUrl = process.env.SUPABASE_URL
-  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const supabaseUrl =
+    process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !serviceKey) {
-    throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables')
+    throw new Error(
+      'Missing Supabase URL (SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL) or SUPABASE_SERVICE_ROLE_KEY — check .env.local',
+    )
   }
 
   const supabase = createClient(supabaseUrl, serviceKey, {
@@ -973,6 +982,71 @@ export async function seed() {
     enrichmentsInserted += batch.length
   }
   console.log(`  ✓ ${enrichmentsInserted} enrichment records inserted`)
+
+  // ── 7.5 OUTREACH (demo queue) ────────────────────────────────────────────
+  console.log('Creating outreach sequence + approval queue samples...')
+
+  const SEQUENCE_ID = '00000000-0000-0000-0000-0000000000a1'
+  const { error: seqErr } = await supabase.from('outreach_sequences').upsert(
+    {
+      id: SEQUENCE_ID,
+      tenant_id: TENANT_ID,
+      name: 'Exotiq — IG / DM + email cadence',
+      slug: 'exotiq_v1',
+      description: 'Day 0: peer DM, Day 3: follow-up, Day 7: value case study',
+      steps: [
+        { day: 0, channel: 'instagram_dm', label: 'Peer intro' },
+        { day: 3, channel: 'email', label: 'Ops pain follow-up' },
+        { day: 7, channel: 'email', label: 'Case study' },
+      ],
+      is_active: true,
+    },
+    { onConflict: 'id' },
+  )
+  if (seqErr) {
+    console.warn('  ⚠ outreach_sequences skipped (table may not exist yet):', seqErr.message)
+  } else {
+    const queueIds = [
+      '00000000-0000-0000-0000-0000000000c1',
+      '00000000-0000-0000-0000-0000000000c2',
+      '00000000-0000-0000-0000-0000000000c3',
+      '00000000-0000-0000-0000-0000000000c4',
+      '00000000-0000-0000-0000-0000000000c5',
+      '00000000-0000-0000-0000-0000000000c6',
+      '00000000-0000-0000-0000-0000000000c7',
+      '00000000-0000-0000-0000-0000000000c8',
+    ]
+    const high = allLeads.filter((l) => l.score != null && l.score >= 65).slice(0, queueIds.length)
+    const channels: Array<'instagram_dm' | 'email' | 'phone'> = [
+      'instagram_dm',
+      'instagram_dm',
+      'email',
+      'email',
+      'phone',
+      'instagram_dm',
+      'email',
+      'phone',
+    ]
+    const queueRows = high.map((l, i) => ({
+      id: queueIds[i]!,
+      tenant_id: TENANT_ID,
+      lead_id: l.id,
+      sequence_id: SEQUENCE_ID,
+      channel: channels[i % channels.length],
+      message_draft: `Hey — ran across ${l.company_name} and your fleet (strong presence in ${l.company_location?.split(',')[0] ?? 'your market'}). We help exotic rental shops unify bookings + fleet ops; worth a 10-min chat? — Exotiq`,
+      status: i < 4 ? 'pending' : 'approved',
+      generated_by: 'saul',
+      reviewed_by: i >= 4 ? 'gregory' : null,
+      approved_at: i >= 4 ? new Date(Date.now() - i * 3600_000).toISOString() : null,
+    }))
+
+    const { error: qErr } = await supabase.from('outreach_queue').upsert(queueRows, { onConflict: 'id' })
+    if (qErr) {
+      console.warn('  ⚠ outreach_queue skipped:', qErr.message)
+    } else {
+      console.log(`  ✓ ${queueRows.length} outreach queue items`)
+    }
+  }
 
   // ── SUMMARY ────────────────────────────────────────────────────────────────
   const tier5  = allLeads.filter(l => l.score >= 80).length

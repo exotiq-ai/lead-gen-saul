@@ -11,9 +11,13 @@
 import { readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { config } from 'dotenv'
 import { Client } from 'pg'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
+
+config({ path: join(process.cwd(), '.env.local') })
+config({ path: join(process.cwd(), '.env') })
 
 const DB_PASSWORD = process.env.SUPABASE_DB_PASSWORD
 if (!DB_PASSWORD) {
@@ -30,6 +34,7 @@ const MIGRATIONS = [
   '003_scoring_functions.sql',
   '004_views_and_indexes.sql',
   '005_enrichment_tables.sql',
+  '006_outreach_schema.sql',
 ]
 
 async function migrate() {

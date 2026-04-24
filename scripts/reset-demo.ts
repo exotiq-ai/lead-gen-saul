@@ -5,20 +5,28 @@
  * then re-runs the seed to restore a clean demo state.
  *
  * Usage:
- *   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npx ts-node scripts/reset-demo.ts
+ *   npm run reset-demo
  */
 
+import { resolve } from 'path'
+import { config } from 'dotenv'
 import { createClient } from '@supabase/supabase-js'
 import { seed } from './seed'
 
-const TENANT_ID = '00000000-exo-tiq-demo-000000000001'
+config({ path: resolve(process.cwd(), '.env.local') })
+config({ path: resolve(process.cwd(), '.env') })
+
+const TENANT_ID = '00000000-0000-0000-0000-000000000001'
 
 async function resetDemo() {
-  const supabaseUrl = process.env.SUPABASE_URL
-  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const supabaseUrl =
+    process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !serviceKey) {
-    throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables')
+    throw new Error(
+      'Missing Supabase URL (SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL) or SUPABASE_SERVICE_ROLE_KEY — check .env.local',
+    )
   }
 
   const supabase = createClient(supabaseUrl, serviceKey, {

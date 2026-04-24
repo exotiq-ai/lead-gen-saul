@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-
-const DEMO_TENANT_ID = '00000000-0000-0000-0000-000000000001'
+import { parseQuery } from '@/lib/validation/parse'
+import { redFlagsQuerySchema } from '@/lib/validation/schemas'
 const TERMINAL_STATUSES = ['converted', 'lost', 'disqualified']
 
 export async function GET(req: NextRequest) {
-  const tenantId = req.nextUrl.searchParams.get('tenant_id') ?? DEMO_TENANT_ID
+  const parsed = parseQuery(redFlagsQuerySchema, req.nextUrl)
+  if (!parsed.success) return parsed.response
+  const { tenant_id: tenantId } = parsed.data
 
   try {
     const supabase = createServerClient()

@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { parseQuery } from '@/lib/validation/parse'
+import { pipelineDetailQuerySchema } from '@/lib/validation/schemas'
 
 export const runtime = 'nodejs'
-
-const DEMO_TENANT = '00000000-0000-0000-0000-000000000001'
 
 // ─── Exported Types ──────────────────────────────────────────────────────────
 
@@ -234,9 +234,10 @@ export async function fetchPipelineDetail(tenantId: string): Promise<PipelineDet
 
 // ─── API Handler ─────────────────────────────────────────────────────────────
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url)
-  const tenantId = searchParams.get('tenant_id') ?? DEMO_TENANT
+export async function GET(req: NextRequest) {
+  const parsed = parseQuery(pipelineDetailQuerySchema, req.nextUrl)
+  if (!parsed.success) return parsed.response
+  const { tenant_id: tenantId } = parsed.data
   const data = await fetchPipelineDetail(tenantId)
   return NextResponse.json(data)
 }

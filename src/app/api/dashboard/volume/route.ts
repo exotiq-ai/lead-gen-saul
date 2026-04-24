@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { parseQuery } from '@/lib/validation/parse'
+import { volumeQuerySchema } from '@/lib/validation/schemas'
 
 export const runtime = 'nodejs'
 
-type TimeRange = '7d' | '30d' | '90d' | 'all'
-
-function rangeToMs(range: TimeRange): number | null {
+function rangeToMs(range: '7d' | '30d' | '90d' | 'all'): number | null {
   switch (range) {
     case '7d':  return 7  * 24 * 60 * 60 * 1000
     case '30d': return 30 * 24 * 60 * 60 * 1000
@@ -16,13 +16,10 @@ function rangeToMs(range: TimeRange): number | null {
 
 const OUTBOUND_SOURCES = new Set(['outbound', 'api'])
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url)
-  const tenantId = searchParams.get('tenant_id')
-  const range = (searchParams.get('range') ?? '30d') as TimeRange
-  if (!tenantId) {
-    return NextResponse.json({ error: 'tenant_id required' }, { status: 400 })
-  }
+export async function GET(req: NextRequest) {
+  const parsed = parseQuery(volumeQuerySchema, req.nextUrl)
+  if (!parsed.success) return parsed.response
+  const { tenant_id: tenantId, range } = parsed.data
 
   const supabase = createServerClient()
   const ms = rangeToMs(range)
