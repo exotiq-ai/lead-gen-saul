@@ -108,7 +108,7 @@ export function LeadRow({ lead, index, onClick, onScoreClick, onStatusClick }: L
       </td>
 
       {/* Industry / Fleet */}
-      <td className="px-4 py-2.5">
+      <td className="hidden md:table-cell px-4 py-2.5">
         <div className="flex flex-col gap-0.5">
           <span className="text-[12px] text-[var(--color-saul-text-primary)] truncate leading-tight">
             {industry ?? '—'}
@@ -122,7 +122,7 @@ export function LeadRow({ lead, index, onClick, onScoreClick, onStatusClick }: L
       </td>
 
       {/* Source */}
-      <td className="px-4 py-2.5">
+      <td className="hidden md:table-cell px-4 py-2.5">
         <Badge variant={sourceCfg.variant}>{sourceCfg.label}</Badge>
       </td>
 
@@ -153,7 +153,7 @@ export function LeadRow({ lead, index, onClick, onScoreClick, onStatusClick }: L
       </td>
 
       {/* Assigned */}
-      <td className="px-4 py-2.5">
+      <td className="hidden md:table-cell px-4 py-2.5">
         {lead.assigned_to === 'gregory' ? (
           <Tooltip content="Gregory Ringler" position="top">
             <span
@@ -186,12 +186,12 @@ export function LeadRow({ lead, index, onClick, onScoreClick, onStatusClick }: L
       </td>
 
       {/* Red Flags */}
-      <td className="px-4 py-2.5">
+      <td className="hidden md:table-cell px-4 py-2.5">
         <RedFlagBadge flags={lead.red_flags} />
       </td>
 
       {/* Last Active */}
-      <td className="px-4 py-2.5 whitespace-nowrap">
+      <td className="hidden md:table-cell px-4 py-2.5 whitespace-nowrap">
         <span className={['text-[11px] font-medium tabular-nums', lastActiveColor].join(' ')}>
           {lead.last_activity_at ? formatRelative(lead.last_activity_at) : '—'}
         </span>

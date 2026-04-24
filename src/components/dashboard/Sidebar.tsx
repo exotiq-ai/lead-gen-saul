@@ -14,7 +14,6 @@ import {
   Robot,
   CurrencyDollar,
   Gear,
-  List,
 } from '@phosphor-icons/react'
 import { TenantSelector } from './TenantSelector'
 import { useSidebarStore } from '@/stores/sidebarStore'
@@ -65,7 +64,7 @@ export function Sidebar() {
   return (
     <>
       {/* Desktop sidebar (hidden on mobile screens) */}
-      <aside className="hidden lg:block fixed inset-y-0 left-0 z-30 flex flex-col w-[240px] bg-[var(--color-saul-bg-900)] border-r border-[rgba(255,255,255,0.05)]">
+      <aside className="hidden lg:flex fixed inset-y-0 left-0 z-30 flex-col w-[240px] bg-[var(--color-saul-bg-900)] border-r border-[rgba(255,255,255,0.05)]">
         {/* Logo */}
         <div className="px-5 pt-6 pb-5">
           <div className="flex flex-col gap-0.5">
@@ -149,15 +148,15 @@ export function Sidebar() {
       </aside>
 
       {/* Mobile overlay sidebar */}
-      <div className={`fixed inset-0 z-50 lg:hidden ${open ? 'block' : 'hidden'}`}>
+      <div className={`lg:hidden ${open ? 'pointer-events-auto' : 'pointer-events-none'}`}>
         {/* Backdrop */}
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50"
+          className={`fixed inset-0 z-40 bg-black transition-opacity duration-300 ${open ? 'opacity-60' : 'opacity-0'}`}
           onClick={close}
         />
         
         {/* Sidebar panel */}
-        <aside className="fixed inset-y-0 left-0 z-50 w-[240px] bg-[var(--color-saul-bg-900)] border-r border-[rgba(255,255,255,0.05)] transform transition-transform duration-300 ease-in-out">
+        <aside className={`fixed inset-y-0 left-0 z-50 w-[260px] bg-[var(--color-saul-bg-900)] border-r border-[rgba(255,255,255,0.05)] transform transition-transform duration-300 ease-out ${open ? 'translate-x-0' : '-translate-x-full'}`}>
           {/* Logo */}
           <div className="px-5 pt-6 pb-5">
             <div className="flex flex-col gap-0.5">

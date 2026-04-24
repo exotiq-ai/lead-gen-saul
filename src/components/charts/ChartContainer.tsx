@@ -94,7 +94,7 @@ export function ChartContainer({
       </div>
 
       {/* Body */}
-      <div style={{ minHeight: '280px' }} className="flex flex-col justify-center">
+      <div className="flex flex-col justify-center min-h-[220px] md:min-h-[280px]">
         {isLoading ? (
           <SkeletonChart height={280} />
         ) : error ? (
