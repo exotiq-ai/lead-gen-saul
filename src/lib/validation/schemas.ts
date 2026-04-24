@@ -4,7 +4,10 @@ export const DEMO_TENANT_ID = '00000000-0000-0000-0000-000000000001' as const
 
 const emptyToUndef = (v: unknown) => (v === '' || v === null || v === undefined ? undefined : v)
 
-const uuidString = z.string().uuid()
+// Zod v4 .uuid() enforces RFC 4122 version/variant bits which rejects
+// our demo UUID (00000000-...). Use a regex that accepts any UUID-shaped string.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const uuidString = z.string().regex(UUID_RE, 'must be a valid UUID')
 
 /** If missing/empty, use demo tenant */
 function tenantWithDefault() {
@@ -15,19 +18,19 @@ function tenantWithDefault() {
 }
 
 export const requiredTenantIdQuerySchema = z.object({
-  tenant_id: z.string().uuid('tenant_id must be a valid UUID'),
+  tenant_id: z.string().regex(UUID_RE, 'tenant_id must be a valid UUID'),
 })
 
 const timeRangeT = z.enum(['7d', '30d', '90d', 'all'])
 const sortOptions = z.enum(['score_desc', 'score_asc', 'created_desc', 'activity_desc'])
 
 export const volumeQuerySchema = z.object({
-  tenant_id: z.string().uuid('tenant_id must be a valid UUID'),
+  tenant_id: z.string().regex(UUID_RE, 'tenant_id must be a valid UUID'),
   range: timeRangeT.default('30d'),
 })
 
 export const agingQuerySchema = z.object({
-  tenant_id: z.string().uuid('tenant_id must be a valid UUID'),
+  tenant_id: z.string().regex(UUID_RE, 'tenant_id must be a valid UUID'),
 })
 
 export const leadsListQuerySchema = z.object({
@@ -57,7 +60,7 @@ export const leadsListQuerySchema = z.object({
     .preprocess((v) => v === 'true' || v === true, z.boolean())
     .default(false),
 
-  stage_id: z.preprocess(emptyToUndef, z.string().uuid('stage_id must be a valid UUID').optional()),
+  stage_id: z.preprocess(emptyToUndef, z.string().regex(UUID_RE, 'stage_id must be a valid UUID').optional()),
 
   score_min: z.preprocess(emptyToUndef, z.coerce.number().int().min(0).max(100).optional()),
 
@@ -73,7 +76,7 @@ export const leadDetailQuerySchema = z.object({
   tenant_id: tenantWithDefault(),
 })
 
-export const leadIdParamSchema = z.string().uuid('id must be a valid UUID')
+export const leadIdParamSchema = z.string().regex(UUID_RE, 'id must be a valid UUID')
 
 // Dashboard routes: several require explicit tenant, several default to demo
 export const defaultTenantQuerySchema = z.object({
@@ -89,8 +92,8 @@ export const economicsQuerySchema = defaultTenantQuerySchema
 
 // POST / PATCH bodies
 export const enrichmentTriggerBodySchema = z.object({
-  lead_id: z.string().uuid(),
-  tenant_id: z.string().uuid(),
+  lead_id: z.string().regex(UUID_RE),
+  tenant_id: z.string().regex(UUID_RE),
   process: z.boolean().optional(),
 })
 
@@ -99,12 +102,12 @@ export const enrichmentStatusQuerySchema = z.object({
 })
 
 export const scoringCalculateBodySchema = z.object({
-  lead_id: z.string().uuid(),
-  tenant_id: z.string().uuid(),
+  lead_id: z.string().regex(UUID_RE),
+  tenant_id: z.string().regex(UUID_RE),
 })
 
 export const scoringHistoryQuerySchema = z.object({
-  lead_id: z.string().uuid('lead_id must be a valid UUID'),
+  lead_id: z.string().regex(UUID_RE, 'lead_id must be a valid UUID'),
   tenant_id: tenantWithDefault(),
 })
 
@@ -122,7 +125,7 @@ export const outreachQueueQuerySchema = z.object({
 
 export const outreachQueuePatchBodySchema = z
   .object({
-    tenant_id: z.string().uuid(),
+    tenant_id: z.string().regex(UUID_RE),
     action: z.enum(['approve', 'reject', 'edit', 'mark_sent']),
     message_draft: z.string().max(20000).optional(),
     reviewed_by: z.string().max(120).optional(),
