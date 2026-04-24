@@ -2,6 +2,8 @@
 
 Next.js 16 dashboard + Supabase + TypeScript. **Phase 2** adds Zod on all API routes, enrichment (`/api/enrichment/*`), scoring (`/api/scoring/*`), outreach approval queue (`/dashboard/outreach`), GHL webhooks, and the OpenClaw-style **Agents** page.
 
+**Git workflow, pre-push hook, and remote** are documented in [`AGENTS.md`](AGENTS.md).
+
 ## Environment
 
 Copy `.env.local` and set at least:

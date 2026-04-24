@@ -1,0 +1,6 @@
+#!/bin/sh
+# Pre-push: TypeScript typecheck. Skip with: git push --no-verify
+set -e
+cd -- "$(git rev-parse --show-toplevel)" || exit 1
+printf 'pre-push: running npm run typecheck...\n'
+npm run typecheck

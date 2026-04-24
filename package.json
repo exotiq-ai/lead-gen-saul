@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint",
+    "setup:git-hooks": "git config core.hooksPath .githooks",
+    "git:push-main": "git pull --rebase origin main && git push origin main",
     "seed": "tsx scripts/seed.ts",
     "reset-demo": "tsx scripts/reset-demo.ts",
     "migrate": "tsx scripts/migrate.ts"
