@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+@theme {
+  /* Saul background scale */
+  --color-saul-bg-900: #0A0E17;
+  --color-saul-bg-800: #0F1422;
+  --color-saul-bg-700: #151B2E;
+  --color-saul-bg-600: #1C2439;
+
+  /* Signal Cyan */
+  --color-saul-cyan: #00D4AA;
+  --color-saul-cyan-50: #E6FFF8;
+  --color-saul-cyan-100: #B3FFE9;
+  --color-saul-cyan-200: #66FFD4;
+  --color-saul-cyan-300: #33FFCA;
+  --color-saul-cyan-400: #00F5BE;
+  --color-saul-cyan-500: #00D4AA;
+  --color-saul-cyan-600: #00A888;
+  --color-saul-cyan-700: #007D66;
+  --color-saul-cyan-800: #005244;
+  --color-saul-cyan-900: #002922;
+
+  /* Semantic */
+  --color-saul-success: #00D4AA;
+  --color-saul-warning: #FFAE42;
+  --color-saul-danger: #FF4757;
+  --color-saul-info: #3B82F6;
+
+  /* Text */
+  --color-saul-text-primary: #F0F2F5;
+  --color-saul-text-secondary: #8B95A8;
+  --color-saul-text-tertiary: #4A5568;
+  --color-saul-text-accent: #00D4AA;
+
+  /* Chart palette */
+  --color-saul-chart-1: #00D4AA;
+  --color-saul-chart-2: #3B82F6;
+  --color-saul-chart-3: #FFAE42;
+  --color-saul-chart-4: #A855F7;
+  --color-saul-chart-5: #FF4757;
+  --color-saul-chart-6: #06B6D4;
+  --color-saul-chart-7: #F97316;
+  --color-saul-chart-8: #EC4899;
+
+  /* Fonts */
+  --font-sans: var(--font-jakarta);
+  --font-mono: var(--font-jetbrains);
+
+  /* Radius */
+  --radius-card: 8px;
+  --radius-button: 6px;
+  --radius-badge: 4px;
+}
+
+/* Custom scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 212, 170, 0.2) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 170, 0);
+  border-radius: 2px;
+  transition: background 0.2s;
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 170, 0.2);
+}
+
+body {
+  background-color: var(--color-saul-bg-800);
+  color: var(--color-saul-text-primary);
+  font-family: var(--font-sans);
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-saul-bg-700);
+}
+
+.skeleton-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent);
+  animation: shimmer 1.5s infinite;
+}
