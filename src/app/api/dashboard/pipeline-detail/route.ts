@@ -108,7 +108,7 @@ export async function fetchPipelineDetail(tenantId: string): Promise<PipelineDet
     supabase
       .from('leads')
       .select(
-        'id, first_name, last_name, company_name, city, state, score, assigned_to, red_flags, last_activity_at, stage_id, ghl_pipeline_stage_id, created_at'
+        'id, first_name, last_name, company_name, company_location, score, assigned_to, red_flags, last_activity_at, stage_id, created_at'
       )
       .eq('tenant_id', tenantId),
     supabase
@@ -123,14 +123,12 @@ export async function fetchPipelineDetail(tenantId: string): Promise<PipelineDet
     first_name: string | null
     last_name: string | null
     company_name: string | null
-    city: string | null
-    state: string | null
+    company_location: string | null
     score: number | null
     assigned_to: string | null
     red_flags: unknown
     last_activity_at: string | null
     stage_id: string | null
-    ghl_pipeline_stage_id: string | null
     created_at: string
   }
 
@@ -142,7 +140,7 @@ export async function fetchPipelineDetail(tenantId: string): Promise<PipelineDet
   for (const s of stages) stageLeadMap.set(s.id, [])
 
   for (const lead of allLeads) {
-    const sid = lead.stage_id ?? lead.ghl_pipeline_stage_id
+    const sid = lead.stage_id
     if (sid && stageLeadMap.has(sid)) {
       stageLeadMap.get(sid)!.push(lead)
     }
@@ -193,8 +191,8 @@ export async function fetchPipelineDetail(tenantId: string): Promise<PipelineDet
         first_name: l.first_name,
         last_name: l.last_name,
         company_name: l.company_name,
-        city: l.city,
-        state: l.state,
+        city: null,
+        state: null,
         score: l.score,
         assigned_to: l.assigned_to,
         red_flags: l.red_flags,
