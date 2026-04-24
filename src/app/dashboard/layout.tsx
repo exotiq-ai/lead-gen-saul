@@ -13,10 +13,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <Sidebar />
 
       {/* Center column: topbar + main content */}
-      <div className="flex flex-col flex-1 min-w-0 ml-[240px] xl:mr-[280px]">
+      <div className="flex flex-col flex-1 min-w-0 lg:ml-[240px] xl:mr-[280px]">
         <TopBar />
         <main className="flex-1 pt-[60px] overflow-y-auto">
-          <div className="p-6 max-w-[1600px] mx-auto">{children}</div>
+          <div className="p-4 md:p-6 max-w-[1600px] mx-auto">{children}</div>
         </main>
       </div>
 

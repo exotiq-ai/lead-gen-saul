@@ -118,7 +118,7 @@ export function TokenUsageChart({ data: propData, demoMode = false }: TokenUsage
   const filteredTicks = data.filter((_, i) => i % tickInterval === 0).map((d) => d.date)
 
   return (
-    <div className="flex flex-col gap-3 w-full" style={{ minHeight: 280 }}>
+    <div className="flex flex-col gap-3 w-full min-h-[220px] md:min-h-[280px]">
       <div className="flex justify-end">
         <InlineLegend />
       </div>

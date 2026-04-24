@@ -129,7 +129,7 @@ export function ScoreDistribution({
   }
 
   return (
-    <div className="flex flex-col gap-3 w-full" style={{ minHeight: 280 }}>
+    <div className="flex flex-col gap-3 w-full min-h-[220px] md:min-h-[280px]">
       {/* KPI header */}
       <div className="flex items-center gap-4">
         <div className="flex flex-col gap-0.5">

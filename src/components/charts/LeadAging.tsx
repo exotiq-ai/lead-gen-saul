@@ -129,7 +129,7 @@ export function LeadAging({ data: propData, onBucketClick, demoMode = false }: L
   const total = raw.reduce((s, d) => s + d.count, 0)
 
   return (
-    <div className="flex flex-col gap-3 w-full" style={{ minHeight: 280 }}>
+    <div className="flex flex-col gap-3 w-full min-h-[220px] md:min-h-[280px]">
       {/* Mini legend with share */}
       <div className="flex items-center gap-4 flex-wrap">
         {raw.map((d) => {

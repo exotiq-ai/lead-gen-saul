@@ -153,7 +153,7 @@ export function LeadVolumeChart({
     .map((d) => d.date)
 
   return (
-    <div className="flex flex-col gap-3 w-full" style={{ minHeight: 280 }}>
+    <div className="flex flex-col gap-3 w-full min-h-[220px] md:min-h-[280px]">
       <div className="flex justify-end">
         <InlineLegend />
       </div>

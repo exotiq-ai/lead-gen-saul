@@ -120,7 +120,7 @@ export function SourceAttribution({ data: propData, demoMode = false }: SourceAt
   ]
 
   return (
-    <div className="flex flex-col gap-3 w-full" style={{ minHeight: 280 }}>
+    <div className="flex flex-col gap-3 w-full min-h-[220px] md:min-h-[280px]">
       {/* Legend */}
       <div className="flex items-center gap-4 flex-wrap">
         {legend.map((l) => (

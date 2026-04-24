@@ -83,7 +83,7 @@ export function DashboardClient() {
     <div className="flex flex-col gap-6">
       {/* KPI Row */}
       <section aria-label="Key metrics">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {kpisLoading || kpisError || !kpiCards
             ? Array.from({ length: 4 }).map((_, i) => <SkeletonKPI key={i} />)
             : kpiCards.map((kpi) => <KPICard key={kpi.title} {...kpi} />)}
@@ -91,8 +91,8 @@ export function DashboardClient() {
       </section>
 
       {/* Chart Row 1: Pipeline + Lead Volume */}
-      <section aria-label="Pipeline and volume" className="grid grid-cols-5 gap-4 mb-4">
-        <div className="col-span-2">
+      <section aria-label="Pipeline and volume" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+        <div className="col-span-1 lg:col-span-2">
           <ChartContainer
             title="Pipeline"
             isLoading={pipelineLoading || !pipelineData}
@@ -106,7 +106,7 @@ export function DashboardClient() {
           </ChartContainer>
         </div>
 
-        <div className="col-span-3">
+        <div className="col-span-1 lg:col-span-3">
           <ChartContainer
             title="Lead Volume"
             timeRangeSelector
@@ -121,7 +121,7 @@ export function DashboardClient() {
       </section>
 
       {/* Chart Row 2: Source Attribution + Score Distribution + Lead Aging */}
-      <section aria-label="Analytics breakdowns" className="grid grid-cols-3 gap-4">
+      <section aria-label="Analytics breakdowns" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <ChartContainer
           title="Source Attribution"
           isLoading={sourcesLoading || !sourcesData}

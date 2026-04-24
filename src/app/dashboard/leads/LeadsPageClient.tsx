@@ -541,7 +541,7 @@ export function LeadsPageClient() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] border-collapse">
+            <table className="w-full min-w-[800px] border-collapse">
               {/* Sticky header */}
               <thead className="sticky top-0 z-10 bg-[var(--color-saul-bg-600)]">
                 <tr className="border-b border-[rgba(255,255,255,0.07)]">
@@ -551,6 +551,7 @@ export function LeadsPageClient() {
                       className={[
                         'px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--color-saul-text-tertiary)]',
                         h.width,
+                        i >= 1 && i <= 5 ? 'hidden md:table-cell' : '',
                       ].join(' ')}
                     >
                       {h.label}

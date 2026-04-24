@@ -60,7 +60,7 @@ export function PipelineFunnel({
   const maxCount = sorted[0]?.count ?? 1
 
   return (
-    <div className="flex flex-col gap-0 w-full select-none" style={{ minHeight: 280 }}>
+    <div className="flex flex-col gap-0 w-full select-none min-h-[220px] md:min-h-[280px]">
       {sorted.map((stage, i) => {
         const widthPct = (stage.count / maxCount) * 100
         const prevCount = i > 0 ? sorted[i - 1].count : null
