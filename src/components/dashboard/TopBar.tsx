@@ -2,9 +2,10 @@
 
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Warning } from '@phosphor-icons/react'
+import { Warning, List } from '@phosphor-icons/react'
 import useSWR from 'swr'
 import { useDashboardStore } from '@/stores/dashboardStore'
+import { useSidebarStore } from '@/stores/sidebarStore'
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 const TENANT = '00000000-0000-0000-0000-000000000001'
@@ -46,13 +47,24 @@ export function TopBar({ title }: TopBarProps) {
 
   return (
     <header
-      className="fixed top-0 left-[240px] right-0 z-20 h-[60px] flex items-center justify-between px-6 bg-[var(--color-saul-bg-800)]"
+      className="fixed top-0 left-0 lg:left-[240px] right-0 z-20 h-[60px] flex items-center justify-between px-4 md:px-6 bg-[var(--color-saul-bg-800)]"
       style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
     >
-      {/* Page title */}
-      <h1 className="text-[15px] font-semibold text-[var(--color-saul-text-primary)] tracking-[-0.01em]">
-        {pageTitle}
-      </h1>
+      <div className="flex items-center gap-3">
+        {/* Hamburger menu -- mobile only */}
+        <button
+          className="lg:hidden p-2 -ml-2 text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] transition-colors"
+          onClick={() => useSidebarStore.getState().toggle()}
+          aria-label="Toggle navigation"
+        >
+          <List size={22} weight="bold" />
+        </button>
+
+        {/* Page title */}
+        <h1 className="text-[15px] font-semibold text-[var(--color-saul-text-primary)] tracking-[-0.01em]">
+          {pageTitle}
+        </h1>
+      </div>
 
       {/* Right controls */}
       <div className="flex items-center gap-3">
