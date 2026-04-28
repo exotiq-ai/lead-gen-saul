@@ -150,7 +150,10 @@ export function ApprovalCard({
       <div className="flex flex-wrap items-center gap-2 mt-4">
         {item.status === 'pending' && !editing && (
           <>
-            <Button size="sm" onClick={() => void patch('approve')} disabled={loading} className="gap-1.5">
+            <Button size="sm" onClick={() => {
+              if (!window.confirm(`Approve this outreach to ${title}? It will be queued for send.`)) return
+              void patch('approve')
+            }} disabled={loading} className="gap-1.5">
               <Check size={16} weight="bold" />
               Approve
             </Button>
@@ -167,7 +170,10 @@ export function ApprovalCard({
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => void patch('reject')}
+              onClick={() => {
+                if (!window.confirm(`Reject this outreach to ${title}? This cannot be undone.`)) return
+                void patch('reject')
+              }}
               disabled={loading}
               className="gap-1.5 text-rose-300"
             >
@@ -193,7 +199,10 @@ export function ApprovalCard({
         {item.status === 'approved' && (
           <Button
             size="sm"
-            onClick={() => void patch('mark_sent')}
+            onClick={() => {
+              if (!window.confirm(`Mark as sent via GHL? Make sure the message was actually delivered.`)) return
+              void patch('mark_sent')
+            }}
             disabled={loading}
             className="gap-1.5"
           >

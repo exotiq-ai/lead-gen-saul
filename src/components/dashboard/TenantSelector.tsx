@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CaretDown, Car, Check } from '@phosphor-icons/react'
 import { useDashboardStore } from '@/stores/dashboardStore'
@@ -13,6 +14,8 @@ const DEMO_TENANTS = [
 export function TenantSelector() {
   const [open, setOpen] = useState(false)
   const { activeTenantId, setActiveTenantId } = useDashboardStore()
+  const router = useRouter()
+  const pathname = usePathname()
 
   const active =
     DEMO_TENANTS.find((t) => t.id === activeTenantId) ?? DEMO_TENANTS[0]
@@ -20,6 +23,10 @@ export function TenantSelector() {
   function select(id: string) {
     setActiveTenantId(id)
     setOpen(false)
+    const tenant = DEMO_TENANTS.find((t) => t.id === id)
+    if (tenant) {
+      router.push(`${pathname}?tenant=${tenant.slug}`)
+    }
   }
 
   return (

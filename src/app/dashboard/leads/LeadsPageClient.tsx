@@ -13,6 +13,7 @@ import {
   CaretRight,
   ArrowsDownUp,
   UploadSimple,
+  DownloadSimple,
 } from '@phosphor-icons/react'
 import useSWR from 'swr'
 import { useFilterStore } from '@/stores/filterStore'
@@ -447,13 +448,36 @@ export function LeadsPageClient() {
         <h1 className="text-[18px] font-semibold text-[var(--color-saul-text-primary)] tracking-tight">
           Leads
         </h1>
-        <button
-          onClick={() => setShowImport(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[var(--color-saul-bg-600)] border border-[rgba(255,255,255,0.08)] text-[12px] font-medium text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:border-[rgba(0,212,170,0.3)] transition-all duration-150"
-        >
-          <UploadSimple size={14} weight="bold" />
-          Import CSV
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              if (!leads.length) return
+              const headers = ['company_name','first_name','last_name','email','phone','source','score','status','city','state','last_activity_at']
+              const rows = leads.map((l) => headers.map((h) => {
+                const v = (l as unknown as Record<string, unknown>)[h]
+                const s = v == null ? '' : String(v)
+                return s.includes(',') ? `"${s}"` : s
+              }).join(','))
+              const csv = [headers.join(','), ...rows].join('\n')
+              const blob = new Blob([csv], { type: 'text/csv' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url; a.download = `leads-export-${new Date().toISOString().slice(0,10)}.csv`
+              a.click(); URL.revokeObjectURL(url)
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[var(--color-saul-bg-600)] border border-[rgba(255,255,255,0.08)] text-[12px] font-medium text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:border-[rgba(0,212,170,0.3)] transition-all duration-150"
+          >
+            <DownloadSimple size={14} weight="bold" />
+            Export CSV
+          </button>
+          <button
+            onClick={() => setShowImport(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[var(--color-saul-bg-600)] border border-[rgba(255,255,255,0.08)] text-[12px] font-medium text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:border-[rgba(0,212,170,0.3)] transition-all duration-150"
+          >
+            <UploadSimple size={14} weight="bold" />
+            Import CSV
+          </button>
+        </div>
       </div>
 
       <CsvImportModal

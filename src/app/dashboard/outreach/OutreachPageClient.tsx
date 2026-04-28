@@ -28,7 +28,7 @@ export function OutreachPageClient() {
   const { data, error, isLoading, mutate } = useSWR(
     `/api/outreach/queue?tenant_id=${tenantId}&status=${tab}&limit=200`,
     fetcher,
-    { revalidateOnFocus: true },
+    { revalidateOnFocus: true, refreshInterval: 15_000 },
   )
 
   const items = data?.items ?? []
