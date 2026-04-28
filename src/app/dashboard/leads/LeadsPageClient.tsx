@@ -12,11 +12,13 @@ import {
   CaretLeft,
   CaretRight,
   ArrowsDownUp,
+  UploadSimple,
 } from '@phosphor-icons/react'
 import useSWR from 'swr'
 import { useFilterStore } from '@/stores/filterStore'
 import { useTenantId } from '@/lib/hooks/useTenant'
 import { LeadRow } from '@/components/leads/LeadRow'
+import { CsvImportModal } from '@/components/leads/CsvImportModal'
 import type { Lead, LeadStatus } from '@/types/lead'
 
 // ---------------------------------------------------------------------------
@@ -362,6 +364,7 @@ export function LeadsPageClient() {
   const [sort, setSort] = useState('score_desc')
   const [page, setPage] = useState(1)
   const [jumpInput, setJumpInput] = useState('')
+  const [showImport, setShowImport] = useState(false)
 
   const debouncedSearch = useDebounce(search, 300)
 
@@ -386,12 +389,26 @@ export function LeadsPageClient() {
     return `/api/leads?${params.toString()}`
   }, [page, sort, debouncedSearch, assignedToFilter, redFlagsOnly, statusFilter])
 
-  const { data, isLoading, error } = useSWR<LeadsResponse>(buildUrl(), fetcher, {
+  const { data, isLoading, error, mutate } = useSWR<LeadsResponse>(buildUrl(), fetcher, {
     keepPreviousData: true,
   })
 
   const leads = data?.data ?? []
   const meta = data?.meta
+
+  // Stage promotion handler
+  const handleStageChange = async (leadId: string, newStatus: string) => {
+    try {
+      const res = await fetch(`/api/leads/${leadId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus, tenant_id: tenantId }),
+      })
+      if (res.ok) void mutate()
+    } catch (err) {
+      console.error('[stage-change]', err)
+    }
+  }
 
   // Determine if any filters are active
   const hasActiveFilters =
@@ -430,7 +447,21 @@ export function LeadsPageClient() {
         <h1 className="text-[18px] font-semibold text-[var(--color-saul-text-primary)] tracking-tight">
           Leads
         </h1>
+        <button
+          onClick={() => setShowImport(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[var(--color-saul-bg-600)] border border-[rgba(255,255,255,0.08)] text-[12px] font-medium text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:border-[rgba(0,212,170,0.3)] transition-all duration-150"
+        >
+          <UploadSimple size={14} weight="bold" />
+          Import CSV
+        </button>
       </div>
+
+      <CsvImportModal
+        open={showImport}
+        onClose={() => setShowImport(false)}
+        tenantId={tenantId}
+        onSuccess={() => void mutate()}
+      />
 
       {/* ── Filter bar ── */}
       <div className="flex flex-col gap-2 p-3 rounded-[8px] bg-[var(--color-saul-bg-700)] border border-[rgba(255,255,255,0.06)]">
@@ -574,6 +605,7 @@ export function LeadsPageClient() {
                       lead={lead}
                       index={i}
                       onClick={() => router.push(`/dashboard/leads/${lead.id}?tenant=${tenantId}`)}  
+                      onStageChange={handleStageChange}
                       onStatusClick={(status) => {
                         if (!statusFilter.includes(status)) {
                           setStatusFilter([status])

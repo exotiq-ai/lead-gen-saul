@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { motion, type Easing } from 'framer-motion'
 import { ArrowRight } from '@phosphor-icons/react'
 import { Tooltip } from '@/components/ui/Tooltip'
@@ -7,6 +8,7 @@ import { Badge } from '@/components/ui/Badge'
 import { LeadScoreCard } from './LeadScoreCard'
 import { RedFlagBadge } from './RedFlagBadge'
 import { formatRelative } from '@/lib/utils/formatters'
+import { differenceInDays } from 'date-fns'
 import type { Lead, LeadStatus, LeadSource } from '@/types/lead'
 
 interface LeadRowProps {
@@ -15,6 +17,7 @@ interface LeadRowProps {
   onClick: () => void
   onScoreClick?: (score: number) => void
   onStatusClick?: (status: LeadStatus) => void
+  onStageChange?: (leadId: string, newStatus: LeadStatus) => void
 }
 
 // Stage display config
@@ -75,7 +78,13 @@ const rowVariants = {
   }),
 }
 
-export function LeadRow({ lead, index, onClick, onScoreClick, onStatusClick }: LeadRowProps) {
+function isStale(lastActivity: string | null): boolean {
+  if (!lastActivity) return true
+  return differenceInDays(new Date(), new Date(lastActivity)) > 7
+}
+
+export function LeadRow({ lead, index, onClick, onScoreClick, onStatusClick, onStageChange }: LeadRowProps) {
+  const [stageDropdownOpen, setStageDropdownOpen] = useState(false)
   const displayName = lead.company_name || lead.full_name || '—'
   const location = [lead.city, lead.state].filter(Boolean).join(', ')
   const statusCfg = STATUS_CONFIG[lead.status] ?? { label: lead.status, variant: 'default' as const }
@@ -141,14 +150,48 @@ export function LeadRow({ lead, index, onClick, onScoreClick, onStatusClick }: L
 
       {/* Stage */}
       <td className="px-4 py-2.5">
-        <div
-          onClick={(e) => {
-            e.stopPropagation()
-            onStatusClick?.(lead.status)
-          }}
-          className="inline-block cursor-pointer transition-all duration-150 hover:opacity-80"
-        >
-          <Badge variant={statusCfg.variant}>{statusCfg.label}</Badge>
+        <div className="relative inline-block">
+          <div
+            onClick={(e) => {
+              e.stopPropagation()
+              if (onStageChange) {
+                setStageDropdownOpen((p) => !p)
+              } else {
+                onStatusClick?.(lead.status)
+              }
+            }}
+            className="inline-block cursor-pointer transition-all duration-150 hover:opacity-80"
+          >
+            <Badge variant={statusCfg.variant}>{statusCfg.label}</Badge>
+          </div>
+          {stageDropdownOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={(e) => { e.stopPropagation(); setStageDropdownOpen(false) }}
+              />
+              <div className="absolute top-full left-0 mt-1 z-50 min-w-[140px] py-1 rounded-lg bg-[var(--color-saul-bg-600)] border border-[rgba(255,255,255,0.1)] shadow-lg">
+                {(Object.entries(STATUS_CONFIG) as [LeadStatus, typeof statusCfg][]).map(([key, cfg]) => (
+                  <button
+                    key={key}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setStageDropdownOpen(false)
+                      if (key !== lead.status) onStageChange?.(lead.id, key)
+                    }}
+                    className={[
+                      'w-full text-left px-3 py-1.5 text-[12px] font-medium transition-colors duration-100',
+                      key === lead.status
+                        ? 'text-[var(--color-saul-cyan)] bg-[rgba(0,212,170,0.08)]'
+                        : 'text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:bg-[rgba(255,255,255,0.04)]',
+                    ].join(' ')}
+                  >
+                    {cfg.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </td>
 
@@ -192,8 +235,13 @@ export function LeadRow({ lead, index, onClick, onScoreClick, onStatusClick }: L
 
       {/* Last Active */}
       <td className="hidden md:table-cell px-4 py-2.5 whitespace-nowrap">
-        <span className={['text-[11px] font-medium tabular-nums', lastActiveColor].join(' ')}>
-          {lead.last_activity_at ? formatRelative(lead.last_activity_at) : '—'}
+        <span className="flex items-center gap-1.5">
+          <span className={['text-[11px] font-medium tabular-nums', lastActiveColor].join(' ')}>
+            {lead.last_activity_at ? formatRelative(lead.last_activity_at) : '—'}
+          </span>
+          {isStale(lead.last_activity_at) && (
+            <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" title="Stale: no activity in 7+ days" />
+          )}
         </span>
       </td>
 

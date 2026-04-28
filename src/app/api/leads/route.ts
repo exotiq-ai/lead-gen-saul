@@ -127,3 +127,70 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+interface ImportLead {
+  company_name: string
+  first_name?: string
+  last_name?: string
+  email?: string
+  phone?: string
+  city?: string
+  state?: string
+  source?: string
+}
+
+export async function POST(req: NextRequest) {
+  let body: { tenant_id?: string; leads?: ImportLead[] }
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+
+  const { tenant_id, leads } = body
+  if (!tenant_id || !UUID_RE.test(tenant_id)) {
+    return NextResponse.json({ error: 'Valid tenant_id (UUID) is required' }, { status: 400 })
+  }
+  if (!Array.isArray(leads) || leads.length === 0) {
+    return NextResponse.json({ error: 'leads array is required and cannot be empty' }, { status: 400 })
+  }
+  if (leads.length > 500) {
+    return NextResponse.json({ error: 'Maximum 500 leads per import' }, { status: 400 })
+  }
+
+  const rows = leads
+    .filter((l) => l.company_name?.trim())
+    .map((l) => ({
+      tenant_id,
+      company_name: l.company_name.trim(),
+      first_name: l.first_name?.trim() || null,
+      last_name: l.last_name?.trim() || null,
+      email: l.email?.trim() || null,
+      phone: l.phone?.trim() || null,
+      city: l.city?.trim() || null,
+      state: l.state?.trim() || null,
+      source: l.source?.trim() || 'api',
+      status: 'new' as const,
+      assigned_to: null,
+      score: null,
+      red_flags: [],
+      tags: [],
+      metadata: {},
+    }))
+
+  if (rows.length === 0) {
+    return NextResponse.json({ error: 'No valid leads (company_name required)' }, { status: 400 })
+  }
+
+  try {
+    const supabase = createServerClient()
+    const { error } = await supabase.from('leads').insert(rows)
+    if (error) throw error
+    return NextResponse.json({ imported: rows.length })
+  } catch (err) {
+    console.error('[leads-import]', err)
+    return NextResponse.json({ error: 'Import failed' }, { status: 500 })
+  }
+}

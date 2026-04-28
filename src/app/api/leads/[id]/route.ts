@@ -82,3 +82,78 @@ export async function GET(
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+
+const VALID_STATUSES = [
+  'new', 'enriching', 'scored', 'outreach', 'engaged',
+  'qualified', 'converted', 'lost', 'disqualified',
+] as const
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params
+  const idResult = leadIdParamSchema.safeParse(id)
+  if (!idResult.success) {
+    return NextResponse.json({ error: 'Invalid lead id' }, { status: 400 })
+  }
+
+  let body: { status?: string; tenant_id?: string }
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+
+  const { status, tenant_id } = body
+  if (!status || !tenant_id) {
+    return NextResponse.json({ error: 'status and tenant_id are required' }, { status: 400 })
+  }
+  if (!(VALID_STATUSES as readonly string[]).includes(status)) {
+    return NextResponse.json({ error: `Invalid status: ${status}` }, { status: 400 })
+  }
+
+  try {
+    const supabase = createServerClient()
+
+    // Fetch current lead to get old status
+    const { data: existing, error: fetchErr } = await supabase
+      .from('leads')
+      .select('status')
+      .eq('id', idResult.data)
+      .eq('tenant_id', tenant_id)
+      .single()
+
+    if (fetchErr || !existing) {
+      return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
+    }
+
+    const oldStatus = existing.status
+
+    // Update status
+    const { data: updated, error: updateErr } = await supabase
+      .from('leads')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', idResult.data)
+      .eq('tenant_id', tenant_id)
+      .select('*')
+      .single()
+
+    if (updateErr) throw updateErr
+
+    // Log activity
+    await supabase.from('lead_activities').insert({
+      lead_id: idResult.data,
+      tenant_id,
+      activity_type: 'status_changed',
+      channel: 'dashboard',
+      metadata: { old_status: oldStatus, new_status: status },
+      created_at: new Date().toISOString(),
+    })
+
+    return NextResponse.json(updated)
+  } catch (err) {
+    console.error('[lead-patch]', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
