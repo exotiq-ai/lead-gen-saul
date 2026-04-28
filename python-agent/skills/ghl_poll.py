@@ -27,18 +27,22 @@ from typing import Any, Optional
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import config first so .env gets loaded via dotenv
-from config import RATE_LIMIT_DELAY  # noqa: F401
+from config import RATE_LIMIT_DELAY, GHL_TENANT_CONFIG, DEFAULT_TENANT_ID  # noqa: F401
 from db import get_db
 
-GHL_API_KEY = os.environ.get("GHL_API_KEY", "")
-GHL_LOCATION_ID = os.environ.get("GHL_LOCATION_ID", "")
 GHL_API_BASE = "https://services.leadconnectorhq.com"
-DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001"
 
 
-def _ghl_headers() -> dict:
+def _ghl_config(tenant_id: str) -> dict:
+    """Return GHL credentials for the given tenant."""
+    cfg = GHL_TENANT_CONFIG.get(tenant_id) or GHL_TENANT_CONFIG.get(DEFAULT_TENANT_ID) or {}
+    return cfg
+
+
+def _ghl_headers(tenant_id: str) -> dict:
+    api_key = _ghl_config(tenant_id).get("api_key", "")
     return {
-        "Authorization": f"Bearer {GHL_API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "Version": "2021-04-15",
         "Accept": "application/json",
     }
@@ -63,18 +67,18 @@ def _get_last_poll_time(tenant_id: str) -> datetime:
     return datetime.now(timezone.utc) - timedelta(hours=24)
 
 
-def _fetch_conversations_since(since: datetime) -> list[dict]:
+def _fetch_conversations_since(since: datetime, tenant_id: str = DEFAULT_TENANT_ID) -> list[dict]:
     """Fetch conversations that have new activity since the given timestamp."""
     url = f"{GHL_API_BASE}/conversations/search"
     params = {
-        "locationId": GHL_LOCATION_ID,
+        "locationId": _ghl_config(tenant_id).get("location_id", ""),
         "limit": 100,
         "sort": "desc",
         "sortBy": "last_message_date",
     }
 
     try:
-        r = requests.get(url, headers=_ghl_headers(), params=params, timeout=15)
+        r = requests.get(url, headers=_ghl_headers(tenant_id), params=params, timeout=15)
         if r.status_code != 200:
             print(f"  ! GHL conversations fetch failed: {r.status_code} {r.text[:200]}")
             return []
@@ -92,11 +96,11 @@ def _fetch_conversations_since(since: datetime) -> list[dict]:
         return []
 
 
-def _fetch_messages_for_conversation(conv_id: str) -> list[dict]:
+def _fetch_messages_for_conversation(conv_id: str, tenant_id: str = DEFAULT_TENANT_ID) -> list[dict]:
     """Get messages in a specific conversation."""
     url = f"{GHL_API_BASE}/conversations/{conv_id}/messages"
     try:
-        r = requests.get(url, headers=_ghl_headers(), timeout=15)
+        r = requests.get(url, headers=_ghl_headers(tenant_id), timeout=15)
         if r.status_code != 200:
             return []
         return r.json().get("messages", {}).get("messages", [])
@@ -205,13 +209,14 @@ def _log_activity_and_update_lead(
 
 def poll_ghl(tenant_id: str = DEFAULT_TENANT_ID) -> dict[str, Any]:
     """Main polling entrypoint."""
-    if not GHL_API_KEY or not GHL_LOCATION_ID:
-        return {"status": "skipped", "reason": "GHL_API_KEY or GHL_LOCATION_ID not configured"}
+    cfg = _ghl_config(tenant_id)
+    if not cfg.get("api_key") or not cfg.get("location_id"):
+        return {"status": "skipped", "reason": f"GHL credentials not configured for tenant {tenant_id}"}
 
     since = _get_last_poll_time(tenant_id)
     print(f"Polling GHL since {since.isoformat()}")
 
-    conversations = _fetch_conversations_since(since)
+    conversations = _fetch_conversations_since(since, tenant_id)
     print(f"  {len(conversations)} conversations with recent activity")
 
     new_messages = 0
@@ -232,7 +237,7 @@ def poll_ghl(tenant_id: str = DEFAULT_TENANT_ID) -> dict[str, Any]:
             orphan_messages += 1
             continue
 
-        messages = _fetch_messages_for_conversation(conv_id)
+        messages = _fetch_messages_for_conversation(conv_id, tenant_id)
         for msg in messages:
             msg_id = msg.get("id")
             if not msg_id:
