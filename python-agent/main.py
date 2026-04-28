@@ -31,6 +31,7 @@ from db import get_db
 from config import SUPABASE_URL
 from skills.discover import discover_leads
 from skills.enrich import process_enrichment_queue
+from skills.enrich_gmaps import process_gmaps_enrichment
 from skills.score import process_scoring_queue
 from skills.draft import draft_outreach
 from skills.ghl_poll import poll_ghl
@@ -43,6 +44,8 @@ logging.basicConfig(
 )
 
 DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001"
+MEDSPA_TENANT_ID = "11111111-1111-1111-1111-111111111111"
+ALL_TENANTS = [DEFAULT_TENANT_ID, MEDSPA_TENANT_ID]
 RUN_DISCOVERY_EVERY_N_CYCLES = 4  # Discover new leads every 4 cycles (~1 hour)
 _cycle_count = 0
 
@@ -101,12 +104,15 @@ def run_pipeline(tenant_id: str = DEFAULT_TENANT_ID):
         _log("step_skipped", {"step": "discover", "reason": f"cycle {_cycle_count} mod {RUN_DISCOVERY_EVERY_N_CYCLES} != 1"})
 
     # -----------------------------------------------------------------------
-    # Step 2: Enrichment -- queue new leads into Apollo
+    # Step 2: Enrichment -- queue new leads into Apollo (or Google Maps for MedSpa)
     # -----------------------------------------------------------------------
     _log("step_start", {"step": "enrich"})
     t = time.time()
     try:
-        enrich_result = process_enrichment_queue(tenant_id=tenant_id)
+        if tenant_id == MEDSPA_TENANT_ID:
+            enrich_result = process_gmaps_enrichment(tenant_id=tenant_id)
+        else:
+            enrich_result = process_enrichment_queue(tenant_id=tenant_id)
         log_agent_run(tenant_id, "enrichment", "completed", enrich_result, int((time.time() - t) * 1000))
         _log("step_complete", {"step": "enrich", **enrich_result})
     except Exception as e:
@@ -167,13 +173,17 @@ def main():
     _log("agent_service_start", {
         "supabase_url": SUPABASE_URL,
         "schedule": "every 15 minutes",
-        "tenant": DEFAULT_TENANT_ID,
+        "tenants": ALL_TENANTS,
     })
 
-    # Run immediately on startup, then every 15 minutes
-    run_pipeline()
+    def run_all_tenants():
+        for tid in ALL_TENANTS:
+            run_pipeline(tenant_id=tid)
 
-    schedule.every(15).minutes.do(run_pipeline)
+    # Run immediately on startup, then every 15 minutes
+    run_all_tenants()
+
+    schedule.every(15).minutes.do(run_all_tenants)
 
     while True:
         schedule.run_pending()

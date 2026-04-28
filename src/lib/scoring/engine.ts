@@ -1,6 +1,8 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { calculateEngagement } from './engagement'
-import { calculateIcpFitFromBreakdown, applyIcpProfileWeights, type IcpProfileCriteria } from './icp'
+import { calculateIcpFitFromBreakdown, calculateMedSpaIcpFit, applyIcpProfileWeights, type IcpProfileCriteria } from './icp'
+
+const MEDSPA_TENANT_ID = '11111111-1111-1111-1111-111111111111'
 import { detectRedFlags } from './redflags'
 
 function mapScoreToExotiqTier(total: number): 1 | 2 | 3 | 4 | 5 {
@@ -63,7 +65,10 @@ export async function calculateScore(leadId: string, tenantId: string) {
       ? (lead.score_breakdown as Record<string, unknown>)
       : {}
 
-  const { icp_fit, components } = calculateIcpFitFromBreakdown(breakdown)
+  const isMedSpa = tenantId === MEDSPA_TENANT_ID
+  const { icp_fit, components } = isMedSpa
+    ? calculateMedSpaIcpFit(breakdown)
+    : calculateIcpFitFromBreakdown(breakdown)
   const blendedIcp = applyIcpProfileWeights(icp_fit, criteria)
 
   const { engagement } = await calculateEngagement(supabase, leadId, tenantId)

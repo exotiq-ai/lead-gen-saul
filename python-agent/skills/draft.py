@@ -22,8 +22,9 @@ from db import get_db
 from config import OUTREACH_SCORE_THRESHOLD
 
 DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001"
+MEDSPA_TENANT_ID = "11111111-1111-1111-1111-111111111111"
 
-# Templates: same V3 DM copy from exotiq-dashboard
+# Exotiq (automotive) templates
 TEMPLATES = {
     "tier1_proof": {
         "name": "IG DM -- Jay Denver Proof (Score 80+)",
@@ -53,6 +54,63 @@ Your fleet at {company_name} is unreal. You clearly know your market.
 I'm connecting with exotic car operators this month and helping optimize fleets. With you running at this scale, I'd love your take. Could we grab 15 minutes?""",
     },
 }
+
+
+# MedSpa-specific outreach templates
+MEDSPA_TEMPLATES = {
+    "website_audit": {
+        "name": "IG DM -- Website Audit (Score 70+)",
+        "channel": "instagram_dm",
+        "body": """Hey {first_name}, Gregory here.
+
+Spent a few minutes on {company_name}'s site — your work is stunning. The before/afters alone are worth more traffic than you're probably getting.
+
+We help med spas turn their existing content into a booking machine. One of our clients added 23 new clients in 30 days without touching their ad spend.
+
+Worth a 15-min chat? I'll show you exactly what I'd change first.""",
+    },
+    "booking_modernization": {
+        "name": "IG DM -- Booking System Pitch (Score 55-69)",
+        "channel": "instagram_dm",
+        "body": """Hey {first_name}, it's Gregory.
+
+Noticed {company_name} is still using {booking_note} for bookings. Totally fine — until you realize how many people bail when they can't book instantly at midnight.
+
+We set up a booking system that works while you sleep. Takes about a week to go live.
+
+Happy to show you what it looks like in practice — no pitch, just a walkthrough.""",
+    },
+    "before_after_gallery": {
+        "name": "IG DM -- Gallery/Social Proof (Score 45-54)",
+        "channel": "instagram_dm",
+        "body": """Hey {first_name}, Gregory here.
+
+Your gallery at {company_name} is genuinely impressive — that kind of work deserves to be seen by 10x the audience.
+
+We help med spas systemize their social proof so it actually converts. Quick question: are you getting consultations directly from Instagram or mostly from Google?
+
+Asking because the answer changes everything about how we'd approach it.""",
+    },
+}
+
+
+def _select_medspa_template(score: int, lead: dict) -> dict:
+    """Pick MedSpa template and interpolate lead-specific vars."""
+    if score >= 70:
+        tmpl = MEDSPA_TEMPLATES["website_audit"]
+    elif score >= 55:
+        tmpl = MEDSPA_TEMPLATES["booking_modernization"]
+    else:
+        tmpl = MEDSPA_TEMPLATES["before_after_gallery"]
+
+    # Extra interpolation var for booking template
+    booking_note = lead.get("metadata", {}).get("booking_system") or "a form"
+    body = tmpl["body"].format(
+        first_name=lead.get("first_name") or "there",
+        company_name=lead.get("company_name") or "your spa",
+        booking_note=booking_note,
+    )
+    return {**tmpl, "body": body}
 
 
 def _select_template(score: int) -> dict:
@@ -110,11 +168,14 @@ def draft_outreach(
             continue
 
         score = lead.get("score") or 0
-        template = _select_template(score)
-        first_name = lead.get("first_name") or ""
-        company_name = lead.get("company_name") or ""
-
-        draft_body = _render(template["body"], first_name, company_name)
+        if tenant_id == MEDSPA_TENANT_ID:
+            template = _select_medspa_template(score, lead)
+            draft_body = template["body"]  # already interpolated
+        else:
+            template = _select_template(score)
+            first_name = lead.get("first_name") or ""
+            company_name = lead.get("company_name") or ""
+            draft_body = _render(template["body"], first_name, company_name)
 
         db.table("outreach_queue").insert({
             "tenant_id": tenant_id,
