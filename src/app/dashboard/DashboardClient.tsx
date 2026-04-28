@@ -13,11 +13,12 @@ import {
 } from '@/components/charts'
 import { SkeletonKPI } from '@/components/ui'
 import { useDashboardStore } from '@/lib/store/dashboardStore'
+import { useTenantId } from '@/lib/hooks/useTenant'
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
-const TENANT = '00000000-0000-0000-0000-000000000001'
 
 export function DashboardClient() {
+  const TENANT = useTenantId()
   const router = useRouter()
   const { timeRange, setTimeRange } = useDashboardStore()
 

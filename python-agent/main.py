@@ -33,6 +33,7 @@ from skills.discover import discover_leads
 from skills.enrich import process_enrichment_queue
 from skills.score import process_scoring_queue
 from skills.draft import draft_outreach
+from skills.ghl_poll import poll_ghl
 
 # Logging setup: structured JSON lines for easy ingestion
 logging.basicConfig(
@@ -124,6 +125,19 @@ def run_pipeline(tenant_id: str = DEFAULT_TENANT_ID):
     except Exception as e:
         _log("step_error", {"step": "score", "error": str(e)})
         log_agent_run(tenant_id, "scoring", "failed", {"error": str(e)}, int((time.time() - t) * 1000))
+
+    # -----------------------------------------------------------------------
+    # Step 3.5: GHL polling -- pick up replies and new activity from GHL
+    # -----------------------------------------------------------------------
+    _log("step_start", {"step": "ghl_poll"})
+    t = time.time()
+    try:
+        ghl_result = poll_ghl(tenant_id=tenant_id)
+        log_agent_run(tenant_id, "ghl_poll", "completed", ghl_result, int((time.time() - t) * 1000))
+        _log("step_complete", {"step": "ghl_poll", **ghl_result})
+    except Exception as e:
+        _log("step_error", {"step": "ghl_poll", "error": str(e)})
+        log_agent_run(tenant_id, "ghl_poll", "failed", {"error": str(e)}, int((time.time() - t) * 1000))
 
     # -----------------------------------------------------------------------
     # Step 4: Draft outreach for qualified leads
