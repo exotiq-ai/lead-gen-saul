@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, type Transition } from 'framer-motion'
 import {
   Warning,
@@ -208,7 +208,7 @@ function LeadPreviewCard({
       initial="hidden"
       animate="visible"
       whileHover={{ scale: 1.02 }}
-      onClick={() => router.push(`/dashboard/leads/${lead.id}`)}
+      onClick={() => router.push(`/dashboard/leads/${lead.id}?tenant=${tenantParam}`)}
       className="relative p-2.5 rounded-[6px] border border-[rgba(255,255,255,0.05)] bg-[rgba(0,0,0,0.18)] cursor-pointer transition-[border-color,box-shadow] duration-150 hover:border-[rgba(0,212,170,0.3)] hover:shadow-[0_0_0_1px_rgba(0,212,170,0.08)]"
     >
       {/* Company + score row */}
@@ -343,7 +343,7 @@ function StageColumn({
       {/* Footer */}
       <div className="flex-shrink-0 border-t border-[rgba(255,255,255,0.05)] px-3 py-2">
         <Link
-          href={`/dashboard/leads?stage_id=${stage.id}`}
+          href={`/dashboard/leads?stage_id=${stage.id}&tenant=${tenantParam}`}
           className="flex items-center gap-1 text-[11px] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-cyan)] transition-colors duration-150 group"
         >
           <span>View all {stage.lead_count} leads</span>
@@ -396,6 +396,8 @@ interface PipelinePageClientProps {
 }
 
 export function PipelinePageClient({ data }: PipelinePageClientProps) {
+  const searchParams = useSearchParams()
+  const tenantParam = searchParams.get('tenant') || 'exotiq'
   const { stages } = data
   const activeStages = stages.filter((s) => !s.is_terminal)
 

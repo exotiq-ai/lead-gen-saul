@@ -15,13 +15,13 @@ import {
 } from '@phosphor-icons/react'
 import useSWR from 'swr'
 import { useFilterStore } from '@/stores/filterStore'
+import { useTenantId } from '@/lib/hooks/useTenant'
 import { LeadRow } from '@/components/leads/LeadRow'
 import type { Lead, LeadStatus } from '@/types/lead'
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-const DEMO_TENANT = '00000000-0000-0000-0000-000000000001'
 const PAGE_SIZE = 50
 
 const STAGE_OPTIONS: Array<{ value: LeadStatus | 'all'; label: string }> = [
@@ -370,10 +370,12 @@ export function LeadsPageClient() {
     setPage(1)
   }, [debouncedSearch, statusFilter, assignedToFilter, redFlagsOnly, sort])
 
+  const tenantId = useTenantId()
+
   // Build API URL
   const buildUrl = useCallback(() => {
     const params = new URLSearchParams()
-    params.set('tenant_id', DEMO_TENANT)
+    params.set('tenant_id', tenantId)
     params.set('page', String(page))
     params.set('limit', String(PAGE_SIZE))
     params.set('sort', sort)
@@ -571,7 +573,7 @@ export function LeadsPageClient() {
                       key={lead.id}
                       lead={lead}
                       index={i}
-                      onClick={() => router.push(`/dashboard/leads/${lead.id}`)}
+                      onClick={() => router.push(`/dashboard/leads/${lead.id}?tenant=${tenantId}`)}  
                       onStatusClick={(status) => {
                         if (!statusFilter.includes(status)) {
                           setStatusFilter([status])

@@ -46,8 +46,10 @@ export function DashboardClientLayout({ children }: DashboardClientLayoutProps) 
 
   return (
     <div className="relative">
-      {/* Tenant switcher pill */}
-      <div className="fixed top-3 right-3 z-50">
+      {/* Tenant switcher — sits below topbar, above content, no overlap */}
+      <div className="w-full px-4 py-2 border-b border-[rgba(255,255,255,0.05)] bg-[var(--color-saul-bg-800)] flex items-center gap-2">
+        <span className="text-[10px] text-[var(--color-saul-text-tertiary)] uppercase tracking-wider">Tenant</span>
+        <div className="relative">
         <button
           onClick={() => setOpen(!open)}
           className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[rgba(255,255,255,0.1)] bg-[var(--color-saul-bg-800,#0d0d0d)] hover:border-[rgba(0,212,170,0.3)] transition-colors text-[12px]"
@@ -77,6 +79,7 @@ export function DashboardClientLayout({ children }: DashboardClientLayoutProps) 
             ))}
           </div>
         )}
+        </div>
       </div>
       {children}
     </div>
