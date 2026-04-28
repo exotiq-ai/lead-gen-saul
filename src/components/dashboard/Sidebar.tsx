@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import useSWR from 'swr'
 import {
@@ -17,8 +17,7 @@ import {
 } from '@phosphor-icons/react'
 import { TenantSelector } from './TenantSelector'
 import { useSidebarStore } from '@/stores/sidebarStore'
-
-const EXOTIQ_TENANT = '00000000-0000-0000-0000-000000000001'
+import { useTenantId } from '@/lib/hooks/useTenant'
 
 interface NavItem {
   label: string
@@ -43,8 +42,15 @@ const outreachFetcher = (url: string) =>
 
 export function Sidebar() {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const tenantId = useTenantId()
+  const tenantSlug = searchParams.get('tenant')
+
+  const withTenant = (href: string) =>
+    tenantSlug ? `${href}${href.includes('?') ? '&' : '?'}tenant=${tenantSlug}` : href
+
   const { data: outreachMeta } = useSWR(
-    `/api/outreach/queue?tenant_id=${EXOTIQ_TENANT}&status=pending&limit=1`,
+    `/api/outreach/queue?tenant_id=${tenantId}&status=pending&limit=1`,
     outreachFetcher,
     { refreshInterval: 30_000, revalidateOnFocus: true, shouldRetryOnError: false },
   )
@@ -93,7 +99,7 @@ export function Sidebar() {
                 transition={{ duration: 0.2, ease: 'easeInOut' }}
               >
                 <Link
-                  href={item.href}
+                  href={withTenant(item.href)}
                   onClick={handleClose}
                   className={[ 
                     'flex w-full items-center gap-3 px-3 py-2.5 rounded-[6px] text-[13.5px] font-medium transition-all duration-200 relative group',
@@ -185,7 +191,7 @@ export function Sidebar() {
                   transition={{ duration: 0.2, ease: 'easeInOut' }}
                 >
                   <Link
-                    href={item.href}
+                    href={withTenant(item.href)}
                     onClick={handleClose}
                     className={[ 
                       'flex w-full items-center gap-3 px-3 py-2.5 rounded-[6px] text-[13.5px] font-medium transition-all duration-200 relative group',

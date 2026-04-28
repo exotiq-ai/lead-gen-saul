@@ -7,8 +7,7 @@ import { useDashboardStore } from '@/stores/dashboardStore'
 
 const DEMO_TENANTS = [
   { id: 'exotiq-ai', name: 'Exotiq.ai', slug: 'exotiq' },
-  { id: 'demo-tenant-2', name: 'FleetEdge', slug: 'fleetedge' },
-  { id: 'demo-tenant-3', name: 'AutoPrime', slug: 'autoprime' },
+  { id: 'medspa-boulder', name: 'MedSpa Boulder', slug: 'medspa-boulder' },
 ]
 
 export function TenantSelector() {

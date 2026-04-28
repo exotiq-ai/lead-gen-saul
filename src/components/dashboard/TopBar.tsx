@@ -6,9 +6,9 @@ import { Warning, List } from '@phosphor-icons/react'
 import useSWR from 'swr'
 import { useDashboardStore } from '@/stores/dashboardStore'
 import { useSidebarStore } from '@/stores/sidebarStore'
+import { useTenantId } from '@/lib/hooks/useTenant'
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
-const TENANT = '00000000-0000-0000-0000-000000000001'
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Overview',
@@ -34,10 +34,11 @@ interface TopBarProps {
 
 export function TopBar({ title }: TopBarProps) {
   const pathname = usePathname()
+  const tenantId = useTenantId()
   const { timeRange, setTimeRange } = useDashboardStore()
 
   const { data: redFlagData } = useSWR(
-    `/api/dashboard/red-flags?tenant_id=${TENANT}`,
+    `/api/dashboard/red-flags?tenant_id=${tenantId}`,
     fetcher,
     { refreshInterval: 30_000 },
   )

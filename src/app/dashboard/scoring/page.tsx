@@ -1,7 +1,10 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { ScoringPageClient, type ScoringData } from './ScoringPageClient'
 
-const TENANT = '00000000-0000-0000-0000-000000000001'
+const TENANT_MAP: Record<string, string> = {
+  exotiq: '00000000-0000-0000-0000-000000000001',
+  'medspa-boulder': '11111111-1111-1111-1111-111111111111',
+}
 
 const FLAG_SEVERITY: Record<string, string> = {
   below_fleet_minimum: 'high',
@@ -27,7 +30,7 @@ function round1(n: number): number {
   return Math.round(n * 10) / 10
 }
 
-async function fetchScoringData(): Promise<ScoringData> {
+async function fetchScoringData(tenantId: string): Promise<ScoringData> {
   const supabase = createServerClient()
 
   const { data: leads } = await supabase
@@ -35,7 +38,7 @@ async function fetchScoringData(): Promise<ScoringData> {
     .select(
       'score, icp_fit_score, engagement_score, score_breakdown, status, assigned_to, source, red_flags',
     )
-    .eq('tenant_id', TENANT)
+    .eq('tenant_id', tenantId)
 
   const rows = leads ?? []
   const scored = rows.filter((l) => l.score != null && l.score > 0)
@@ -117,7 +120,13 @@ async function fetchScoringData(): Promise<ScoringData> {
   }
 }
 
-export default async function ScoringPage() {
-  const data = await fetchScoringData()
+interface Props {
+  searchParams: Promise<{ tenant?: string }>
+}
+
+export default async function ScoringPage({ searchParams }: Props) {
+  const { tenant } = await searchParams
+  const tenantId = (tenant && TENANT_MAP[tenant]) || TENANT_MAP.exotiq
+  const data = await fetchScoringData(tenantId)
   return <ScoringPageClient data={data} />
 }

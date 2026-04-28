@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { OutreachPageClient } from './OutreachPageClient'
 
 export const metadata = {
@@ -5,5 +6,9 @@ export const metadata = {
 }
 
 export default function OutreachPage() {
-  return <OutreachPageClient />
+  return (
+    <Suspense fallback={null}>
+      <OutreachPageClient />
+    </Suspense>
+  )
 }

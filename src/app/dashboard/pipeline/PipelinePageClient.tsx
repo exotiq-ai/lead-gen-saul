@@ -197,6 +197,8 @@ function LeadPreviewCard({
   index: number
 }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const tenantParam = searchParams.get('tenant') || 'exotiq'
   const isFlagged = redFlagged(lead.red_flags)
   const location = displayLocation(lead)
   const ageClass = activityAgeClass(lead.last_activity_at)
@@ -291,6 +293,8 @@ function StageColumn({
   stage: PipelineStageDetail
   colIndex: number
 }) {
+  const searchParams = useSearchParams()
+  const tenantParam = searchParams.get('tenant') || 'exotiq'
   const color = stageAccentColor(stage)
 
   if (stage.lead_count === 0) {

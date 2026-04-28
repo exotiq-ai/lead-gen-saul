@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { AgentsPageClient } from './AgentsPageClient'
 
 export const metadata = {
@@ -5,5 +6,9 @@ export const metadata = {
 }
 
 export default function AgentsPage() {
-  return <AgentsPageClient />
+  return (
+    <Suspense fallback={null}>
+      <AgentsPageClient />
+    </Suspense>
+  )
 }

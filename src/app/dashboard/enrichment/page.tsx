@@ -1,7 +1,10 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { EnrichmentPageClient, type EnrichmentData } from './EnrichmentPageClient'
 
-const TENANT = '00000000-0000-0000-0000-000000000001'
+const TENANT_MAP: Record<string, string> = {
+  exotiq: '00000000-0000-0000-0000-000000000001',
+  'medspa-boulder': '11111111-1111-1111-1111-111111111111',
+}
 
 type EnrichmentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'skipped'
 
@@ -16,14 +19,14 @@ interface RawEnrichment {
   leads: Array<{ company_name: string | null }> | null
 }
 
-async function fetchEnrichmentData(): Promise<EnrichmentData> {
+async function fetchEnrichmentData(tenantId: string): Promise<EnrichmentData> {
   const supabase = createServerClient()
 
   // All enrichments for aggregation
   const { data: allEnrichments } = await supabase
     .from('enrichments')
     .select('id, lead_id, provider, status, cost_cents')
-    .eq('tenant_id', TENANT)
+    .eq('tenant_id', tenantId)
 
   const enrichments = (allEnrichments ?? []) as Omit<RawEnrichment, 'requested_at' | 'leads'>[]
 
@@ -66,7 +69,7 @@ async function fetchEnrichmentData(): Promise<EnrichmentData> {
   const { count: totalLeads } = await supabase
     .from('leads')
     .select('id', { count: 'exact', head: true })
-    .eq('tenant_id', TENANT)
+    .eq('tenant_id', tenantId)
 
   const completedLeadIds = new Set(
     enrichments.filter((e) => e.status === 'completed').map((e) => e.lead_id),
@@ -80,7 +83,7 @@ async function fetchEnrichmentData(): Promise<EnrichmentData> {
   const { data: recentRaw } = await supabase
     .from('enrichments')
     .select('id, lead_id, provider, status, cost_cents, requested_at, leads(company_name)')
-    .eq('tenant_id', TENANT)
+    .eq('tenant_id', tenantId)
     .order('requested_at', { ascending: false })
     .limit(10)
 
@@ -102,7 +105,13 @@ async function fetchEnrichmentData(): Promise<EnrichmentData> {
   }
 }
 
-export default async function EnrichmentPage() {
-  const data = await fetchEnrichmentData()
+interface Props {
+  searchParams: Promise<{ tenant?: string }>
+}
+
+export default async function EnrichmentPage({ searchParams }: Props) {
+  const { tenant } = await searchParams
+  const tenantId = (tenant && TENANT_MAP[tenant]) || TENANT_MAP.exotiq
+  const data = await fetchEnrichmentData(tenantId)
   return <EnrichmentPageClient data={data} />
 }

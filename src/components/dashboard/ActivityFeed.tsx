@@ -11,9 +11,9 @@ import {
   Lightning,
 } from '@phosphor-icons/react'
 import { formatRelative } from '@/lib/utils/formatters'
+import { useTenantId } from '@/lib/hooks/useTenant'
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
-const TENANT = '00000000-0000-0000-0000-000000000001'
 
 interface Activity {
   id: string
@@ -47,8 +47,9 @@ const ACTIVITY_COLORS: Record<string, string> = {
 }
 
 export function ActivityFeed() {
+  const tenantId = useTenantId()
   const { data, isLoading } = useSWR(
-    `/api/dashboard/activity?tenant_id=${TENANT}`,
+    `/api/dashboard/activity?tenant_id=${tenantId}`,
     fetcher,
     { refreshInterval: 10_000 },
   )

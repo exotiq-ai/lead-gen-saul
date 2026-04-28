@@ -5,8 +5,7 @@ import useSWR from 'swr'
 import { motion } from 'framer-motion'
 import { Robot, Pulse, Timer, Plugs, Cpu } from '@phosphor-icons/react'
 import { formatDistanceToNow } from 'date-fns'
-
-const TENANT = '00000000-0000-0000-0000-000000000001'
+import { useTenantId } from '@/lib/hooks/useTenant'
 
 const SOUL_EXCERPT = `## Voice
 - Direct. No corporate filler. One sentence when one sentence is enough.
@@ -65,9 +64,10 @@ type ApiAgents = {
 }
 
 export function AgentsPageClient() {
+  const tenantId = useTenantId()
   const [range, setRange] = useState<'1h' | '24h' | '7d' | '30d' | 'all'>('7d')
   const { data, error, isLoading } = useSWR<ApiAgents>(
-    `/api/dashboard/agents?tenant_id=${TENANT}&range=${range}`,
+    `/api/dashboard/agents?tenant_id=${tenantId}&range=${range}`,
     fetcher,
   )
 

@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { fetchPipelineDetail } from '@/app/api/dashboard/pipeline-detail/route'
 import { PipelinePageClient } from './PipelinePageClient'
 
@@ -18,5 +19,9 @@ export default async function PipelinePage({ searchParams }: Props) {
   const { tenant } = await searchParams
   const tenantId = (tenant && TENANT_MAP[tenant]) || TENANT_MAP.exotiq
   const data = await fetchPipelineDetail(tenantId)
-  return <PipelinePageClient data={data} />
+  return (
+    <Suspense fallback={null}>
+      <PipelinePageClient data={data} />
+    </Suspense>
+  )
 }

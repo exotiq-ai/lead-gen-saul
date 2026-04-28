@@ -3,9 +3,19 @@ import { EconomicsPageClient } from './EconomicsPageClient'
 
 export const dynamic = 'force-dynamic'
 
-const DEMO_TENANT = '00000000-0000-0000-0000-000000000001'
+const TENANT_MAP: Record<string, string> = {
+  exotiq: '00000000-0000-0000-0000-000000000001',
+  'medspa-boulder': '11111111-1111-1111-1111-111111111111',
+}
 
-export default async function EconomicsPage() {
+interface Props {
+  searchParams: Promise<{ tenant?: string }>
+}
+
+export default async function EconomicsPage({ searchParams }: Props) {
+  const { tenant } = await searchParams
+  const tenantId = (tenant && TENANT_MAP[tenant]) || TENANT_MAP.exotiq
+
   let data = null
   let error: string | null = null
 
@@ -14,7 +24,7 @@ export default async function EconomicsPage() {
     const host = headersList.get('host') ?? 'localhost:3000'
     const proto = process.env.NODE_ENV === 'production' ? 'https' : 'http'
     const res = await fetch(
-      `${proto}://${host}/api/dashboard/economics?tenant_id=${DEMO_TENANT}`,
+      `${proto}://${host}/api/dashboard/economics?tenant_id=${tenantId}`,
       { cache: 'no-store' },
     )
     if (res.ok) {

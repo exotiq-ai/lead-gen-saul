@@ -5,8 +5,7 @@ import useSWR from 'swr'
 import { motion } from 'framer-motion'
 import { PaperPlaneTilt, ChatCircle } from '@phosphor-icons/react'
 import { ApprovalCard, type QueueItem } from '@/components/outreach/ApprovalCard'
-
-const TENANT = '00000000-0000-0000-0000-000000000001'
+import { useTenantId } from '@/lib/hooks/useTenant'
 
 const TABS = [
   { id: 'pending' as const, label: 'Pending' },
@@ -23,10 +22,11 @@ const fetcher = (url: string) =>
   })
 
 export function OutreachPageClient() {
+  const tenantId = useTenantId()
   const [tab, setTab] = useState<(typeof TABS)[number]['id']>('pending')
 
   const { data, error, isLoading, mutate } = useSWR(
-    `/api/outreach/queue?tenant_id=${TENANT}&status=${tab}&limit=200`,
+    `/api/outreach/queue?tenant_id=${tenantId}&status=${tab}&limit=200`,
     fetcher,
     { revalidateOnFocus: true },
   )
@@ -99,7 +99,7 @@ export function OutreachPageClient() {
 
       <div className="flex flex-col gap-4">
         {items.map((item) => (
-          <ApprovalCard key={item.id} item={item} tenantId={TENANT} onUpdated={() => void mutate()} />
+          <ApprovalCard key={item.id} item={item} tenantId={tenantId} onUpdated={() => void mutate()} />
         ))}
       </div>
     </div>
