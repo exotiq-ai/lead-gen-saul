@@ -3,6 +3,7 @@ import { Sidebar } from '@/components/dashboard/Sidebar'
 import { TopBar } from '@/components/dashboard/TopBar'
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed'
 import { DashboardClientLayout } from './layout-client'
+import { TenantGuard } from '@/components/dashboard/TenantGuard'
 
 interface DashboardLayoutProps {
   children: ReactNode
@@ -12,6 +13,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-[var(--color-saul-bg-800)] flex">
       <Suspense fallback={null}>
+        <TenantGuard />
         <Sidebar />
       </Suspense>
 

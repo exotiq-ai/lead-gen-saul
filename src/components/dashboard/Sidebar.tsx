@@ -17,7 +17,7 @@ import {
 } from '@phosphor-icons/react'
 import { TenantSelector } from './TenantSelector'
 import { useSidebarStore } from '@/stores/sidebarStore'
-import { useTenantId } from '@/lib/hooks/useTenant'
+import { useTenantId, TENANT_UUID_TO_SLUG } from '@/lib/hooks/useTenant'
 
 interface NavItem {
   label: string
@@ -44,7 +44,7 @@ export function Sidebar() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const tenantId = useTenantId()
-  const tenantSlug = searchParams.get('tenant')
+  const tenantSlug = searchParams.get('tenant') ?? TENANT_UUID_TO_SLUG[tenantId] ?? null
 
   const withTenant = (href: string) =>
     tenantSlug ? `${href}${href.includes('?') ? '&' : '?'}tenant=${tenantSlug}` : href

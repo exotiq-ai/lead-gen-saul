@@ -3,27 +3,23 @@
 import { useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CaretDown, Car, Check } from '@phosphor-icons/react'
+import { CaretDown, Check } from '@phosphor-icons/react'
 import { useDashboardStore } from '@/stores/dashboardStore'
-
-const DEMO_TENANTS = [
-  { id: 'exotiq-ai', name: 'Exotiq.ai', slug: 'exotiq' },
-  { id: 'medspa-boulder', name: 'MedSpa Boulder', slug: 'medspa-boulder' },
-]
+import { TENANTS, useTenantId } from '@/lib/hooks/useTenant'
 
 export function TenantSelector() {
   const [open, setOpen] = useState(false)
-  const { activeTenantId, setActiveTenantId } = useDashboardStore()
+  const { setActiveTenantId } = useDashboardStore()
+  const currentTenantId = useTenantId()
   const router = useRouter()
   const pathname = usePathname()
 
-  const active =
-    DEMO_TENANTS.find((t) => t.id === activeTenantId) ?? DEMO_TENANTS[0]
+  const active = TENANTS.find((t) => t.id === currentTenantId) ?? TENANTS[0]
 
   function select(id: string) {
-    setActiveTenantId(id)
+    setActiveTenantId(id) // store UUID directly
     setOpen(false)
-    const tenant = DEMO_TENANTS.find((t) => t.id === id)
+    const tenant = TENANTS.find((t) => t.id === id)
     if (tenant) {
       router.push(`${pathname}?tenant=${tenant.slug}`)
     }
@@ -37,8 +33,8 @@ export function TenantSelector() {
         aria-expanded={open}
         aria-haspopup="listbox"
       >
-        <span className="flex items-center justify-center w-7 h-7 rounded-[4px] bg-[rgba(0,212,170,0.12)]">
-          <Car size={15} weight="regular" className="text-[var(--color-saul-cyan)]" />
+        <span className="flex items-center justify-center w-7 h-7 rounded-[4px] bg-[rgba(0,212,170,0.12)] text-sm">
+          {active.icon}
         </span>
         <span className="flex flex-col items-start flex-1 min-w-0">
           <span className="text-[11px] text-[var(--color-saul-text-secondary)] font-medium leading-none mb-0.5">
@@ -81,7 +77,7 @@ export function TenantSelector() {
                 </p>
               </div>
               <div className="pb-1.5 px-1.5 flex flex-col gap-0.5">
-                {DEMO_TENANTS.map((t) => {
+                {TENANTS.map((t) => {
                   const isActive = t.id === active.id
                   return (
                     <button
@@ -96,11 +92,9 @@ export function TenantSelector() {
                           : 'text-[var(--color-saul-text-secondary)] hover:bg-[rgba(255,255,255,0.04)] hover:text-[var(--color-saul-text-primary)]',
                       ].join(' ')}
                     >
-                      <Car
-                        size={14}
-                        weight="regular"
-                        className={isActive ? 'text-[var(--color-saul-cyan)]' : 'opacity-60'}
-                      />
+                      <span className={`text-sm ${isActive ? '' : 'opacity-60'}`}>
+                        {t.icon}
+                      </span>
                       <span className="flex-1 text-[13px] font-medium">{t.name}</span>
                       {isActive && (
                         <Check size={13} weight="bold" className="text-[var(--color-saul-cyan)] shrink-0" />
