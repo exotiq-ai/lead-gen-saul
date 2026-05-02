@@ -5,6 +5,7 @@
 | `all_migrations.sql` | **One-time** on a brand-new database with **no** existing `tenants` table. |
 | `migrations/00X_*.sql` | Run in numeric order, each file **once** per project. |
 | `apply_006_outreach_idempotent.sql` | DB already has schema through `005` and you only need outreach tables + RLS. Safe to re-run. |
+| `migrations/009_tenant_views_and_grants.sql` | Replaces the broad anon `GRANT SELECT` from migration `008` with tenant-scoped policies + a `set_request_tenant(uuid)` helper. **Idempotent — safe to re-run.** Apply this on every project after Stage 1c lands. |
 
 ## “relation already exists”
 
