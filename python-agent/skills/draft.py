@@ -94,39 +94,81 @@ Asking because the answer changes everything about how we'd approach it.""",
 }
 
 
-def _select_medspa_template(score: int, lead: dict) -> dict:
-    """Pick MedSpa template and interpolate lead-specific vars."""
-    if score >= 70:
-        tmpl = MEDSPA_TEMPLATES["website_audit"]
-    elif score >= 55:
-        tmpl = MEDSPA_TEMPLATES["booking_modernization"]
-    else:
-        tmpl = MEDSPA_TEMPLATES["before_after_gallery"]
+def _fetch_db_templates(tenant_id: str) -> list[dict]:
+    """Fetch all active outreach_sequences.steps[] for this tenant.
 
-    # Extra interpolation var for booking template
-    booking_note = lead.get("metadata", {}).get("booking_system") or "a form"
-    body = tmpl["body"].format(
-        first_name=lead.get("first_name") or "there",
-        company_name=lead.get("company_name") or "your spa",
-        booking_note=booking_note,
-    )
-    return {**tmpl, "body": body}
+    Returns a flat list of {variant, label, channel, score_min, score_max,
+    body} dicts. Empty list when no rows / on error -- callers fall back
+    to the hard-coded TEMPLATES dict above.
+    """
+    db = get_db()
+    try:
+        resp = db.table("outreach_sequences")\
+            .select("id, slug, steps")\
+            .eq("tenant_id", tenant_id)\
+            .eq("is_active", True)\
+            .execute()
+    except Exception as exc:  # noqa: BLE001
+        print(f"  ! outreach_sequences fetch error: {exc}")
+        return []
+    out: list[dict] = []
+    for row in resp.data or []:
+        steps = row.get("steps") or []
+        if isinstance(steps, list):
+            for s in steps:
+                if isinstance(s, dict):
+                    s = {**s, "_sequence_slug": row.get("slug")}
+                    out.append(s)
+    return out
+
+
+def _interpolate(body: str, lead: dict) -> str:
+    """Render template with the variables we know about. {booking_note}
+    only resolves for MedSpa leads -- for Exotiq it formats to empty."""
+    booking_note = ((lead.get("metadata") or {}).get("booking_system")) or "a form"
+    try:
+        return body.format(
+            first_name=lead.get("first_name") or "there",
+            company_name=lead.get("company_name") or "your company",
+            booking_note=booking_note,
+        )
+    except (KeyError, IndexError):
+        # Body referenced an unknown variable; surface the raw template so
+        # the SDR sees something usable rather than crashing the loop.
+        return body
+
+
+def _select_template_from_db(score: int, db_steps: list[dict]) -> dict | None:
+    """Pick the highest-precedence step whose [score_min..score_max] band
+    contains the score. Higher score_min wins ties."""
+    candidates = [
+        s for s in db_steps
+        if isinstance(s.get("score_min"), int)
+        and isinstance(s.get("score_max"), int)
+        and s["score_min"] <= score <= s["score_max"]
+    ]
+    if not candidates:
+        return None
+    candidates.sort(key=lambda s: s.get("score_min", 0), reverse=True)
+    return candidates[0]
+
+
+def _select_medspa_template(score: int, lead: dict) -> dict:
+    """Fallback to hard-coded MedSpa templates when DB has nothing."""
+    if score >= 70:
+        return MEDSPA_TEMPLATES["website_audit"]
+    elif score >= 55:
+        return MEDSPA_TEMPLATES["booking_modernization"]
+    return MEDSPA_TEMPLATES["before_after_gallery"]
 
 
 def _select_template(score: int) -> dict:
+    """Fallback to hard-coded Exotiq templates when DB has nothing."""
     if score >= 80:
         return TEMPLATES["tier1_proof"]
     elif score >= 60:
         return TEMPLATES["peer_intro"]
-    else:
-        return TEMPLATES["visual_fleet"]
-
-
-def _render(template_body: str, first_name: str, company_name: str) -> str:
-    return template_body.format(
-        first_name=first_name or "there",
-        company_name=company_name or "your company",
-    )
+    return TEMPLATES["visual_fleet"]
 
 
 def draft_outreach(
@@ -135,13 +177,20 @@ def draft_outreach(
 ) -> dict[str, Any]:
     """
     Find scored leads above threshold without a pending draft and generate one.
+
+    Template source: outreach_sequences DB rows preferred. Falls back to
+    the hard-coded TEMPLATES / MEDSPA_TEMPLATES dicts when DB is empty
+    (e.g. fresh project, migration 010 not yet applied).
     """
     db = get_db()
     now = datetime.now(timezone.utc).isoformat()
 
+    # Pull active sequences once per pipeline cycle.
+    db_steps = _fetch_db_templates(tenant_id)
+
     # Leads that are scored and above threshold
     resp = db.table("leads")\
-        .select("id, first_name, last_name, company_name, score")\
+        .select("id, first_name, last_name, company_name, score, metadata")\
         .eq("tenant_id", tenant_id)\
         .eq("status", "scored")\
         .gte("score", OUTREACH_SCORE_THRESHOLD)\
@@ -152,6 +201,8 @@ def draft_outreach(
 
     drafted = 0
     skipped_existing = 0
+    used_db = 0
+    used_fallback = 0
 
     for lead in candidates:
         # Check if a pending draft already exists
@@ -168,22 +219,31 @@ def draft_outreach(
             continue
 
         score = lead.get("score") or 0
-        if tenant_id == MEDSPA_TENANT_ID:
-            template = _select_medspa_template(score, lead)
-            draft_body = template["body"]  # already interpolated
+        # Prefer DB templates. Each step has score_min/score_max bands.
+        db_pick = _select_template_from_db(score, db_steps)
+        if db_pick:
+            template_body = db_pick.get("body") or ""
+            draft_body = _interpolate(template_body, lead)
+            template_name = db_pick.get("label") or db_pick.get("variant") or "db_template"
+            channel = db_pick.get("channel") or "instagram_dm"
+            used_db += 1
         else:
-            template = _select_template(score)
-            first_name = lead.get("first_name") or ""
-            company_name = lead.get("company_name") or ""
-            draft_body = _render(template["body"], first_name, company_name)
+            if tenant_id == MEDSPA_TENANT_ID:
+                fb = _select_medspa_template(score, lead)
+            else:
+                fb = _select_template(score)
+            template_name = fb["name"]
+            channel = fb["channel"]
+            draft_body = _interpolate(fb["body"], lead)
+            used_fallback += 1
 
         db.table("outreach_queue").insert({
             "tenant_id": tenant_id,
             "lead_id": lead["id"],
-            "channel": template["channel"],
+            "channel": channel,
             "message_draft": draft_body,
             "status": "pending",
-            "generated_by": f"saul_agent:{template['name']}",
+            "generated_by": f"saul_agent:{template_name}",
             "created_at": now,
             "updated_at": now,
         }).execute()
@@ -200,6 +260,8 @@ def draft_outreach(
         "candidates": len(candidates),
         "drafted": drafted,
         "skipped_existing_draft": skipped_existing,
+        "used_db_templates": used_db,
+        "used_fallback_templates": used_fallback,
     }
     print(f"Drafting complete: {summary}")
     return summary

@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import useSWR from 'swr'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { PaperPlaneTilt, ChatCircle } from '@phosphor-icons/react'
+import { PaperPlaneTilt, ChatCircle, NotePencil } from '@phosphor-icons/react'
 import { ApprovalCard, type QueueItem } from '@/components/outreach/ApprovalCard'
 import { useTenantId } from '@/lib/hooks/useTenant'
 
@@ -46,6 +47,13 @@ export function OutreachPageClient() {
           <h1 className="text-2xl font-bold text-[var(--color-saul-text-primary)] tracking-tight">
             Outreach approval
           </h1>
+          <Link
+            href="/dashboard/outreach/templates"
+            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-[6px] border border-[rgba(255,255,255,0.08)] text-[var(--color-saul-text-secondary)] hover:border-[rgba(0,212,170,0.3)] hover:text-[var(--color-saul-text-primary)]"
+          >
+            <NotePencil size={14} weight="bold" />
+            Templates
+          </Link>
         </div>
         <p className="text-[14px] text-[var(--color-saul-text-secondary)] max-w-2xl">
           Review messages drafted by Saul before they go out via GHL. Approve, edit, or reject — human-in-the-loop for every client.
