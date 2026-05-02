@@ -16,8 +16,11 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard/leads': 'Leads',
   '/dashboard/scoring': 'Scoring',
   '/dashboard/enrichment': 'Enrichment',
+  '/dashboard/outreach': 'Outreach',
+  '/dashboard/outreach/templates': 'Outreach Templates',
   '/dashboard/agents': 'Agents',
   '/dashboard/economics': 'Economics',
+  '/dashboard/exports': 'Exports',
   '/dashboard/settings': 'Settings',
 }
 
