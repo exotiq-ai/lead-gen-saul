@@ -12,13 +12,14 @@
 import { useEffect } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useDashboardStore } from '@/stores/dashboardStore'
-import { TENANT_UUID_TO_SLUG, TENANTS } from '@/lib/hooks/useTenant'
+import { TENANT_UUID_TO_SLUG, useTenants } from '@/lib/hooks/useTenant'
 
 export function TenantGuard() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const { activeTenantId } = useDashboardStore()
+  const tenants = useTenants()
 
   useEffect(() => {
     const urlTenant = searchParams.get('tenant')
@@ -30,11 +31,11 @@ export function TenantGuard() {
     let slug: string | null = null
 
     if (activeTenantId) {
-      // Store might hold UUID or slug
+      // Static map covers the seeded tenants; tenants[] also includes
+      // anything DB-only that 3a's /api/tenants returned.
       slug = TENANT_UUID_TO_SLUG[activeTenantId] ?? null
       if (!slug) {
-        // Maybe it's already a slug
-        const found = TENANTS.find((t) => t.id === activeTenantId || t.slug === activeTenantId)
+        const found = tenants.find((t) => t.id === activeTenantId || t.slug === activeTenantId)
         slug = found?.slug ?? null
       }
     }
@@ -45,7 +46,7 @@ export function TenantGuard() {
       params.set('tenant', slug)
       router.replace(`${pathname}?${params.toString()}`)
     }
-  }, [pathname, searchParams, activeTenantId, router])
+  }, [pathname, searchParams, activeTenantId, router, tenants])
 
   return null
 }
