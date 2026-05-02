@@ -204,6 +204,10 @@ def process_scoring_queue(
         "skipped_already_composite": skipped_already_composite,
         "activity_driven_candidates": activity_count,
         "errors": errors,
+        "leads_processed": scored,
+        # Scoring uses internal SQL helpers + the TS engine endpoint; no
+        # external paid API calls per scoring run today.
+        "cost_cents": 0,
     }
     print(f"Scoring complete: {summary}")
     return summary

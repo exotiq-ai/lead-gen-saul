@@ -153,6 +153,10 @@ def discover_leads(
         "skipped_duplicates": skipped_duplicates,
         "skipped_corporate": skipped_corporate,
         "markets_searched": len(target_markets),
+        "leads_processed": discovered,
+        # DuckDuckGo HTML scraping is free; cost stays at 0 unless we
+        # ever swap to a paid SERP API (see python-agent/costs.py).
+        "cost_cents": 0,
     }
     print(f"Discovery complete: {summary}")
     return summary

@@ -262,6 +262,10 @@ def draft_outreach(
         "skipped_existing_draft": skipped_existing,
         "used_db_templates": used_db,
         "used_fallback_templates": used_fallback,
+        "leads_processed": drafted,
+        # Drafting today is rule-based -- score band picks a template and
+        # we string-format vars. No LLM calls = no token cost.
+        "cost_cents": 0,
     }
     print(f"Drafting complete: {summary}")
     return summary
