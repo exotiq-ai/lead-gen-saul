@@ -114,8 +114,55 @@ export async function GET(req: NextRequest) {
     if (error) throw error
 
     const total = count ?? 0
+    const totalPages = Math.max(1, Math.ceil(total / limit))
+
+    // Aggregates for the leads page stats row. These are scoped to the
+    // current tenant but ignore the active filters on purpose -- the stats
+    // row is a global tenant snapshot, not a filtered view.
+    const monthStart = new Date()
+    monthStart.setUTCDate(1)
+    monthStart.setUTCHours(0, 0, 0, 0)
+    const monthStartIso = monthStart.toISOString()
+
+    const [
+      { count: redFlagCount },
+      { count: gregoryCount },
+      { count: convertedThisMonth },
+    ] = await Promise.all([
+      supabase
+        .from('leads')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .not('red_flags', 'eq', '[]')
+        .not('red_flags', 'is', null),
+      supabase
+        .from('leads')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .eq('assigned_to', 'gregory'),
+      supabase
+        .from('leads')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .eq('status', 'converted')
+        .gte('updated_at', monthStartIso),
+    ])
 
     return NextResponse.json({
+      data: data ?? [],
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages,
+        offset,
+        has_more: offset + limit < total,
+        red_flag_count: redFlagCount ?? 0,
+        gregory_count: gregoryCount ?? 0,
+        converted_this_month: convertedThisMonth ?? 0,
+      },
+      // Legacy fields kept for transitional compatibility; new clients
+      // should read `data` and `meta` instead.
       leads: data ?? [],
       total,
       page,
