@@ -8,9 +8,12 @@
  * - Rate limited to GHL's published 100 req / 10 sec ceiling. We use a
  *   simple in-process token bucket — fine for one Next.js node, will need
  *   moving to Upstash/Redis if we ever horizontally scale.
- * - Dry-run mode (GHL_OUTBOUND_DRY_RUN=true OR no API key configured)
- *   logs the request and returns a synthetic success. Production deploys
- *   should explicitly set GHL_OUTBOUND_DRY_RUN=false.
+ * - Dry-run is the SAFE DEFAULT. Live send is opt-in via an explicit
+ *   GHL_OUTBOUND_DRY_RUN=false (or =0). Any other value — unset, empty,
+ *   "true", "yes", gibberish — keeps us in dry-run. Rationale: if you
+ *   just configured GHL credentials and forgot to also set this var,
+ *   the previous default would have started sending live messages on
+ *   the very first "Mark sent" click. Now you have to mean it.
  *
  * The function is *only* called from the outreach queue PATCH handler when
  * a user clicks "Mark sent (GHL)". We never auto-send.
@@ -99,11 +102,12 @@ export async function sendMessage(input: SendMessageInput): Promise<SendMessageR
   const cfg = configForTenant(input.tenantId)
   const channelMap = CHANNEL_TO_GHL[input.channel] ?? null
 
-  const dryRun =
-    process.env.GHL_OUTBOUND_DRY_RUN === 'true' ||
-    process.env.GHL_OUTBOUND_DRY_RUN === '1' ||
-    !cfg.apiKey ||
-    !cfg.locationId
+  // Live send is OPT-IN. Only an explicit "false" / "0" disables dry-run.
+  // Missing creds also force dry-run regardless of the flag.
+  const explicitlyLive =
+    process.env.GHL_OUTBOUND_DRY_RUN === 'false' ||
+    process.env.GHL_OUTBOUND_DRY_RUN === '0'
+  const dryRun = !explicitlyLive || !cfg.apiKey || !cfg.locationId
 
   if (!channelMap || !channelMap.supported) {
     return {
@@ -121,11 +125,15 @@ export async function sendMessage(input: SendMessageInput): Promise<SendMessageR
       messageType: channelMap.messageType,
       bodyPreview: input.body.slice(0, 80),
     })
+    let reason: string
+    if (!cfg.apiKey) reason = 'GHL_API_KEY not configured for tenant'
+    else if (!cfg.locationId) reason = 'GHL_LOCATION_ID not configured for tenant'
+    else reason = 'GHL_OUTBOUND_DRY_RUN must be set to "false" (or "0") to enable live sends'
     return {
       ok: true,
       messageId: `dryrun_${Date.now()}`,
       mode: 'dry_run',
-      reason: !cfg.apiKey ? 'GHL_API_KEY not configured for tenant' : 'GHL_OUTBOUND_DRY_RUN=true',
+      reason,
     }
   }
 

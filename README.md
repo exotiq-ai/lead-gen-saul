@@ -20,7 +20,7 @@ Copy `.env.local` and set at least:
 | `SAUL_MODEL_NAME` | Shown on Agents page (cosmetic) |
 | `GHL_API_KEY` / `GHL_LOCATION_ID` | Outbound GHL send (Exotiq sub-account) |
 | `GHL_MEDSPA_API_KEY` / `GHL_MEDSPA_LOCATION_ID` | Outbound GHL send (MedSpa sub-account) |
-| `GHL_OUTBOUND_DRY_RUN` | `true` (default) logs sends instead of hitting GHL; set `false` in prod |
+| `GHL_OUTBOUND_DRY_RUN` | Default = dry-run. Set to `false` (or `0`) to enable live GHL sends. Any other value or missing creds keeps the safe default. |
 
 ## Database
 
