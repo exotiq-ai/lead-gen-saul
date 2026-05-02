@@ -48,7 +48,7 @@ export function ChartContainer({
       className="rounded-xl p-6 flex flex-col gap-4"
       style={{
         background: 'var(--color-saul-bg-700)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '1px solid var(--color-saul-border)',
       }}
     >
       {/* Header */}
@@ -81,7 +81,7 @@ export function ChartContainer({
                   background: activeRange === r.value ? 'var(--color-saul-cyan)' : 'transparent',
                   color:
                     activeRange === r.value
-                      ? '#0A0E17'
+                      ? 'var(--color-saul-text-on-accent)'
                       : 'var(--color-saul-text-secondary)',
                   fontFamily: 'var(--font-mono)',
                 }}
@@ -114,7 +114,7 @@ function ErrorState({ message }: { message: string }) {
     <div className="flex flex-col items-center justify-center gap-3 h-[280px]">
       <div
         className="flex items-center justify-center w-10 h-10 rounded-full"
-        style={{ background: 'rgba(255,71,87,0.12)' }}
+        style={{ background: 'color-mix(in srgb, var(--color-saul-danger) 12%, transparent)' }}
       >
         <Warning size={20} weight="fill" style={{ color: 'var(--color-saul-danger)' }} />
       </div>
@@ -135,7 +135,7 @@ function EmptyState({ message }: { message: string }) {
     <div className="flex flex-col items-center justify-center gap-3 h-[280px]">
       <div
         className="flex items-center justify-center w-10 h-10 rounded-full"
-        style={{ background: 'rgba(139,149,168,0.08)' }}
+        style={{ background: 'var(--color-saul-overlay)' }}
       >
         <ChartBar size={20} weight="duotone" style={{ color: 'var(--color-saul-text-tertiary)' }} />
       </div>

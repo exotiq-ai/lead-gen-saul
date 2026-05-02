@@ -1,13 +1,18 @@
 @import "tailwindcss";
 
 @theme {
-  /* Saul background scale */
-  --color-saul-bg-900: #0A0E17;
-  --color-saul-bg-800: #0F1422;
-  --color-saul-bg-700: #151B2E;
-  --color-saul-bg-600: #1C2439;
+  /* ============================================================
+   * SAUL DESIGN TOKENS — DARK THEME (default)
+   * Light theme overrides live in [data-theme="light"] below.
+   * ============================================================ */
 
-  /* Signal Cyan */
+  /* Background scale */
+  --color-saul-bg-900: #0A0E17;       /* deepest — sidebar, app shell */
+  --color-saul-bg-800: #0F1422;       /* primary canvas — page bg, topbar */
+  --color-saul-bg-700: #151B2E;       /* card / panel */
+  --color-saul-bg-600: #1C2439;       /* elevated / inputs / tertiary */
+
+  /* Signal Cyan brand scale */
   --color-saul-cyan: #00D4AA;
   --color-saul-cyan-50: #E6FFF8;
   --color-saul-cyan-100: #B3FFE9;
@@ -25,12 +30,40 @@
   --color-saul-warning: #FFAE42;
   --color-saul-danger: #FF4757;
   --color-saul-info: #3B82F6;
+  --color-saul-violet: #A855F7;
+  --color-saul-orange: #F97316;
+  --color-saul-teal: #06B6D4;
 
   /* Text */
   --color-saul-text-primary: #F0F2F5;
   --color-saul-text-secondary: #8B95A8;
   --color-saul-text-tertiary: #4A5568;
   --color-saul-text-accent: #00D4AA;
+  --color-saul-text-on-accent: #0A0E17;  /* dark text on cyan button */
+
+  /* Borders / overlays / surfaces
+   * Naming: -soft (0.02-0.04), default (0.06-0.08), -strong (0.10-0.14) */
+  --color-saul-border-soft: rgba(255, 255, 255, 0.04);
+  --color-saul-border: rgba(255, 255, 255, 0.06);
+  --color-saul-border-strong: rgba(255, 255, 255, 0.10);
+  --color-saul-border-stronger: rgba(255, 255, 255, 0.14);
+
+  --color-saul-overlay-soft: rgba(255, 255, 255, 0.02);
+  --color-saul-overlay-low: rgba(255, 255, 255, 0.04);
+  --color-saul-overlay: rgba(255, 255, 255, 0.06);
+  --color-saul-overlay-strong: rgba(255, 255, 255, 0.10);
+
+  /* Shadows (always rgba black) */
+  --color-saul-shadow: rgba(0, 0, 0, 0.5);
+  --color-saul-shadow-soft: rgba(0, 0, 0, 0.3);
+  --color-saul-shadow-strong: rgba(0, 0, 0, 0.6);
+
+  /* Chart / data-viz surfaces */
+  --color-saul-tooltip-bg: #151B2E;
+  --color-saul-tooltip-border: rgba(255, 255, 255, 0.10);
+  --color-saul-tooltip-text: #F0F2F5;
+  --color-saul-grid-stroke: rgba(255, 255, 255, 0.04);
+  --color-saul-axis-fill: #8B95A8;
 
   /* Chart palette */
   --color-saul-chart-1: #00D4AA;
@@ -52,10 +85,83 @@
   --radius-badge: 4px;
 }
 
+/* ============================================================
+ * LIGHT THEME OVERRIDES
+ * ============================================================ */
+[data-theme="light"] {
+  /* Background scale — flipped: light canvas, white cards */
+  --color-saul-bg-900: #ffffff;          /* sidebar / deepest */
+  --color-saul-bg-800: #fafafa;          /* primary canvas */
+  --color-saul-bg-700: #ffffff;          /* card / panel */
+  --color-saul-bg-600: #f0f0f3;          /* elevated / inputs */
+
+  /* Cyan: nudge toward darker emerald for AA contrast on white */
+  --color-saul-cyan: #00B894;
+  --color-saul-cyan-50: #002922;
+  --color-saul-cyan-100: #005244;
+  --color-saul-cyan-200: #007D66;
+  --color-saul-cyan-300: #00A888;
+  --color-saul-cyan-400: #00B894;
+  --color-saul-cyan-500: #00D4AA;
+  --color-saul-cyan-600: #00F5BE;
+  --color-saul-cyan-700: #33FFCA;
+  --color-saul-cyan-800: #66FFD4;
+  --color-saul-cyan-900: #B3FFE9;
+
+  /* Semantic — pull saturation toward AA contrast on light bg */
+  --color-saul-success: #00B894;
+  --color-saul-warning: #D97706;
+  --color-saul-danger: #DC2626;
+  --color-saul-info: #2563EB;
+  --color-saul-violet: #7C3AED;
+  --color-saul-orange: #EA580C;
+  --color-saul-teal: #0891B2;
+
+  /* Text */
+  --color-saul-text-primary: #0a0a0a;
+  --color-saul-text-secondary: #4a5468;
+  --color-saul-text-tertiary: #707a8b;
+  --color-saul-text-accent: #00B894;
+  --color-saul-text-on-accent: #ffffff;
+
+  /* Borders / overlays — flip the channel from white→black */
+  --color-saul-border-soft: rgba(0, 0, 0, 0.04);
+  --color-saul-border: rgba(0, 0, 0, 0.08);
+  --color-saul-border-strong: rgba(0, 0, 0, 0.12);
+  --color-saul-border-stronger: rgba(0, 0, 0, 0.18);
+
+  --color-saul-overlay-soft: rgba(0, 0, 0, 0.02);
+  --color-saul-overlay-low: rgba(0, 0, 0, 0.04);
+  --color-saul-overlay: rgba(0, 0, 0, 0.06);
+  --color-saul-overlay-strong: rgba(0, 0, 0, 0.10);
+
+  /* Shadows — softer slate cast on light bg */
+  --color-saul-shadow: rgba(15, 20, 34, 0.12);
+  --color-saul-shadow-soft: rgba(15, 20, 34, 0.06);
+  --color-saul-shadow-strong: rgba(15, 20, 34, 0.20);
+
+  /* Chart surfaces */
+  --color-saul-tooltip-bg: #ffffff;
+  --color-saul-tooltip-border: rgba(0, 0, 0, 0.08);
+  --color-saul-tooltip-text: #0a0a0a;
+  --color-saul-grid-stroke: rgba(0, 0, 0, 0.06);
+  --color-saul-axis-fill: #4a5468;
+
+  /* Chart palette tweaked for light bg legibility */
+  --color-saul-chart-1: #00B894;
+  --color-saul-chart-2: #2563EB;
+  --color-saul-chart-3: #D97706;
+  --color-saul-chart-4: #7C3AED;
+  --color-saul-chart-5: #DC2626;
+  --color-saul-chart-6: #0891B2;
+  --color-saul-chart-7: #EA580C;
+  --color-saul-chart-8: #DB2777;
+}
+
 /* Custom scrollbar */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 212, 170, 0.2) transparent;
+  scrollbar-color: color-mix(in srgb, var(--color-saul-cyan) 20%, transparent) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -68,13 +174,13 @@
 }
 
 *::-webkit-scrollbar-thumb {
-  background: rgba(0, 212, 170, 0);
+  background: transparent;
   border-radius: 2px;
   transition: background 0.2s;
 }
 
 *:hover::-webkit-scrollbar-thumb {
-  background: rgba(0, 212, 170, 0.2);
+  background: color-mix(in srgb, var(--color-saul-cyan) 20%, transparent);
 }
 
 body {
@@ -102,6 +208,6 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent);
+  background: linear-gradient(90deg, transparent, var(--color-saul-overlay-low), transparent);
   animation: shimmer 1.5s infinite;
 }

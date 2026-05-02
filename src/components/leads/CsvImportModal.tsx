@@ -163,7 +163,7 @@ export function CsvImportModal({ open, onClose, tenantId, onSuccess }: CsvImport
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 8 }}
           transition={{ duration: 0.15 }}
-          className="relative z-10 bg-[var(--color-saul-bg-700)] border border-[rgba(255,255,255,0.1)] rounded-xl shadow-2xl max-w-[640px] w-full mx-4 p-6"
+          className="relative z-10 bg-[var(--color-saul-bg-700)] border border-[var(--color-saul-border-strong)] rounded-xl shadow-2xl max-w-[640px] w-full mx-4 p-6"
         >
           {/* Close button */}
           <button
@@ -186,8 +186,8 @@ export function CsvImportModal({ open, onClose, tenantId, onSuccess }: CsvImport
               className={[
                 'flex flex-col items-center justify-center gap-3 p-10 rounded-lg border-2 border-dashed transition-colors duration-150 cursor-pointer',
                 dragOver
-                  ? 'border-[var(--color-saul-cyan)] bg-[rgba(0,212,170,0.06)]'
-                  : 'border-[rgba(255,255,255,0.1)] hover:border-[rgba(255,255,255,0.2)]',
+                  ? 'border-[var(--color-saul-cyan)] bg-[color-mix(in_srgb,var(--color-saul-cyan)_6%,transparent)]'
+                  : 'border-[var(--color-saul-border-strong)] hover:border-[var(--color-saul-border-stronger)]',
               ].join(' ')}
               onClick={() => fileRef.current?.click()}
             >
@@ -215,7 +215,7 @@ export function CsvImportModal({ open, onClose, tenantId, onSuccess }: CsvImport
                 <span className="text-[var(--color-saul-cyan)] font-bold">{leads.length}</span> leads ready to import
               </p>
 
-              <div className="overflow-x-auto rounded-lg border border-[rgba(255,255,255,0.06)]">
+              <div className="overflow-x-auto rounded-lg border border-[var(--color-saul-border)]">
                 <table className="w-full text-[12px]">
                   <thead>
                     <tr className="bg-[var(--color-saul-bg-800)]">
@@ -227,7 +227,7 @@ export function CsvImportModal({ open, onClose, tenantId, onSuccess }: CsvImport
                   </thead>
                   <tbody>
                     {leads.slice(0, 10).map((lead, i) => (
-                      <tr key={i} className="border-t border-[rgba(255,255,255,0.04)]">
+                      <tr key={i} className="border-t border-[var(--color-saul-border-soft)]">
                         <td className="px-3 py-1.5 text-[var(--color-saul-text-primary)] truncate max-w-[180px]">{lead.company_name}</td>
                         <td className="px-3 py-1.5 text-[var(--color-saul-text-secondary)] truncate max-w-[160px]">{lead.email || '—'}</td>
                         <td className="px-3 py-1.5 text-[var(--color-saul-text-secondary)]">{lead.city || '—'}</td>
@@ -237,7 +237,7 @@ export function CsvImportModal({ open, onClose, tenantId, onSuccess }: CsvImport
                   </tbody>
                 </table>
                 {leads.length > 10 && (
-                  <p className="px-3 py-2 text-[11px] text-[var(--color-saul-text-tertiary)] border-t border-[rgba(255,255,255,0.04)]">
+                  <p className="px-3 py-2 text-[11px] text-[var(--color-saul-text-tertiary)] border-t border-[var(--color-saul-border-soft)]">
                     ...and {leads.length - 10} more
                   </p>
                 )}
@@ -246,13 +246,13 @@ export function CsvImportModal({ open, onClose, tenantId, onSuccess }: CsvImport
               <div className="flex items-center gap-3 justify-end">
                 <button
                   onClick={reset}
-                  className="px-4 py-2 text-[13px] font-medium text-[var(--color-saul-text-secondary)] rounded-[6px] border border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.2)] transition-colors"
+                  className="px-4 py-2 text-[13px] font-medium text-[var(--color-saul-text-secondary)] rounded-[6px] border border-[var(--color-saul-border-strong)] hover:border-[var(--color-saul-border-stronger)] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleImport}
-                  className="px-4 py-2 text-[13px] font-semibold text-[var(--color-saul-bg-900)] bg-[var(--color-saul-cyan)] rounded-[6px] hover:brightness-110 transition-all"
+                  className="px-4 py-2 text-[13px] font-semibold text-[var(--color-saul-text-on-accent)] bg-[var(--color-saul-cyan)] rounded-[6px] hover:brightness-110 transition-all"
                 >
                   Import {leads.length} leads
                 </button>
@@ -287,7 +287,7 @@ export function CsvImportModal({ open, onClose, tenantId, onSuccess }: CsvImport
               <p className="text-[13px] text-[var(--color-saul-danger)]">{errorMsg}</p>
               <button
                 onClick={reset}
-                className="mt-2 px-4 py-2 text-[13px] font-medium text-[var(--color-saul-text-secondary)] rounded-[6px] border border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.2)] transition-colors"
+                className="mt-2 px-4 py-2 text-[13px] font-medium text-[var(--color-saul-text-secondary)] rounded-[6px] border border-[var(--color-saul-border-strong)] hover:border-[var(--color-saul-border-stronger)] transition-colors"
               >
                 Try again
               </button>

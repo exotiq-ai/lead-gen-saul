@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { formatCompact, formatNumber } from '@/lib/utils/formatters'
+import { useChartPalette, type ChartPalette } from '@/lib/utils/chartColors'
 
 type TimeRange = '7d' | '30d' | '90d' | 'all'
 
@@ -79,9 +80,10 @@ interface LeadVolumeTooltipProps {
   active?: boolean
   payload?: Array<{ dataKey: string; color: string; value: number }>
   label?: string
+  palette: ChartPalette
 }
 
-function CustomTooltip({ active, payload, label }: LeadVolumeTooltipProps) {
+function CustomTooltip({ active, payload, label, palette }: LeadVolumeTooltipProps) {
   if (!active || !payload?.length) return null
   const date = new Date(label as string)
   const dateLabel = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
@@ -90,19 +92,19 @@ function CustomTooltip({ active, payload, label }: LeadVolumeTooltipProps) {
     <div
       className="rounded-lg px-3 py-2.5 text-xs flex flex-col gap-1.5"
       style={{
-        background: '#151B2E',
-        border: '1px solid rgba(255,255,255,0.1)',
-        color: '#F0F2F5',
+        background: palette.tooltipBg,
+        border: `1px solid ${palette.tooltipBorder}`,
+        color: palette.tooltipText,
       }}
     >
-      <p className="font-medium mb-0.5" style={{ color: '#8B95A8' }}>{dateLabel}</p>
+      <p className="font-medium mb-0.5" style={{ color: palette.textSecondary }}>{dateLabel}</p>
       {payload.map((entry) => (
         <div key={entry.dataKey} className="flex items-center gap-2">
           <span
             className="inline-block w-2 h-2 rounded-full"
             style={{ background: entry.color }}
           />
-          <span style={{ color: '#8B95A8' }}>{entry.dataKey === 'inbound' ? 'Inbound' : 'Outbound'}:</span>
+          <span style={{ color: palette.textSecondary }}>{entry.dataKey === 'inbound' ? 'Inbound' : 'Outbound'}:</span>
           <span className="font-semibold" style={{ fontFamily: 'var(--font-mono)', color: entry.color }}>
             {formatNumber(entry.value as number)}
           </span>
@@ -110,10 +112,10 @@ function CustomTooltip({ active, payload, label }: LeadVolumeTooltipProps) {
       ))}
       <div
         className="flex items-center gap-2 pt-1"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ borderTop: `1px solid ${palette.divider}` }}
       >
-        <span style={{ color: '#8B95A8' }}>Total:</span>
-        <span className="font-semibold" style={{ fontFamily: 'var(--font-mono)', color: '#F0F2F5' }}>
+        <span style={{ color: palette.textSecondary }}>Total:</span>
+        <span className="font-semibold" style={{ fontFamily: 'var(--font-mono)', color: palette.textPrimary }}>
           {formatNumber((payload[0]?.value ?? 0) as number + (payload[1]?.value ?? 0) as number)}
         </span>
       </div>
@@ -121,16 +123,16 @@ function CustomTooltip({ active, payload, label }: LeadVolumeTooltipProps) {
   )
 }
 
-function InlineLegend() {
+function InlineLegend({ palette }: { palette: ChartPalette }) {
   return (
     <div className="flex items-center gap-4">
       <div className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#00D4AA' }} />
-        <span className="text-xs" style={{ color: '#8B95A8' }}>Inbound</span>
+        <span className="w-2 h-2 rounded-full inline-block" style={{ background: palette.primary }} />
+        <span className="text-xs" style={{ color: palette.textSecondary }}>Inbound</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#3B82F6' }} />
-        <span className="text-xs" style={{ color: '#8B95A8' }}>Outbound</span>
+        <span className="w-2 h-2 rounded-full inline-block" style={{ background: palette.info }} />
+        <span className="text-xs" style={{ color: palette.textSecondary }}>Outbound</span>
       </div>
     </div>
   )
@@ -141,6 +143,7 @@ export function LeadVolumeChart({
   timeRange = '30d',
   demoMode = false,
 }: LeadVolumeChartProps) {
+  const palette = useChartPalette()
   const allData = demoMode || !propData ? generateDemoData() : propData
   const data = sliceByRange(allData, timeRange)
 
@@ -155,25 +158,25 @@ export function LeadVolumeChart({
   return (
     <div className="flex flex-col gap-3 w-full min-h-[220px] md:min-h-[280px]">
       <div className="flex justify-end">
-        <InlineLegend />
+        <InlineLegend palette={palette} />
       </div>
 
       <ResponsiveContainer width="100%" height={250}>
         <AreaChart data={data} margin={{ top: 4, right: 4, left: -8, bottom: rotateLabels ? 16 : 0 }}>
           <defs>
             <linearGradient id="lvGradCyan" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#00D4AA" stopOpacity={0.25} />
-              <stop offset="95%" stopColor="#00D4AA" stopOpacity={0} />
+              <stop offset="5%" stopColor={palette.primary} stopOpacity={0.25} />
+              <stop offset="95%" stopColor={palette.primary} stopOpacity={0} />
             </linearGradient>
             <linearGradient id="lvGradBlue" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.2} />
-              <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+              <stop offset="5%" stopColor={palette.info} stopOpacity={0.2} />
+              <stop offset="95%" stopColor={palette.info} stopOpacity={0} />
             </linearGradient>
           </defs>
 
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="rgba(255,255,255,0.04)"
+            stroke={palette.gridStroke}
             vertical={false}
           />
 
@@ -182,7 +185,7 @@ export function LeadVolumeChart({
             ticks={filteredTicks}
             tickFormatter={(v: string) => formatXLabel(v, timeRange)}
             tick={{
-              fill: '#8B95A8',
+              fill: palette.axisFill,
               fontSize: 11,
               fontFamily: 'var(--font-mono)',
             }}
@@ -195,7 +198,7 @@ export function LeadVolumeChart({
           <YAxis
             tickFormatter={formatCompact}
             tick={{
-              fill: '#8B95A8',
+              fill: palette.axisFill,
               fontSize: 11,
               fontFamily: 'var(--font-mono)',
             }}
@@ -205,18 +208,18 @@ export function LeadVolumeChart({
           />
 
           <Tooltip
-            content={<CustomTooltip />}
-            cursor={{ stroke: 'rgba(0,212,170,0.2)', strokeWidth: 1 }}
+            content={<CustomTooltip palette={palette} />}
+            cursor={{ stroke: palette.cursorStroke, strokeWidth: 1 }}
           />
 
           <Area
             type="monotone"
             dataKey="inbound"
-            stroke="#00D4AA"
+            stroke={palette.primary}
             strokeWidth={2}
             fill="url(#lvGradCyan)"
             dot={false}
-            activeDot={{ r: 4, fill: '#00D4AA', stroke: '#151B2E', strokeWidth: 2 }}
+            activeDot={{ r: 4, fill: palette.primary, stroke: palette.surface, strokeWidth: 2 }}
             isAnimationActive
             animationDuration={300}
             animationEasing="ease-out"
@@ -225,11 +228,11 @@ export function LeadVolumeChart({
           <Area
             type="monotone"
             dataKey="outbound"
-            stroke="#3B82F6"
+            stroke={palette.info}
             strokeWidth={2}
             fill="url(#lvGradBlue)"
             dot={false}
-            activeDot={{ r: 4, fill: '#3B82F6', stroke: '#151B2E', strokeWidth: 2 }}
+            activeDot={{ r: 4, fill: palette.info, stroke: palette.surface, strokeWidth: 2 }}
             isAnimationActive
             animationDuration={300}
             animationEasing="ease-out"

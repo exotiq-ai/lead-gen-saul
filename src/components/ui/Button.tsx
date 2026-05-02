@@ -24,13 +24,13 @@ interface ButtonProps
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-[var(--color-saul-cyan)] text-[var(--color-saul-bg-900)] font-semibold border border-[var(--color-saul-cyan)] hover:bg-[var(--color-saul-cyan-400)] shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]',
+    'bg-[var(--color-saul-cyan)] text-[var(--color-saul-text-on-accent)] font-semibold border border-[var(--color-saul-cyan)] hover:bg-[var(--color-saul-cyan-400)] shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]',
   secondary:
-    'bg-[var(--color-saul-bg-600)] text-[var(--color-saul-text-primary)] font-medium border border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.14)] hover:bg-[rgba(255,255,255,0.06)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
+    'bg-[var(--color-saul-bg-600)] text-[var(--color-saul-text-primary)] font-medium border border-[var(--color-saul-border-strong)] hover:border-[var(--color-saul-border-stronger)] hover:bg-[var(--color-saul-overlay)] shadow-[inset_0_1px_0_var(--color-saul-overlay-low)]',
   ghost:
-    'bg-transparent text-[var(--color-saul-text-secondary)] font-medium border border-transparent hover:border-[rgba(255,255,255,0.08)] hover:text-[var(--color-saul-text-primary)] hover:bg-[rgba(255,255,255,0.04)]',
+    'bg-transparent text-[var(--color-saul-text-secondary)] font-medium border border-transparent hover:border-[var(--color-saul-border-strong)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-low)]',
   danger:
-    'bg-[rgba(255,71,87,0.12)] text-[var(--color-saul-danger)] font-medium border border-[rgba(255,71,87,0.25)] hover:bg-[rgba(255,71,87,0.2)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
+    'bg-[color-mix(in_srgb,var(--color-saul-danger)_12%,transparent)] text-[var(--color-saul-danger)] font-medium border border-[color-mix(in_srgb,var(--color-saul-danger)_25%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-saul-danger)_20%,transparent)] shadow-[inset_0_1px_0_var(--color-saul-overlay-low)]',
 }
 
 const sizeClasses: Record<ButtonSize, string> = {

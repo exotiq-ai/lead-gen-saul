@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { formatCompact, formatNumber } from '@/lib/utils/formatters'
+import { useChartPalette, type ChartPalette } from '@/lib/utils/chartColors'
 
 interface TokenDataPoint {
   date: string
@@ -55,9 +56,10 @@ interface TokenTooltipProps {
   active?: boolean
   payload?: Array<{ dataKey: string; value: number }>
   label?: string
+  palette: ChartPalette
 }
 
-function CustomTooltip({ active, payload, label }: TokenTooltipProps) {
+function CustomTooltip({ active, payload, label, palette }: TokenTooltipProps) {
   if (!active || !payload?.length) return null
   const date = new Date(label as string)
   const dateLabel = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -69,26 +71,26 @@ function CustomTooltip({ active, payload, label }: TokenTooltipProps) {
     <div
       className="rounded-lg px-3 py-2.5 text-xs flex flex-col gap-1.5"
       style={{
-        background: '#151B2E',
-        border: '1px solid rgba(255,255,255,0.1)',
-        color: '#F0F2F5',
+        background: palette.tooltipBg,
+        border: `1px solid ${palette.tooltipBorder}`,
+        color: palette.tooltipText,
         minWidth: 148,
       }}
     >
-      <p className="font-medium mb-0.5" style={{ color: '#8B95A8' }}>{dateLabel}</p>
+      <p className="font-medium mb-0.5" style={{ color: palette.textSecondary }}>{dateLabel}</p>
       <div className="flex items-center justify-between gap-6">
         <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full" style={{ background: '#00D4AA', display: 'inline-block' }} />
-          <span style={{ color: '#8B95A8' }}>Tokens</span>
+          <span className="w-2 h-2 rounded-full" style={{ background: palette.primary, display: 'inline-block' }} />
+          <span style={{ color: palette.textSecondary }}>Tokens</span>
         </div>
-        <span style={{ fontFamily: 'var(--font-mono)', color: '#00D4AA' }}>{formatNumber(tokens ?? 0)}</span>
+        <span style={{ fontFamily: 'var(--font-mono)', color: palette.primary }}>{formatNumber(tokens ?? 0)}</span>
       </div>
       <div className="flex items-center justify-between gap-6">
         <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full" style={{ background: '#A855F7', display: 'inline-block' }} />
-          <span style={{ color: '#8B95A8' }}>Cost</span>
+          <span className="w-2 h-2 rounded-full" style={{ background: palette.violet, display: 'inline-block' }} />
+          <span style={{ color: palette.textSecondary }}>Cost</span>
         </div>
-        <span style={{ fontFamily: 'var(--font-mono)', color: '#A855F7' }}>
+        <span style={{ fontFamily: 'var(--font-mono)', color: palette.violet }}>
           ${((cost ?? 0) / 100).toFixed(2)}
         </span>
       </div>
@@ -96,22 +98,23 @@ function CustomTooltip({ active, payload, label }: TokenTooltipProps) {
   )
 }
 
-function InlineLegend() {
+function InlineLegend({ palette }: { palette: ChartPalette }) {
   return (
     <div className="flex items-center gap-4">
       <div className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#00D4AA' }} />
-        <span className="text-xs" style={{ color: '#8B95A8' }}>Tokens used</span>
+        <span className="w-2 h-2 rounded-full inline-block" style={{ background: palette.primary }} />
+        <span className="text-xs" style={{ color: palette.textSecondary }}>Tokens used</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#A855F7' }} />
-        <span className="text-xs" style={{ color: '#8B95A8' }}>Cost (USD)</span>
+        <span className="w-2 h-2 rounded-full inline-block" style={{ background: palette.violet }} />
+        <span className="text-xs" style={{ color: palette.textSecondary }}>Cost (USD)</span>
       </div>
     </div>
   )
 }
 
 export function TokenUsageChart({ data: propData, demoMode = false }: TokenUsageChartProps) {
+  const palette = useChartPalette()
   const data = demoMode || !propData ? generateDemoData() : propData
 
   const tickInterval = Math.max(1, Math.floor(data.length / 8))
@@ -120,25 +123,25 @@ export function TokenUsageChart({ data: propData, demoMode = false }: TokenUsage
   return (
     <div className="flex flex-col gap-3 w-full min-h-[220px] md:min-h-[280px]">
       <div className="flex justify-end">
-        <InlineLegend />
+        <InlineLegend palette={palette} />
       </div>
 
       <ResponsiveContainer width="100%" height={250}>
         <AreaChart data={data} margin={{ top: 4, right: 40, left: -8, bottom: 0 }}>
           <defs>
             <linearGradient id="tuGradCyan" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#00D4AA" stopOpacity={0.22} />
-              <stop offset="95%" stopColor="#00D4AA" stopOpacity={0} />
+              <stop offset="5%" stopColor={palette.primary} stopOpacity={0.22} />
+              <stop offset="95%" stopColor={palette.primary} stopOpacity={0} />
             </linearGradient>
             <linearGradient id="tuGradPurple" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#A855F7" stopOpacity={0.2} />
-              <stop offset="95%" stopColor="#A855F7" stopOpacity={0} />
+              <stop offset="5%" stopColor={palette.violet} stopOpacity={0.2} />
+              <stop offset="95%" stopColor={palette.violet} stopOpacity={0} />
             </linearGradient>
           </defs>
 
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="rgba(255,255,255,0.04)"
+            stroke={palette.gridStroke}
             vertical={false}
           />
 
@@ -148,7 +151,7 @@ export function TokenUsageChart({ data: propData, demoMode = false }: TokenUsage
             tickFormatter={(v: string) =>
               new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
             }
-            tick={{ fill: '#8B95A8', fontSize: 11, fontFamily: 'var(--font-mono)' }}
+            tick={{ fill: palette.axisFill, fontSize: 11, fontFamily: 'var(--font-mono)' }}
             axisLine={false}
             tickLine={false}
           />
@@ -158,7 +161,7 @@ export function TokenUsageChart({ data: propData, demoMode = false }: TokenUsage
             yAxisId="tokens"
             orientation="left"
             tickFormatter={formatCompact}
-            tick={{ fill: '#8B95A8', fontSize: 11, fontFamily: 'var(--font-mono)' }}
+            tick={{ fill: palette.axisFill, fontSize: 11, fontFamily: 'var(--font-mono)' }}
             axisLine={false}
             tickLine={false}
             width={40}
@@ -169,26 +172,26 @@ export function TokenUsageChart({ data: propData, demoMode = false }: TokenUsage
             yAxisId="cost"
             orientation="right"
             tickFormatter={formatCostAxis}
-            tick={{ fill: '#8B95A8', fontSize: 11, fontFamily: 'var(--font-mono)' }}
+            tick={{ fill: palette.axisFill, fontSize: 11, fontFamily: 'var(--font-mono)' }}
             axisLine={false}
             tickLine={false}
             width={44}
           />
 
           <Tooltip
-            content={<CustomTooltip />}
-            cursor={{ stroke: 'rgba(0,212,170,0.2)', strokeWidth: 1 }}
+            content={<CustomTooltip palette={palette} />}
+            cursor={{ stroke: palette.cursorStroke, strokeWidth: 1 }}
           />
 
           <Area
             yAxisId="tokens"
             type="monotone"
             dataKey="tokens"
-            stroke="#00D4AA"
+            stroke={palette.primary}
             strokeWidth={2}
             fill="url(#tuGradCyan)"
             dot={false}
-            activeDot={{ r: 4, fill: '#00D4AA', stroke: '#151B2E', strokeWidth: 2 }}
+            activeDot={{ r: 4, fill: palette.primary, stroke: palette.surface, strokeWidth: 2 }}
             isAnimationActive
             animationDuration={300}
             animationEasing="ease-out"
@@ -198,11 +201,11 @@ export function TokenUsageChart({ data: propData, demoMode = false }: TokenUsage
             yAxisId="cost"
             type="monotone"
             dataKey="cost_cents"
-            stroke="#A855F7"
+            stroke={palette.violet}
             strokeWidth={2}
             fill="url(#tuGradPurple)"
             dot={false}
-            activeDot={{ r: 4, fill: '#A855F7', stroke: '#151B2E', strokeWidth: 2 }}
+            activeDot={{ r: 4, fill: palette.violet, stroke: palette.surface, strokeWidth: 2 }}
             isAnimationActive
             animationDuration={300}
             animationEasing="ease-out"

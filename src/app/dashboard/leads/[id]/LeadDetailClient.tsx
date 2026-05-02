@@ -90,13 +90,13 @@ export function LeadDetailClient({
             className="rounded-[8px] border flex flex-col"
             style={{
               background: 'var(--color-saul-bg-700)',
-              borderColor: 'rgba(255,255,255,0.06)',
+              borderColor: 'var(--color-saul-border)',
             }}
           >
             {/* Tab bar */}
             <div
               className="flex items-center gap-0 px-4 pt-1"
-              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+              style={{ borderBottom: '1px solid var(--color-saul-border)' }}
             >
               {([
                 { key: 'activity',   label: 'Activity' },

@@ -48,7 +48,7 @@ interface SkeletonKPIProps {
 export function SkeletonKPI({ className = '' }: SkeletonKPIProps) {
   return (
     <div
-      className={`flex flex-col gap-3 p-5 rounded-[8px] bg-[var(--color-saul-bg-700)] border border-[rgba(255,255,255,0.06)] ${className}`}
+      className={`flex flex-col gap-3 p-5 rounded-[8px] bg-[var(--color-saul-bg-700)] border border-[var(--color-saul-border)] ${className}`}
       aria-hidden="true"
     >
       <div className="flex items-center justify-between">
@@ -115,7 +115,7 @@ export function SkeletonRow({ columns = 5, className = '' }: SkeletonRowProps) {
 
   return (
     <div
-      className={`flex items-center gap-4 px-4 py-3 border-b border-[rgba(255,255,255,0.04)] ${className}`}
+      className={`flex items-center gap-4 px-4 py-3 border-b border-[var(--color-saul-border-soft)] ${className}`}
       aria-hidden="true"
     >
       <SkeletonBase className="h-7 w-7 rounded-full shrink-0" />
@@ -149,8 +149,8 @@ interface SkeletonTableProps {
 
 export function SkeletonTable({ rows = 5, columns = 5, className = '' }: SkeletonTableProps) {
   return (
-    <div className={`rounded-[8px] border border-[rgba(255,255,255,0.06)] overflow-hidden ${className}`}>
-      <div className="flex items-center gap-4 px-4 py-3 bg-[var(--color-saul-bg-600)] border-b border-[rgba(255,255,255,0.06)]">
+    <div className={`rounded-[8px] border border-[var(--color-saul-border)] overflow-hidden ${className}`}>
+      <div className="flex items-center gap-4 px-4 py-3 bg-[var(--color-saul-bg-600)] border-b border-[var(--color-saul-border)]">
         <SkeletonBase className="h-7 w-7 rounded-full shrink-0" />
         {Array.from({ length: columns }).map((_, i) => (
           <SkeletonBase key={i} className="h-2.5 w-20" />

@@ -110,10 +110,10 @@ function Pill({ active, onClick, children, danger = false, className = '' }: Pil
       className={[
         'h-7 px-3 text-[12px] font-medium rounded-[6px] border transition-all duration-150 cursor-pointer whitespace-nowrap leading-none',
         active && !danger
-          ? 'bg-[rgba(0,212,170,0.15)] text-[var(--color-saul-cyan)] border-[rgba(0,212,170,0.3)]'
+          ? 'bg-[color-mix(in_srgb,var(--color-saul-cyan)_15%,transparent)] text-[var(--color-saul-cyan)] border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)]'
           : active && danger
-            ? 'bg-[rgba(255,71,87,0.15)] text-[var(--color-saul-danger)] border-[rgba(255,71,87,0.3)]'
-            : 'bg-transparent text-[var(--color-saul-text-secondary)] border-[rgba(255,255,255,0.07)] hover:border-[rgba(255,255,255,0.13)] hover:text-[var(--color-saul-text-primary)]',
+            ? 'bg-[color-mix(in_srgb,var(--color-saul-danger)_15%,transparent)] text-[var(--color-saul-danger)] border-[color-mix(in_srgb,var(--color-saul-danger)_30%,transparent)]'
+            : 'bg-transparent text-[var(--color-saul-text-secondary)] border-[var(--color-saul-border)] hover:border-[var(--color-saul-border-strong)] hover:text-[var(--color-saul-text-primary)]',
         className,
       ]
         .filter(Boolean)
@@ -149,7 +149,7 @@ function SortDropdown({ value, onChange }: SortDropdownProps) {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((p) => !p)}
-        className="h-7 px-3 flex items-center gap-1.5 text-[12px] font-medium rounded-[6px] border transition-all duration-150 cursor-pointer bg-transparent text-[var(--color-saul-text-secondary)] border-[rgba(255,255,255,0.07)] hover:border-[rgba(255,255,255,0.13)] hover:text-[var(--color-saul-text-primary)] whitespace-nowrap"
+        className="h-7 px-3 flex items-center gap-1.5 text-[12px] font-medium rounded-[6px] border transition-all duration-150 cursor-pointer bg-transparent text-[var(--color-saul-text-secondary)] border-[var(--color-saul-border)] hover:border-[var(--color-saul-border-strong)] hover:text-[var(--color-saul-text-primary)] whitespace-nowrap"
       >
         <ArrowsDownUp size={12} weight="bold" />
         {label}
@@ -166,7 +166,7 @@ function SortDropdown({ value, onChange }: SortDropdownProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.97 }}
             transition={{ duration: 0.12 }}
-            className="absolute top-[calc(100%+4px)] right-0 z-50 min-w-[180px] rounded-[7px] border border-[rgba(255,255,255,0.09)] bg-[var(--color-saul-bg-700)] shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden"
+            className="absolute top-[calc(100%+4px)] right-0 z-50 min-w-[180px] rounded-[7px] border border-[var(--color-saul-border-strong)] bg-[var(--color-saul-bg-700)] shadow-[0_8px_32px_var(--color-saul-shadow)] overflow-hidden"
           >
             {SORT_OPTIONS.map((opt) => (
               <button
@@ -178,8 +178,8 @@ function SortDropdown({ value, onChange }: SortDropdownProps) {
                 className={[
                   'w-full px-3 py-2 text-left text-[12px] transition-colors duration-100 cursor-pointer',
                   value === opt.value
-                    ? 'text-[var(--color-saul-cyan)] bg-[rgba(0,212,170,0.07)]'
-                    : 'text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:bg-[rgba(255,255,255,0.04)]',
+                    ? 'text-[var(--color-saul-cyan)] bg-[color-mix(in_srgb,var(--color-saul-cyan)_8%,transparent)]'
+                    : 'text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-low)]',
                 ]
                   .filter(Boolean)
                   .join(' ')}
@@ -201,7 +201,7 @@ function SkeletonTableRows() {
   return (
     <>
       {Array.from({ length: 10 }).map((_, i) => (
-        <tr key={i} className="border-b border-[rgba(255,255,255,0.04)] last:border-0" aria-hidden="true">
+        <tr key={i} className="border-b border-[var(--color-saul-border-soft)] last:border-0" aria-hidden="true">
           {/* Company */}
           <td className="px-4 py-2.5">
             <div className="flex flex-col gap-1.5">
@@ -256,7 +256,7 @@ function EmptyState({ onClear }: { onClear: () => void }) {
     <tr>
       <td colSpan={9}>
         <div className="flex flex-col items-center justify-center py-16 gap-4">
-          <span className="flex items-center justify-center w-14 h-14 rounded-[10px] bg-[var(--color-saul-bg-600)] border border-[rgba(255,255,255,0.06)]">
+          <span className="flex items-center justify-center w-14 h-14 rounded-[10px] bg-[var(--color-saul-bg-600)] border border-[var(--color-saul-border)]">
             <Car size={28} weight="duotone" className="text-[var(--color-saul-text-tertiary)]" />
           </span>
           <div className="text-center">
@@ -269,7 +269,7 @@ function EmptyState({ onClear }: { onClear: () => void }) {
           </div>
           <button
             onClick={onClear}
-            className="h-7 px-3 text-[12px] font-medium rounded-[6px] border cursor-pointer transition-all duration-150 bg-[rgba(0,212,170,0.08)] text-[var(--color-saul-cyan)] border-[rgba(0,212,170,0.2)] hover:bg-[rgba(0,212,170,0.14)]"
+            className="h-7 px-3 text-[12px] font-medium rounded-[6px] border cursor-pointer transition-all duration-150 bg-[color-mix(in_srgb,var(--color-saul-cyan)_10%,transparent)] text-[var(--color-saul-cyan)] border-[color-mix(in_srgb,var(--color-saul-cyan)_22%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-saul-cyan)_16%,transparent)]"
           >
             Clear filters
           </button>
@@ -471,14 +471,14 @@ export function LeadsPageClient() {
               a.href = url; a.download = `leads-export-${new Date().toISOString().slice(0,10)}.csv`
               a.click(); URL.revokeObjectURL(url)
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[var(--color-saul-bg-600)] border border-[rgba(255,255,255,0.08)] text-[12px] font-medium text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:border-[rgba(0,212,170,0.3)] transition-all duration-150"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[var(--color-saul-bg-600)] border border-[var(--color-saul-border-strong)] text-[12px] font-medium text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] transition-all duration-150"
           >
             <DownloadSimple size={14} weight="bold" />
             Export CSV
           </button>
           <button
             onClick={() => setShowImport(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[var(--color-saul-bg-600)] border border-[rgba(255,255,255,0.08)] text-[12px] font-medium text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:border-[rgba(0,212,170,0.3)] transition-all duration-150"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[var(--color-saul-bg-600)] border border-[var(--color-saul-border-strong)] text-[12px] font-medium text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] transition-all duration-150"
           >
             <UploadSimple size={14} weight="bold" />
             Import CSV
@@ -494,7 +494,7 @@ export function LeadsPageClient() {
       />
 
       {/* ── Filter bar ── */}
-      <div className="flex flex-col gap-2 p-3 rounded-[8px] bg-[var(--color-saul-bg-700)] border border-[rgba(255,255,255,0.06)]">
+      <div className="flex flex-col gap-2 p-3 rounded-[8px] bg-[var(--color-saul-bg-700)] border border-[var(--color-saul-border)]">
         {/* Row 1: search + assigned + red flags + sort */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* Search */}
@@ -508,11 +508,11 @@ export function LeadsPageClient() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search company, owner…"
-              className="w-full h-7 pl-7 pr-3 text-[12px] bg-[var(--color-saul-bg-600)] border border-[rgba(255,255,255,0.07)] rounded-[6px] text-[var(--color-saul-text-primary)] placeholder:text-[var(--color-saul-text-tertiary)] outline-none focus:border-[rgba(0,212,170,0.35)] transition-colors duration-150"
+              className="w-full h-7 pl-7 pr-3 text-[12px] bg-[var(--color-saul-bg-600)] border border-[var(--color-saul-border)] rounded-[6px] text-[var(--color-saul-text-primary)] placeholder:text-[var(--color-saul-text-tertiary)] outline-none focus:border-[color-mix(in_srgb,var(--color-saul-cyan)_35%,transparent)] transition-colors duration-150"
             />
           </div>
 
-          <div className="h-5 w-px bg-[rgba(255,255,255,0.07)]" />
+          <div className="h-5 w-px bg-[var(--color-saul-border)]" />
 
           {/* Assigned filter */}
           {(['all', 'gregory', 'team'] as const).map((v) => (
@@ -525,7 +525,7 @@ export function LeadsPageClient() {
             </Pill>
           ))}
 
-          <div className="h-5 w-px bg-[rgba(255,255,255,0.07)]" />
+          <div className="h-5 w-px bg-[var(--color-saul-border)]" />
 
           {/* Red flags toggle */}
           <Pill
@@ -551,7 +551,7 @@ export function LeadsPageClient() {
                   exit={{ opacity: 0, scale: 0.92 }}
                   transition={{ duration: 0.12 }}
                   onClick={clearFilters}
-                  className="h-7 px-2.5 flex items-center gap-1 text-[11px] font-medium rounded-[6px] border transition-all duration-150 cursor-pointer bg-transparent text-[var(--color-saul-text-tertiary)] border-[rgba(255,255,255,0.07)] hover:border-[rgba(255,255,255,0.13)] hover:text-[var(--color-saul-text-primary)]"
+                  className="h-7 px-2.5 flex items-center gap-1 text-[11px] font-medium rounded-[6px] border transition-all duration-150 cursor-pointer bg-transparent text-[var(--color-saul-text-tertiary)] border-[var(--color-saul-border)] hover:border-[var(--color-saul-border-strong)] hover:text-[var(--color-saul-text-primary)]"
                 >
                   <X size={10} weight="bold" />
                   Clear
@@ -597,7 +597,7 @@ export function LeadsPageClient() {
       />
 
       {/* ── Table ── */}
-      <div className="rounded-[8px] border border-[rgba(255,255,255,0.06)] overflow-hidden">
+      <div className="rounded-[8px] border border-[var(--color-saul-border)] overflow-hidden">
         {error ? (
           <div className="flex items-center justify-center py-16 text-[13px] text-[var(--color-saul-danger)]">
             Failed to load leads. Please try again.
@@ -607,7 +607,7 @@ export function LeadsPageClient() {
             <table className="w-full min-w-[800px] border-collapse">
               {/* Sticky header */}
               <thead className="sticky top-0 z-10 bg-[var(--color-saul-bg-600)]">
-                <tr className="border-b border-[rgba(255,255,255,0.07)]">
+                <tr className="border-b border-[var(--color-saul-border)]">
                   {TABLE_HEADERS.map((h, i) => (
                     <th
                       key={i}
@@ -623,7 +623,7 @@ export function LeadsPageClient() {
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-[rgba(255,255,255,0.04)]">
+              <tbody className="divide-y divide-[var(--color-saul-border-soft)]">
                 {isLoading && leads.length === 0 ? (
                   <SkeletonTableRows />
                 ) : leads.length === 0 ? (
@@ -672,11 +672,11 @@ export function LeadsPageClient() {
                 onChange={(e) => setJumpInput(e.target.value)}
                 onKeyDown={handleJump}
                 placeholder={String(page)}
-                className="w-12 h-7 px-2 text-[11px] font-mono text-center bg-[var(--color-saul-bg-600)] border border-[rgba(255,255,255,0.07)] rounded-[5px] text-[var(--color-saul-text-primary)] outline-none focus:border-[rgba(0,212,170,0.35)] transition-colors duration-150 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                className="w-12 h-7 px-2 text-[11px] font-mono text-center bg-[var(--color-saul-bg-600)] border border-[var(--color-saul-border)] rounded-[5px] text-[var(--color-saul-text-primary)] outline-none focus:border-[color-mix(in_srgb,var(--color-saul-cyan)_35%,transparent)] transition-colors duration-150 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
             </div>
 
-            <div className="h-5 w-px bg-[rgba(255,255,255,0.07)]" />
+            <div className="h-5 w-px bg-[var(--color-saul-border)]" />
 
             {/* Page X of Y */}
             <span className="text-[11px] font-mono text-[var(--color-saul-text-secondary)] tabular-nums">
@@ -688,14 +688,14 @@ export function LeadsPageClient() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="w-7 h-7 flex items-center justify-center rounded-[5px] border border-[rgba(255,255,255,0.07)] bg-transparent text-[var(--color-saul-text-secondary)] transition-all duration-150 cursor-pointer hover:border-[rgba(255,255,255,0.13)] hover:text-[var(--color-saul-text-primary)] disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-7 h-7 flex items-center justify-center rounded-[5px] border border-[var(--color-saul-border)] bg-transparent text-[var(--color-saul-text-secondary)] transition-all duration-150 cursor-pointer hover:border-[var(--color-saul-border-strong)] hover:text-[var(--color-saul-text-primary)] disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <CaretLeft size={12} weight="bold" />
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}
                 disabled={page >= meta.totalPages}
-                className="w-7 h-7 flex items-center justify-center rounded-[5px] border border-[rgba(255,255,255,0.07)] bg-transparent text-[var(--color-saul-text-secondary)] transition-all duration-150 cursor-pointer hover:border-[rgba(255,255,255,0.13)] hover:text-[var(--color-saul-text-primary)] disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-7 h-7 flex items-center justify-center rounded-[5px] border border-[var(--color-saul-border)] bg-transparent text-[var(--color-saul-text-secondary)] transition-all duration-150 cursor-pointer hover:border-[var(--color-saul-border-strong)] hover:text-[var(--color-saul-text-primary)] disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <CaretRight size={12} weight="bold" />
               </button>

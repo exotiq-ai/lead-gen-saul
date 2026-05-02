@@ -4,16 +4,19 @@ import { motion } from 'framer-motion'
 
 import { Badge } from '@/components/ui/Badge'
 import { formatRelative, formatCurrency } from '@/lib/utils/formatters'
+import { useChartPalette, type ChartPalette } from '@/lib/utils/chartColors'
 import type { EnrichmentRecord, SaulWebEnrichmentData } from '@/types/enrichment'
 
 // ─── Provider helpers ─────────────────────────────────────────────────────────
 
-const PROVIDER_COLORS: Record<string, string> = {
-  apollo:   '#3B82F6',
-  saul_web: '#00D4AA',
-  clearbit: '#A855F7',
-  linkedin: '#0A66C2',
-  scraper:  '#8B95A8',
+function providerColors(palette: ChartPalette): Record<string, string> {
+  return {
+    apollo:   palette.info,
+    saul_web: palette.primary,
+    clearbit: palette.violet,
+    linkedin: '#0A66C2', // LinkedIn brand color — kept literal in both themes
+    scraper:  palette.neutral,
+  }
 }
 
 // ─── Enrich Field ─────────────────────────────────────────────────────────────
@@ -50,6 +53,8 @@ function EnrichField({
 // ─── Enrichment Timeline ──────────────────────────────────────────────────────
 
 export function EnrichmentTimeline({ enrichments }: { enrichments: EnrichmentRecord[] }) {
+  const palette = useChartPalette()
+  const PROVIDER_COLORS = providerColors(palette)
   if (!enrichments.length) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-2">
@@ -63,7 +68,7 @@ export function EnrichmentTimeline({ enrichments }: { enrichments: EnrichmentRec
   return (
     <div className="flex flex-col gap-4">
       {enrichments.map((rec, i) => {
-        const providerColor = PROVIDER_COLORS[rec.provider] ?? '#8B95A8'
+        const providerColor = PROVIDER_COLORS[rec.provider] ?? palette.neutral
         const status = rec.success === true ? 'completed' : rec.success === false ? 'failed' : 'pending'
         const statusVariantMap = { completed: 'success', pending: 'warning', failed: 'danger' } as const
         const isSaulWebCompleted = rec.provider === 'saul_web' && status === 'completed'
@@ -78,7 +83,7 @@ export function EnrichmentTimeline({ enrichments }: { enrichments: EnrichmentRec
             className="rounded-[8px] p-4 flex flex-col gap-3"
             style={{
               background: 'var(--color-saul-bg-600)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              border: '1px solid var(--color-saul-border)',
             }}
           >
             {/* Header row */}
@@ -170,7 +175,7 @@ export function EnrichmentTimeline({ enrichments }: { enrichments: EnrichmentRec
                       key={k}
                       className="text-[11px] px-1.5 py-0.5 rounded"
                       style={{
-                        background: 'rgba(255,255,255,0.06)',
+                        background: 'var(--color-saul-overlay)',
                         color: 'var(--color-saul-text-secondary)',
                       }}
                     >

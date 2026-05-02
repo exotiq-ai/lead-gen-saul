@@ -164,7 +164,7 @@ export function AgentsPageClient() {
                   {data?.gateway?.protocol}
                 </span>
               </div>
-              <div className="h-4 w-px bg-[rgba(255,255,255,0.1)] hidden sm:block" />
+              <div className="h-4 w-px bg-[var(--color-saul-border-strong)] hidden sm:block" />
               <div className="text-[12px] text-[var(--color-saul-text-secondary)]">
                 <span className="text-[var(--color-saul-text-primary)]/80">Model</span>{' '}
                 <code className="text-[var(--color-saul-cyan)] text-[11px]">
@@ -190,7 +190,7 @@ export function AgentsPageClient() {
             <span>Heartbeat every {data?.cron?.interval_minutes ?? 15} min — next: {nextRun}</span>
           </div>
           <select
-            className="bg-[var(--color-saul-bg-800)] border border-[rgba(255,255,255,0.1)] rounded-md text-[12px] px-2 py-1 text-[var(--color-saul-text-primary)]"
+            className="bg-[var(--color-saul-bg-800)] border border-[var(--color-saul-border-strong)] rounded-md text-[12px] px-2 py-1 text-[var(--color-saul-text-primary)]"
             value={range}
             onChange={(e) => setRange(e.target.value as typeof range)}
           >
@@ -212,7 +212,7 @@ export function AgentsPageClient() {
               key={card.agent_type}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-lg border border-[rgba(255,255,255,0.08)] bg-[var(--color-saul-bg-800)] p-4"
+              className="rounded-lg border border-[var(--color-saul-border-strong)] bg-[var(--color-saul-bg-800)] p-4"
             >
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div>
@@ -256,10 +256,10 @@ export function AgentsPageClient() {
               {streamConnected ? 'live' : 'polling'}
             </span>
           </h2>
-          <div className="overflow-x-auto rounded-lg border border-[rgba(255,255,255,0.08)]">
+          <div className="overflow-x-auto rounded-lg border border-[var(--color-saul-border-strong)]">
             <table className="w-full text-left text-[12px]">
               <thead>
-                <tr className="border-b border-[rgba(255,255,255,0.06)] text-[var(--color-saul-text-secondary)]">
+                <tr className="border-b border-[var(--color-saul-border)] text-[var(--color-saul-text-secondary)]">
                   <th className="p-2 font-medium">Type</th>
                   <th className="p-2 font-medium">Status</th>
                   <th className="p-2 font-medium">Leads</th>
@@ -283,7 +283,7 @@ export function AgentsPageClient() {
                     <tr
                       key={r.id}
                       className={[
-                        'border-b border-[rgba(255,255,255,0.04)] hover:bg-[rgba(255,255,255,0.02)]',
+                        'border-b border-[var(--color-saul-border-soft)] hover:bg-[var(--color-saul-overlay-soft)]',
                         r.__live ? 'bg-[rgba(0,212,170,0.04)]' : '',
                       ].join(' ')}
                     >

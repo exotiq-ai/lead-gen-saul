@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 export type TimeRange = '7d' | '30d' | '90d' | 'all'
+export type Theme = 'dark' | 'light'
 
 interface DashboardStore {
   activeTenantId: string | null
@@ -14,11 +15,14 @@ interface DashboardStore {
   setFreshnessFilter: (f: string | null) => void
   timeRange: TimeRange
   setTimeRange: (r: TimeRange) => void
+  theme: Theme
+  setTheme: (t: Theme) => void
+  toggleTheme: () => void
 }
 
 export const useDashboardStore = create<DashboardStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       activeTenantId: null,
       setActiveTenantId: (id) => set({ activeTenantId: id }),
       selectedStageId: null,
@@ -29,12 +33,16 @@ export const useDashboardStore = create<DashboardStore>()(
       setFreshnessFilter: (f) => set({ freshnessFilter: f }),
       timeRange: '30d',
       setTimeRange: (r) => set({ timeRange: r }),
+      theme: 'dark',
+      setTheme: (t) => set({ theme: t }),
+      toggleTheme: () => set({ theme: get().theme === 'dark' ? 'light' : 'dark' }),
     }),
     {
       name: 'saul-dashboard',
       partialize: (state) => ({
         activeTenantId: state.activeTenantId,
         timeRange: state.timeRange,
+        theme: state.theme,
       }),
     },
   ),

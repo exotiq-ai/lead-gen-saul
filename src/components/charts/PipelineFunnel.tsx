@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { formatNumber } from '@/lib/utils/formatters'
+import { useChartPalette, type ChartPalette } from '@/lib/utils/chartColors'
 
 interface FunnelStage {
   id: string
@@ -27,26 +28,18 @@ const DEMO_STAGES: FunnelStage[] = [
   { id: 'won', name: 'Won', count: 20, avgScore: 88, position: 4 },
 ]
 
-const STAGE_COLORS = [
-  '#00D4AA',
-  '#3B82F6',
-  '#FFAE42',
-  '#A855F7',
-  '#FF4757',
-]
-
-function getScoreBadgeColor(score: number): string {
-  if (score >= 80) return 'rgba(0,212,170,0.2)'
-  if (score >= 60) return 'rgba(59,130,246,0.2)'
-  if (score >= 40) return 'rgba(255,174,66,0.2)'
-  return 'rgba(255,71,87,0.2)'
+function getScoreBadgeColor(score: number, palette: ChartPalette): string {
+  if (score >= 80) return `${palette.success}33`
+  if (score >= 60) return `${palette.info}33`
+  if (score >= 40) return `${palette.warning}33`
+  return `${palette.danger}33`
 }
 
-function getScoreTextColor(score: number): string {
-  if (score >= 80) return '#00D4AA'
-  if (score >= 60) return '#3B82F6'
-  if (score >= 40) return '#FFAE42'
-  return '#FF4757'
+function getScoreTextColor(score: number, palette: ChartPalette): string {
+  if (score >= 80) return palette.success
+  if (score >= 60) return palette.info
+  if (score >= 40) return palette.warning
+  return palette.danger
 }
 
 export function PipelineFunnel({
@@ -55,9 +48,18 @@ export function PipelineFunnel({
   selectedStageId,
   demoMode = false,
 }: PipelineFunnelProps) {
+  const palette = useChartPalette()
   const stages = demoMode || !propStages ? DEMO_STAGES : propStages
   const sorted = [...stages].sort((a, b) => a.position - b.position)
   const maxCount = sorted[0]?.count ?? 1
+
+  const stageColors = [
+    palette.series[0],
+    palette.series[1],
+    palette.series[2],
+    palette.series[3],
+    palette.series[4],
+  ]
 
   return (
     <div className="flex flex-col gap-0 w-full select-none min-h-[220px] md:min-h-[280px]">
@@ -66,7 +68,7 @@ export function PipelineFunnel({
         const prevCount = i > 0 ? sorted[i - 1].count : null
         const dropPct = prevCount != null ? Math.round(((prevCount - stage.count) / prevCount) * 100) : null
         const isSelected = selectedStageId === stage.id
-        const color = stage.color ?? STAGE_COLORS[i % STAGE_COLORS.length]
+        const color = stage.color ?? stageColors[i % stageColors.length]
 
         // clip-path trapezoid that narrows as widthPct shrinks
         // We center the bar. The clipping creates the trapezoid by narrowing relative to parent.
@@ -133,8 +135,8 @@ export function PipelineFunnel({
                   <span
                     className="text-xs px-1.5 py-0.5 rounded"
                     style={{
-                      background: getScoreBadgeColor(stage.avgScore),
-                      color: getScoreTextColor(stage.avgScore),
+                      background: getScoreBadgeColor(stage.avgScore, palette),
+                      color: getScoreTextColor(stage.avgScore, palette),
                       fontFamily: 'var(--font-mono)',
                     }}
                   >
@@ -167,7 +169,7 @@ export function PipelineFunnel({
       <div
         className="mt-4 pt-4 flex items-center justify-between text-xs"
         style={{
-          borderTop: '1px solid rgba(255,255,255,0.06)',
+          borderTop: `1px solid ${palette.divider}`,
           color: 'var(--color-saul-text-secondary)',
         }}
       >

@@ -126,7 +126,7 @@ export function OutreachPageClient() {
           </h1>
           <Link
             href="/dashboard/outreach/templates"
-            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-[6px] border border-[rgba(255,255,255,0.08)] text-[var(--color-saul-text-secondary)] hover:border-[rgba(0,212,170,0.3)] hover:text-[var(--color-saul-text-primary)]"
+            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-[6px] border border-[var(--color-saul-border-strong)] text-[var(--color-saul-text-secondary)] hover:border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] hover:text-[var(--color-saul-text-primary)]"
           >
             <NotePencil size={14} weight="bold" />
             Templates
@@ -156,7 +156,7 @@ export function OutreachPageClient() {
               'px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors',
               tab === t.id
                 ? 'bg-[var(--color-saul-cyan)]/20 text-[var(--color-saul-cyan)] border border-[var(--color-saul-cyan)]/40'
-                : 'bg-[var(--color-saul-bg-700)] text-[var(--color-saul-text-secondary)] border border-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.1)]',
+                : 'bg-[var(--color-saul-bg-700)] text-[var(--color-saul-text-secondary)] border border-[var(--color-saul-border)] hover:border-[var(--color-saul-border-strong)]',
             ].join(' ')}
           >
             {t.label}
@@ -166,7 +166,7 @@ export function OutreachPageClient() {
 
       {/* Bulk actions bar -- shown when there are selectable items in view */}
       {pendingIdsInView.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 mb-4 p-2 rounded-md border border-[rgba(255,255,255,0.06)] bg-[var(--color-saul-bg-800)]">
+        <div className="flex flex-wrap items-center gap-2 mb-4 p-2 rounded-md border border-[var(--color-saul-border)] bg-[var(--color-saul-bg-800)]">
           <label className="flex items-center gap-1.5 text-[12px] text-[var(--color-saul-text-secondary)] cursor-pointer">
             <input
               type="checkbox"
@@ -205,7 +205,7 @@ export function OutreachPageClient() {
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-40 rounded-lg bg-[var(--color-saul-bg-800)] border border-[rgba(255,255,255,0.05)] skeleton-shimmer"
+              className="h-40 rounded-lg bg-[var(--color-saul-bg-800)] border border-[var(--color-saul-border-soft)] skeleton-shimmer"
             />
           ))}
         </div>
