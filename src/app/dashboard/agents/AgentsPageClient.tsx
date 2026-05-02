@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import useSWR from 'swr'
 import { motion } from 'framer-motion'
-import { Robot, Pulse, Timer, Plugs, Cpu } from '@phosphor-icons/react'
+import { Robot, Pulse, Timer, Plugs, Cpu, Broadcast } from '@phosphor-icons/react'
 import { formatDistanceToNow } from 'date-fns'
 import { useTenantId } from '@/lib/hooks/useTenant'
 
@@ -75,6 +75,32 @@ export function AgentsPageClient() {
     `/api/dashboard/agents?tenant_id=${tenantId}&range=${range}`,
     fetcher,
   )
+
+  // Stage 4c: live SSE stream of new agent_runs. The buffer holds the
+  // most recent 50 events; old ones drop off.
+  const [liveEvents, setLiveEvents] = useState<Array<RunRow & { __live: true }>>([])
+  const [streamConnected, setStreamConnected] = useState(false)
+  const sourceRef = useRef<EventSource | null>(null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const es = new EventSource(`/api/dashboard/agents/stream?tenant_id=${tenantId}`)
+    sourceRef.current = es
+    es.addEventListener('hello', () => setStreamConnected(true))
+    es.addEventListener('run', (ev: MessageEvent<string>) => {
+      try {
+        const row = JSON.parse(ev.data) as RunRow
+        setLiveEvents((cur) => [{ ...row, __live: true as const }, ...cur].slice(0, 50))
+      } catch {
+        // ignore malformed payload
+      }
+    })
+    es.addEventListener('error', () => setStreamConnected(false))
+    return () => {
+      es.close()
+      sourceRef.current = null
+    }
+  }, [tenantId])
 
   const nextRun = data?.cron?.next_run_at
     ? formatDistanceToNow(new Date(data.cron.next_run_at), { addSuffix: true })
@@ -219,6 +245,16 @@ export function AgentsPageClient() {
           <h2 className="text-[14px] font-semibold text-[var(--color-saul-text-primary)] mb-2 flex items-center gap-2">
             <Cpu size={18} className="text-[var(--color-saul-cyan)]" />
             Run log
+            <span
+              className={[
+                'ml-2 inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-wide',
+                streamConnected ? 'text-emerald-300' : 'text-[var(--color-saul-text-tertiary)]',
+              ].join(' ')}
+              title={streamConnected ? 'live stream connected' : 'no live stream'}
+            >
+              <Broadcast size={11} weight={streamConnected ? 'fill' : 'regular'} />
+              {streamConnected ? 'live' : 'polling'}
+            </span>
           </h2>
           <div className="overflow-x-auto rounded-lg border border-[rgba(255,255,255,0.08)]">
             <table className="w-full text-left text-[12px]">
@@ -233,25 +269,47 @@ export function AgentsPageClient() {
                 </tr>
               </thead>
               <tbody>
-                {(data?.recent_runs ?? []).map((r) => (
-                  <tr key={r.id} className="border-b border-[rgba(255,255,255,0.04)] hover:bg-[rgba(255,255,255,0.02)]">
-                    <td className="p-2 font-mono text-[var(--color-saul-cyan)]">{r.agent_type}</td>
-                    <td className="p-2">{r.status}</td>
-                    <td className="p-2">{r.leads_processed}</td>
-                    <td className="p-2">{r.tokens_used}</td>
-                    <td className="p-2">{r.duration_ms ?? '—'}</td>
-                    <td className="p-2 text-[var(--color-saul-text-secondary)]">
-                      {r.started_at ? new Date(r.started_at).toLocaleString() : '—'}
-                    </td>
-                  </tr>
-                ))}
+                {/* Live events (from SSE) render first with a subtle bg
+                    so the operator can see them flowing in. We dedup
+                    against the SWR snapshot by id since the polling
+                    stream may overlap with the periodic /agents fetch. */}
+                {(() => {
+                  const polled = data?.recent_runs ?? []
+                  const polledIds = new Set(polled.map((r) => r.id))
+                  const liveOnly = liveEvents.filter((r) => !polledIds.has(r.id))
+                  const merged: Array<RunRow & { __live?: true }> = [...liveOnly, ...polled]
+                  if (merged.length === 0) return null
+                  return merged.slice(0, 60).map((r) => (
+                    <tr
+                      key={r.id}
+                      className={[
+                        'border-b border-[rgba(255,255,255,0.04)] hover:bg-[rgba(255,255,255,0.02)]',
+                        r.__live ? 'bg-[rgba(0,212,170,0.04)]' : '',
+                      ].join(' ')}
+                    >
+                      <td className="p-2 font-mono text-[var(--color-saul-cyan)]">
+                        {r.agent_type}
+                        {r.__live && <span className="ml-1 text-[9px] uppercase text-emerald-300">live</span>}
+                      </td>
+                      <td className="p-2">{r.status}</td>
+                      <td className="p-2">{r.leads_processed}</td>
+                      <td className="p-2">{r.tokens_used}</td>
+                      <td className="p-2">{r.duration_ms ?? '—'}</td>
+                      <td className="p-2 text-[var(--color-saul-text-secondary)]">
+                        {r.started_at ? new Date(r.started_at).toLocaleString() : '—'}
+                      </td>
+                    </tr>
+                  ))
+                })()}
               </tbody>
             </table>
-            {(!data?.recent_runs || data.recent_runs.length === 0) && !isLoading && (
-              <p className="p-6 text-center text-[var(--color-saul-text-secondary)] text-[13px]">
-                No agent runs yet. When Saul and workers execute, they appear here.
-              </p>
-            )}
+            {(!data?.recent_runs || data.recent_runs.length === 0) &&
+              liveEvents.length === 0 &&
+              !isLoading && (
+                <p className="p-6 text-center text-[var(--color-saul-text-secondary)] text-[13px]">
+                  No agent runs yet. When Saul and workers execute, they appear here.
+                </p>
+              )}
           </div>
         </div>
       </div>
