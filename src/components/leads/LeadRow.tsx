@@ -85,13 +85,32 @@ function isStale(lastActivity: string | null): boolean {
 
 export function LeadRow({ lead, index, onClick, onScoreClick, onStatusClick, onStageChange }: LeadRowProps) {
   const [stageDropdownOpen, setStageDropdownOpen] = useState(false)
-  const displayName = lead.company_name || lead.full_name || '—'
-  const location = [lead.city, lead.state].filter(Boolean).join(', ')
+  const fullName = [lead.first_name, lead.last_name].filter(Boolean).join(' ') || lead.full_name || null
+  const displayName = lead.company_name || fullName || '—'
+  // Cast through unknown because the API returns extra columns
+  // (company_location, company_industry, score_breakdown JSON) that aren't
+  // on the typed Lead interface yet. See note at the top of types/lead.ts.
+  const apiRow = lead as unknown as Record<string, unknown>
+  // Prefer the real company_location column. Fall back to legacy city/state
+  // shape if any caller still emits them (none should after Stage 1a).
+  const location =
+    (apiRow.company_location as string | null) ??
+    [lead.city, lead.state].filter(Boolean).join(', ')
   const statusCfg = STATUS_CONFIG[lead.status] ?? { label: lead.status, variant: 'default' as const }
   const sourceCfg = getSourceConfig(lead.source)
   const lastActiveColor = getLastActiveColor(lead.last_activity_at)
-  const industry = (lead.metadata?.industry as string) ?? null
-  const fleetTier = (lead.metadata?.fleet_tier as string) ?? null
+  // Industry / fleet tier live on real columns now -- not nested metadata.
+  // company_industry is the canonical column; score_breakdown.fleet_size
+  // gives us a derived tier label.
+  const industry = (apiRow.company_industry as string | null) ?? null
+  const breakdown = (lead.score_breakdown ?? null) as Record<string, unknown> | null
+  const fleetSize = breakdown ? Number(breakdown.fleet_size ?? 0) || 0 : 0
+  const fleetTier =
+    fleetSize >= 20 ? 'Fleet 20+' :
+    fleetSize >= 10 ? 'Fleet 10-19' :
+    fleetSize >= 5 ? 'Fleet 5-9' :
+    fleetSize >= 1 ? `Fleet ${fleetSize}` :
+    null
 
   return (
     <motion.tr
