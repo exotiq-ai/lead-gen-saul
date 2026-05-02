@@ -113,7 +113,7 @@ export function OutreachPageClient() {
     pendingIdsInView.length > 0 && selected.size >= pendingIdsInView.length
 
   return (
-    <div className="px-6 py-6 max-w-5xl">
+    <div className="px-3 sm:px-6 py-6 max-w-5xl">
       <motion.header
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}

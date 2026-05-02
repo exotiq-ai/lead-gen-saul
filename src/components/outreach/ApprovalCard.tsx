@@ -159,7 +159,7 @@ export function ApprovalCard({
           onChange={(e) => setDraft(e.target.value)}
         />
       ) : (
-        <p className="text-[13px] text-[var(--color-saul-text-primary)]/90 leading-relaxed whitespace-pre-wrap">
+        <p className="text-[13px] text-[var(--color-saul-text-primary)]/90 leading-relaxed whitespace-pre-wrap break-words">
           {item.message_draft}
         </p>
       )}

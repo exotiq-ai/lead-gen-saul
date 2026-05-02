@@ -39,7 +39,7 @@ export function TemplatesPageClient() {
   )
 
   return (
-    <div className="px-6 py-6 max-w-5xl">
+    <div className="px-3 sm:px-6 py-6 max-w-5xl">
       <div className="flex items-center gap-2 mb-3">
         <Link
           href="/dashboard/outreach"

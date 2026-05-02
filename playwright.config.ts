@@ -26,6 +26,13 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      // Stage 4d: regression-guard the mobile sidebar + approval flow at
+      // an iPhone-12-ish viewport so we don't silently regress mobile
+      // padding or the hamburger toggle.
+      name: 'mobile-chromium',
+      use: { ...devices['Pixel 5'] },
+    },
   ],
   // Boot Next dev server unless BASE_URL points elsewhere.
   webServer: process.env.BASE_URL

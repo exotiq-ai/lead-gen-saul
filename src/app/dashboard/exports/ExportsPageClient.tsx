@@ -38,7 +38,7 @@ export function ExportsPageClient() {
   const tenantId = useTenantId()
 
   return (
-    <div className="px-6 py-6 max-w-5xl">
+    <div className="px-3 sm:px-6 py-6 max-w-5xl">
       <header className="mb-8">
         <div className="flex items-center gap-3 mb-1">
           <DownloadSimple
