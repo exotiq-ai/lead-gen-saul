@@ -41,7 +41,7 @@ export function LeadHeader({ lead, stageName, isAssignedToGregory }: LeadHeaderP
       className="rounded-[8px] border p-5"
       style={{
         background: 'var(--color-saul-bg-700)',
-        borderColor: 'rgba(255,255,255,0.06)',
+        borderColor: 'var(--color-saul-border)',
       }}
     >
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -82,9 +82,9 @@ export function LeadHeader({ lead, stageName, isAssignedToGregory }: LeadHeaderP
             <button
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-sm font-medium transition-colors duration-150 cursor-pointer"
               style={{
-                background: 'rgba(0,212,170,0.1)',
-                border: '1px solid rgba(0,212,170,0.25)',
-                color: '#00D4AA',
+                background: 'color-mix(in srgb, var(--color-saul-cyan) 10%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--color-saul-cyan) 25%, transparent)',
+                color: 'var(--color-saul-cyan)',
               }}
             >
               <UserPlus size={14} />
@@ -96,9 +96,9 @@ export function LeadHeader({ lead, stageName, isAssignedToGregory }: LeadHeaderP
               onClick={() => setShowFlagMenu(v => !v)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-sm font-medium transition-colors duration-150 cursor-pointer"
               style={{
-                background: 'rgba(255,71,87,0.08)',
-                border: '1px solid rgba(255,71,87,0.2)',
-                color: '#FF4757',
+                background: 'color-mix(in srgb, var(--color-saul-danger) 8%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--color-saul-danger) 20%, transparent)',
+                color: 'var(--color-saul-danger)',
               }}
             >
               <Flag size={14} />
@@ -114,8 +114,8 @@ export function LeadHeader({ lead, stageName, isAssignedToGregory }: LeadHeaderP
                   className="absolute right-0 top-full mt-1 z-50 rounded-[8px] py-1 min-w-44"
                   style={{
                     background: 'var(--color-saul-bg-600)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                    border: '1px solid var(--color-saul-border-strong)',
+                    boxShadow: '0 8px 32px var(--color-saul-shadow)',
                   }}
                   onMouseLeave={() => setShowFlagMenu(false)}
                 >
@@ -124,7 +124,7 @@ export function LeadHeader({ lead, stageName, isAssignedToGregory }: LeadHeaderP
                       key={flag}
                       className="w-full text-left px-3 py-2 text-[13px] transition-colors duration-100 cursor-pointer"
                       style={{ color: 'var(--color-saul-text-primary)' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-saul-overlay-low)')}
                       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                       onClick={() => setShowFlagMenu(false)}
                     >

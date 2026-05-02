@@ -11,45 +11,36 @@ interface BadgeProps {
   className?: string
 }
 
+/**
+ * Tonal class strings that pull foreground/background/border from a single
+ * design token via color-mix(). All tokens flip with the active theme.
+ */
+const TONAL = {
+  cyan:
+    'bg-[color-mix(in_srgb,var(--color-saul-cyan)_12%,transparent)] text-[var(--color-saul-cyan)] border-[color-mix(in_srgb,var(--color-saul-cyan)_25%,transparent)]',
+  info:
+    'bg-[color-mix(in_srgb,var(--color-saul-info)_12%,transparent)] text-[var(--color-saul-info)] border-[color-mix(in_srgb,var(--color-saul-info)_25%,transparent)]',
+  warning:
+    'bg-[color-mix(in_srgb,var(--color-saul-warning)_12%,transparent)] text-[var(--color-saul-warning)] border-[color-mix(in_srgb,var(--color-saul-warning)_25%,transparent)]',
+  danger:
+    'bg-[color-mix(in_srgb,var(--color-saul-danger)_12%,transparent)] text-[var(--color-saul-danger)] border-[color-mix(in_srgb,var(--color-saul-danger)_25%,transparent)]',
+  neutral:
+    'bg-[var(--color-saul-overlay)] text-[var(--color-saul-text-secondary)] border-[var(--color-saul-border-strong)]',
+} as const
+
 function getScoreConfig(score: number): { label: string; classes: string } {
-  if (score >= 80) {
-    return {
-      label: score.toString(),
-      classes:
-        'bg-[rgba(0,212,170,0.12)] text-[var(--color-saul-cyan)] border-[rgba(0,212,170,0.25)]',
-    }
-  }
-  if (score >= 60) {
-    return {
-      label: score.toString(),
-      classes:
-        'bg-[rgba(59,130,246,0.12)] text-[#3B82F6] border-[rgba(59,130,246,0.25)]',
-    }
-  }
-  if (score >= 40) {
-    return {
-      label: score.toString(),
-      classes:
-        'bg-[rgba(255,174,66,0.12)] text-[var(--color-saul-warning)] border-[rgba(255,174,66,0.25)]',
-    }
-  }
-  return {
-    label: score.toString(),
-    classes:
-      'bg-[rgba(255,71,87,0.12)] text-[var(--color-saul-danger)] border-[rgba(255,71,87,0.25)]',
-  }
+  if (score >= 80) return { label: score.toString(), classes: TONAL.cyan }
+  if (score >= 60) return { label: score.toString(), classes: TONAL.info }
+  if (score >= 40) return { label: score.toString(), classes: TONAL.warning }
+  return { label: score.toString(), classes: TONAL.danger }
 }
 
 const variantClasses: Record<Exclude<BadgeVariant, 'score'>, string> = {
-  default:
-    'bg-[rgba(255,255,255,0.06)] text-[var(--color-saul-text-secondary)] border-[rgba(255,255,255,0.08)]',
-  success:
-    'bg-[rgba(0,212,170,0.12)] text-[var(--color-saul-cyan)] border-[rgba(0,212,170,0.25)]',
-  warning:
-    'bg-[rgba(255,174,66,0.12)] text-[var(--color-saul-warning)] border-[rgba(255,174,66,0.25)]',
-  danger:
-    'bg-[rgba(255,71,87,0.12)] text-[var(--color-saul-danger)] border-[rgba(255,71,87,0.25)]',
-  info: 'bg-[rgba(59,130,246,0.12)] text-[#3B82F6] border-[rgba(59,130,246,0.25)]',
+  default: TONAL.neutral,
+  success: TONAL.cyan,
+  warning: TONAL.warning,
+  danger: TONAL.danger,
+  info: TONAL.info,
 }
 
 export function Badge({ variant = 'default', score, children, className = '' }: BadgeProps) {

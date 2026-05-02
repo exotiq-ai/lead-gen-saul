@@ -96,7 +96,7 @@ export function Tooltip({
               className={[
                 'inline-block whitespace-nowrap px-2.5 py-1.5 rounded-[4px] text-xs font-medium leading-none',
                 'bg-[var(--color-saul-bg-900)] text-[var(--color-saul-text-primary)]',
-                'border border-[rgba(255,255,255,0.08)] shadow-[0_4px_16px_rgba(0,0,0,0.5)]',
+                'border border-[var(--color-saul-border-strong)] shadow-[0_4px_16px_var(--color-saul-shadow)]',
                 className,
               ]
                 .filter(Boolean)

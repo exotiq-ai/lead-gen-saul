@@ -132,7 +132,7 @@ function SequenceEditor({
   }
 
   return (
-    <section className="rounded-lg border border-[rgba(255,255,255,0.08)] bg-[var(--color-saul-bg-800)] p-4">
+    <section className="rounded-lg border border-[var(--color-saul-border-strong)] bg-[var(--color-saul-bg-800)] p-4">
       <div className="flex items-start justify-between gap-2 mb-3">
         <div>
           <h2 className="text-[15px] font-semibold text-[var(--color-saul-text-primary)]">
@@ -174,7 +174,7 @@ function SequenceEditor({
         {draft.map((step, i) => (
           <div
             key={`${seq.id}-${step.variant}-${i}`}
-            className="rounded-md border border-[rgba(255,255,255,0.06)] p-3"
+            className="rounded-md border border-[var(--color-saul-border)] p-3"
           >
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <span className="text-[11px] font-mono uppercase text-[var(--color-saul-cyan)]">
@@ -196,7 +196,7 @@ function SequenceEditor({
                   max={100}
                   value={step.score_min}
                   onChange={(e) => updateStep(i, { score_min: Number(e.target.value) })}
-                  className="w-14 px-2 py-1 rounded-md bg-[var(--color-saul-bg-900)] border border-[rgba(255,255,255,0.08)] text-[var(--color-saul-text-primary)]"
+                  className="w-14 px-2 py-1 rounded-md bg-[var(--color-saul-bg-900)] border border-[var(--color-saul-border-strong)] text-[var(--color-saul-text-primary)]"
                 />
               </label>
               <label className="flex items-center gap-1.5">
@@ -207,12 +207,12 @@ function SequenceEditor({
                   max={100}
                   value={step.score_max}
                   onChange={(e) => updateStep(i, { score_max: Number(e.target.value) })}
-                  className="w-14 px-2 py-1 rounded-md bg-[var(--color-saul-bg-900)] border border-[rgba(255,255,255,0.08)] text-[var(--color-saul-text-primary)]"
+                  className="w-14 px-2 py-1 rounded-md bg-[var(--color-saul-bg-900)] border border-[var(--color-saul-border-strong)] text-[var(--color-saul-text-primary)]"
                 />
               </label>
             </div>
             <textarea
-              className="w-full min-h-[140px] rounded-md bg-[var(--color-saul-bg-900)] border border-[rgba(255,255,255,0.08)] p-3 text-[13px] text-[var(--color-saul-text-primary)] font-sans"
+              className="w-full min-h-[140px] rounded-md bg-[var(--color-saul-bg-900)] border border-[var(--color-saul-border-strong)] p-3 text-[13px] text-[var(--color-saul-text-primary)] font-sans"
               value={step.body}
               onChange={(e) => updateStep(i, { body: e.target.value })}
             />

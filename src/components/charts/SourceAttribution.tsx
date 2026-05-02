@@ -12,6 +12,7 @@ import {
   LabelList,
 } from 'recharts'
 import { formatNumber, formatPercent } from '@/lib/utils/formatters'
+import { useChartPalette, type ChartPalette } from '@/lib/utils/chartColors'
 
 interface SourceData {
   source: string
@@ -34,19 +35,20 @@ const DEMO_DATA: SourceData[] = [
   { source: 'API / Webhook', total: 25, converted: 1, conversion_rate: 4.0, avg_score: 38 },
 ]
 
-function getBarColor(rate: number): string {
-  if (rate >= 15) return '#00D4AA'
-  if (rate >= 10) return '#3B82F6'
-  if (rate >= 5) return '#FFAE42'
-  return '#FF4757'
+function getBarColor(rate: number, palette: ChartPalette): string {
+  if (rate >= 15) return palette.success
+  if (rate >= 10) return palette.info
+  if (rate >= 5) return palette.warning
+  return palette.danger
 }
 
 interface SourceTooltipProps {
   active?: boolean
   payload?: Array<{ payload: SourceData }>
+  palette: ChartPalette
 }
 
-function CustomTooltip({ active, payload }: SourceTooltipProps) {
+function CustomTooltip({ active, payload, palette }: SourceTooltipProps) {
   if (!active || !payload?.length) return null
   const d = payload[0]?.payload as SourceData
 
@@ -54,18 +56,18 @@ function CustomTooltip({ active, payload }: SourceTooltipProps) {
     <div
       className="rounded-lg px-3 py-2.5 text-xs flex flex-col gap-1.5"
       style={{
-        background: '#151B2E',
-        border: '1px solid rgba(255,255,255,0.1)',
-        color: '#F0F2F5',
+        background: palette.tooltipBg,
+        border: `1px solid ${palette.tooltipBorder}`,
+        color: palette.tooltipText,
         minWidth: 160,
       }}
     >
-      <p className="font-semibold mb-0.5" style={{ color: '#F0F2F5' }}>{d.source}</p>
-      <Row label="Total leads" value={formatNumber(d.total)} />
-      <Row label="Converted" value={formatNumber(d.converted)} />
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 6, marginTop: 2 }}>
-        <Row label="Conv. rate" value={formatPercent(d.conversion_rate)} color={getBarColor(d.conversion_rate)} />
-        <Row label="Avg score" value={String(d.avg_score)} />
+      <p className="font-semibold mb-0.5" style={{ color: palette.textPrimary }}>{d.source}</p>
+      <Row label="Total leads" value={formatNumber(d.total)} palette={palette} />
+      <Row label="Converted" value={formatNumber(d.converted)} palette={palette} />
+      <div style={{ borderTop: `1px solid ${palette.divider}`, paddingTop: 6, marginTop: 2 }}>
+        <Row label="Conv. rate" value={formatPercent(d.conversion_rate)} color={getBarColor(d.conversion_rate, palette)} palette={palette} />
+        <Row label="Avg score" value={String(d.avg_score)} palette={palette} />
       </div>
     </div>
   )
@@ -75,17 +77,19 @@ function Row({
   label,
   value,
   color,
+  palette,
 }: {
   label: string
   value: string
   color?: string
+  palette: ChartPalette
 }) {
   return (
     <div className="flex items-center justify-between gap-6">
-      <span style={{ color: '#8B95A8' }}>{label}</span>
+      <span style={{ color: palette.textSecondary }}>{label}</span>
       <span
         className="font-semibold"
-        style={{ fontFamily: 'var(--font-mono)', color: color ?? '#F0F2F5' }}
+        style={{ fontFamily: 'var(--font-mono)', color: color ?? palette.textPrimary }}
       >
         {value}
       </span>
@@ -103,20 +107,21 @@ interface BarEntry {
 }
 
 export function SourceAttribution({ data: propData, demoMode = false }: SourceAttributionProps) {
+  const palette = useChartPalette()
   const raw = demoMode || !propData ? DEMO_DATA : propData
   const sorted = [...raw].sort((a, b) => b.total - a.total)
 
   const chartData: BarEntry[] = sorted.map((d) => ({
     ...d,
-    fill: getBarColor(d.conversion_rate),
+    fill: getBarColor(d.conversion_rate, palette),
   }))
 
   // Conversion rate legend
   const legend = [
-    { label: '≥15% conv', color: '#00D4AA' },
-    { label: '10–15%', color: '#3B82F6' },
-    { label: '5–10%', color: '#FFAE42' },
-    { label: '<5%', color: '#FF4757' },
+    { label: '≥15% conv', color: palette.success },
+    { label: '10–15%', color: palette.info },
+    { label: '5–10%', color: palette.warning },
+    { label: '<5%', color: palette.danger },
   ]
 
   return (
@@ -126,7 +131,7 @@ export function SourceAttribution({ data: propData, demoMode = false }: SourceAt
         {legend.map((l) => (
           <div key={l.label} className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full inline-block" style={{ background: l.color }} />
-            <span className="text-xs" style={{ color: '#8B95A8' }}>{l.label}</span>
+            <span className="text-xs" style={{ color: palette.textSecondary }}>{l.label}</span>
           </div>
         ))}
       </div>
@@ -139,14 +144,14 @@ export function SourceAttribution({ data: propData, demoMode = false }: SourceAt
         >
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="rgba(255,255,255,0.04)"
+            stroke={palette.gridStroke}
             horizontal={false}
           />
 
           <XAxis
             type="number"
             tickFormatter={formatNumber}
-            tick={{ fill: '#8B95A8', fontSize: 11, fontFamily: 'var(--font-mono)' }}
+            tick={{ fill: palette.axisFill, fontSize: 11, fontFamily: 'var(--font-mono)' }}
             axisLine={false}
             tickLine={false}
           />
@@ -154,15 +159,15 @@ export function SourceAttribution({ data: propData, demoMode = false }: SourceAt
           <YAxis
             type="category"
             dataKey="source"
-            tick={{ fill: '#8B95A8', fontSize: 11 }}
+            tick={{ fill: palette.axisFill, fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             width={110}
           />
 
           <Tooltip
-            content={<CustomTooltip />}
-            cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+            content={<CustomTooltip palette={palette} />}
+            cursor={{ fill: palette.cursorFill }}
           />
 
           <Bar
@@ -180,7 +185,7 @@ export function SourceAttribution({ data: propData, demoMode = false }: SourceAt
               position="right"
               formatter={(v: unknown) => `${(v as number).toFixed(1)}%`}
               style={{
-                fill: '#8B95A8',
+                fill: palette.axisFill,
                 fontSize: 11,
                 fontFamily: 'var(--font-mono)',
               }}

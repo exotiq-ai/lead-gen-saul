@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowUp, ArrowDown } from '@phosphor-icons/react'
 import { SkeletonKPI } from '@/components/ui/Skeleton'
+import { useChartPalette } from '@/lib/utils/chartColors'
 import { MetricSparkline } from './MetricSparkline'
 
 export interface KPICardProps {
@@ -86,8 +87,10 @@ export function KPICard({
   sparklineData,
   isLoading = false,
   format = 'number',
-  accentColor = '#00D4AA',
+  accentColor,
 }: KPICardProps) {
+  const palette = useChartPalette()
+  const resolvedAccent = accentColor ?? palette.primary
   const numericTarget = typeof value === 'number' ? value : parseFloat(String(value)) || 0
   const animated = useCountUp(numericTarget)
 
@@ -109,10 +112,10 @@ export function KPICard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
       whileHover={{
-        borderColor: 'rgba(0,212,170,0.15)',
-        boxShadow: '0 0 0 1px rgba(0,212,170,0.15)',
+        borderColor: `color-mix(in srgb, ${resolvedAccent} 30%, transparent)`,
+        boxShadow: `0 0 0 1px color-mix(in srgb, ${resolvedAccent} 25%, transparent)`,
       }}
-      className="flex flex-col gap-2 p-5 rounded-[8px] bg-[var(--color-saul-bg-700)] border border-[rgba(255,255,255,0.06)] transition-all duration-200 cursor-default select-none"
+      className="flex flex-col gap-2 p-5 rounded-[8px] bg-[var(--color-saul-bg-700)] border border-[var(--color-saul-border)] transition-all duration-200 cursor-default select-none"
     >
       {/* Title row */}
       <div className="flex items-center justify-between">
@@ -120,7 +123,7 @@ export function KPICard({
           {title}
         </span>
         {sparklineData && sparklineData.length >= 2 && (
-          <MetricSparkline data={sparklineData} color={accentColor} />
+          <MetricSparkline data={sparklineData} color={resolvedAccent} />
         )}
       </div>
 

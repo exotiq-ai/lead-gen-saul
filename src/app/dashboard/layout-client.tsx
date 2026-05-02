@@ -2,6 +2,7 @@
 
 import { type ReactNode, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { ThemeProvider } from '@/components/dashboard/ThemeProvider'
 
 const TENANTS: Record<string, { id: string; name: string; icon: string }> = {
   exotiq: {
@@ -46,29 +47,30 @@ export function DashboardClientLayout({ children }: DashboardClientLayoutProps) 
 
   return (
     <div className="relative">
+      <ThemeProvider />
       {/* Tenant switcher — sits below topbar, above content, no overlap */}
-      <div className="w-full px-4 py-2 border-b border-[rgba(255,255,255,0.05)] bg-[var(--color-saul-bg-800)] flex items-center gap-2">
+      <div className="w-full px-4 py-2 border-b border-[var(--color-saul-border-soft)] bg-[var(--color-saul-bg-800)] flex items-center gap-2">
         <span className="text-[10px] text-[var(--color-saul-text-tertiary)] uppercase tracking-wider">Tenant</span>
         <div className="relative">
         <button
           onClick={() => setOpen(!open)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[rgba(255,255,255,0.1)] bg-[var(--color-saul-bg-800,#0d0d0d)] hover:border-[rgba(0,212,170,0.3)] transition-colors text-[12px]"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--color-saul-border-strong)] bg-[var(--color-saul-bg-800)] hover:border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] transition-colors text-[12px]"
         >
           <span>{tenant.icon}</span>
-          <span className="text-[var(--color-saul-text-primary,#fff)] font-medium">{tenant.name}</span>
-          <span className="text-[var(--color-saul-text-tertiary,#666)]">{open ? '▲' : '▼'}</span>
+          <span className="text-[var(--color-saul-text-primary)] font-medium">{tenant.name}</span>
+          <span className="text-[var(--color-saul-text-tertiary)]">{open ? '▲' : '▼'}</span>
         </button>
         {open && (
-          <div className="absolute right-0 mt-1 w-48 rounded-lg border border-[rgba(255,255,255,0.1)] bg-[var(--color-saul-bg-700,#1a1a1a)] shadow-xl overflow-hidden">
+          <div className="absolute right-0 mt-1 w-48 rounded-lg border border-[var(--color-saul-border-strong)] bg-[var(--color-saul-bg-700)] shadow-xl overflow-hidden">
             {Object.entries(TENANTS).map(([slug, t]) => (
               <a
                 key={slug}
                 href={`?tenant=${slug}`}
                 className={[
-                  'flex items-center gap-2 px-3 py-2.5 text-[12px] hover:bg-[rgba(0,212,170,0.08)] transition-colors',
+                  'flex items-center gap-2 px-3 py-2.5 text-[12px] hover:bg-[color-mix(in_srgb,var(--color-saul-cyan)_8%,transparent)] transition-colors',
                   slug === tenantSlug
-                    ? 'text-[var(--color-saul-cyan,#00D4AA)] bg-[rgba(0,212,170,0.04)]'
-                    : 'text-[var(--color-saul-text-secondary,#999)]',
+                    ? 'text-[var(--color-saul-cyan)] bg-[color-mix(in_srgb,var(--color-saul-cyan)_4%,transparent)]'
+                    : 'text-[var(--color-saul-text-secondary)]',
                 ].join(' ')}
                 onClick={() => setOpen(false)}
               >

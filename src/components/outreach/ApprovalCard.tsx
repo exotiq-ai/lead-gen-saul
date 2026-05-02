@@ -97,7 +97,7 @@ export function ApprovalCard({
   return (
     <motion.article
       layout
-      className="rounded-lg border border-[rgba(255,255,255,0.08)] bg-[var(--color-saul-bg-800)] p-4"
+      className="rounded-lg border border-[var(--color-saul-border-strong)] bg-[var(--color-saul-bg-800)] p-4"
     >
       <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
         <div className="flex items-start gap-2.5">
@@ -154,7 +154,7 @@ export function ApprovalCard({
 
       {editing ? (
         <textarea
-          className="w-full min-h-[120px] rounded-md bg-[var(--color-saul-bg-900)] border border-[rgba(255,255,255,0.1)] p-3 text-[13px] text-[var(--color-saul-text-primary)] font-sans"
+          className="w-full min-h-[120px] rounded-md bg-[var(--color-saul-bg-900)] border border-[var(--color-saul-border-strong)] p-3 text-[13px] text-[var(--color-saul-text-primary)] font-sans"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
         />

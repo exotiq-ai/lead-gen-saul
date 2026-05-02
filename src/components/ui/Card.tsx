@@ -33,9 +33,9 @@ export function Card({
   return (
     <div
       className={[
-        'rounded-[8px] border border-[rgba(255,255,255,0.06)] bg-[var(--color-saul-bg-700)] transition-all duration-200',
+        'rounded-[8px] border border-[var(--color-saul-border)] bg-[var(--color-saul-bg-700)] transition-all duration-200',
         interactive
-          ? 'cursor-pointer hover:border-[rgba(255,255,255,0.12)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.3)]'
+          ? 'cursor-pointer hover:border-[var(--color-saul-border-strong)] hover:shadow-[0_4px_24px_var(--color-saul-shadow-soft)]'
           : '',
         className,
       ]
@@ -93,7 +93,7 @@ function SpotlightCard({
       ref={ref}
       className={[
         'relative rounded-[8px] bg-[var(--color-saul-bg-700)] transition-shadow duration-200 overflow-hidden',
-        interactive ? 'cursor-pointer hover:shadow-[0_4px_24px_rgba(0,0,0,0.35)]' : '',
+        interactive ? 'cursor-pointer hover:shadow-[0_4px_24px_var(--color-saul-shadow)]' : '',
         className,
       ]
         .filter(Boolean)
@@ -119,7 +119,7 @@ function SpotlightCard({
       {/* Static base border */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 rounded-[8px] border border-[rgba(255,255,255,0.06)]"
+        className="pointer-events-none absolute inset-0 rounded-[8px] border border-[var(--color-saul-border)]"
       />
       {/* Spotlight fill */}
       <motion.div

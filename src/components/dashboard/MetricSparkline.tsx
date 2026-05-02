@@ -1,5 +1,7 @@
 'use client'
 
+import { useChartPalette } from '@/lib/utils/chartColors'
+
 interface MetricSparklineProps {
   data: number[]
   color?: string
@@ -9,10 +11,12 @@ interface MetricSparklineProps {
 
 export function MetricSparkline({
   data,
-  color = '#00D4AA',
+  color,
   width = 80,
   height = 32,
 }: MetricSparklineProps) {
+  const palette = useChartPalette()
+  const resolvedColor = color ?? palette.primary
   if (!data || data.length < 2) return null
 
   const min = Math.min(...data)
@@ -37,7 +41,7 @@ export function MetricSparkline({
   const bottomY = padding + innerH
   const fillPath = `M ${points[0]} L ${points.join(' L ')} L ${lastX},${bottomY} L ${firstX},${bottomY} Z`
 
-  const gradientId = `sparkline-grad-${color.replace('#', '')}`
+  const gradientId = `sparkline-grad-${resolvedColor.replace('#', '')}`
 
   return (
     <svg
@@ -49,14 +53,14 @@ export function MetricSparkline({
     >
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
+          <stop offset="0%" stopColor={resolvedColor} stopOpacity="0.25" />
+          <stop offset="100%" stopColor={resolvedColor} stopOpacity="0" />
         </linearGradient>
       </defs>
       <path d={fillPath} fill={`url(#${gradientId})`} />
       <polyline
         points={polylinePoints}
-        stroke={color}
+        stroke={resolvedColor}
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
