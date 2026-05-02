@@ -106,7 +106,7 @@ export function SettingsPageClient() {
 
   if (isLoading) {
     return (
-      <div className="px-6 py-6 max-w-3xl">
+      <div className="px-3 sm:px-6 py-6 max-w-3xl">
         <div className="animate-pulse space-y-4">
           <div className="h-6 w-48 bg-[var(--color-saul-bg-600)] rounded" />
           <div className="h-40 bg-[var(--color-saul-bg-600)] rounded-[10px]" />
@@ -130,7 +130,7 @@ export function SettingsPageClient() {
   const tiers = criteria.scoring_tiers ?? TIER_DEFAULTS
 
   return (
-    <div className="px-6 py-6 max-w-3xl space-y-6">
+    <div className="px-3 sm:px-6 py-6 max-w-3xl space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
