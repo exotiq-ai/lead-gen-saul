@@ -5,21 +5,22 @@ import { useRouter, usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CaretDown, Check } from '@phosphor-icons/react'
 import { useDashboardStore } from '@/stores/dashboardStore'
-import { TENANTS, useTenantId } from '@/lib/hooks/useTenant'
+import { useTenants, useTenantId } from '@/lib/hooks/useTenant'
 
 export function TenantSelector() {
   const [open, setOpen] = useState(false)
   const { setActiveTenantId } = useDashboardStore()
   const currentTenantId = useTenantId()
+  const tenants = useTenants()
   const router = useRouter()
   const pathname = usePathname()
 
-  const active = TENANTS.find((t) => t.id === currentTenantId) ?? TENANTS[0]
+  const active = tenants.find((t) => t.id === currentTenantId) ?? tenants[0]
 
   function select(id: string) {
     setActiveTenantId(id) // store UUID directly
     setOpen(false)
-    const tenant = TENANTS.find((t) => t.id === id)
+    const tenant = tenants.find((t) => t.id === id)
     if (tenant) {
       router.push(`${pathname}?tenant=${tenant.slug}`)
     }
@@ -77,7 +78,7 @@ export function TenantSelector() {
                 </p>
               </div>
               <div className="pb-1.5 px-1.5 flex flex-col gap-0.5">
-                {TENANTS.map((t) => {
+                {tenants.map((t) => {
                   const isActive = t.id === active.id
                   return (
                     <button
