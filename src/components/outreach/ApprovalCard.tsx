@@ -44,10 +44,16 @@ export function ApprovalCard({
   item,
   tenantId,
   onUpdated,
+  selectable = false,
+  selected = false,
+  onToggleSelect,
 }: {
   item: QueueItem
   tenantId: string
   onUpdated: () => void
+  selectable?: boolean
+  selected?: boolean
+  onToggleSelect?: () => void
 }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(item.message_draft)
@@ -94,7 +100,17 @@ export function ApprovalCard({
       className="rounded-lg border border-[rgba(255,255,255,0.08)] bg-[var(--color-saul-bg-800)] p-4"
     >
       <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
-        <div>
+        <div className="flex items-start gap-2.5">
+          {selectable && (
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={() => onToggleSelect?.()}
+              aria-label={`Select draft for ${title}`}
+              className="mt-1 accent-[var(--color-saul-cyan)]"
+            />
+          )}
+          <div>
           <div className="flex items-center gap-2 flex-wrap">
             <Link
               href={`/dashboard/leads/${item.lead_id}`}
@@ -113,6 +129,7 @@ export function ApprovalCard({
               {lead.company_location}
             </p>
           )}
+          </div>
         </div>
         <div className="flex items-center gap-1.5 flex-wrap justify-end">
           <Badge className="font-mono text-[10px]">{channelLabel(item.channel)}</Badge>
