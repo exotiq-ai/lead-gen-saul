@@ -183,6 +183,8 @@ interface ImportLead {
   last_name?: string
   email?: string
   phone?: string
+  // city/state arrive from CSV but the leads table only has
+  // company_location -- we concatenate them into that column.
   city?: string
   state?: string
   source?: string
@@ -209,23 +211,28 @@ export async function POST(req: NextRequest) {
 
   const rows = leads
     .filter((l) => l.company_name?.trim())
-    .map((l) => ({
-      tenant_id,
-      company_name: l.company_name.trim(),
-      first_name: l.first_name?.trim() || null,
-      last_name: l.last_name?.trim() || null,
-      email: l.email?.trim() || null,
-      phone: l.phone?.trim() || null,
-      city: l.city?.trim() || null,
-      state: l.state?.trim() || null,
-      source: l.source?.trim() || 'api',
-      status: 'new' as const,
-      assigned_to: null,
-      score: null,
-      red_flags: [],
-      tags: [],
-      metadata: {},
-    }))
+    .map((l) => {
+      const city = l.city?.trim()
+      const state = l.state?.trim()
+      const company_location = [city, state].filter(Boolean).join(', ') || null
+      return {
+        tenant_id,
+        company_name: l.company_name.trim(),
+        first_name: l.first_name?.trim() || null,
+        last_name: l.last_name?.trim() || null,
+        email: l.email?.trim() || null,
+        phone: l.phone?.trim() || null,
+        // city/state collapse into company_location -- the leads table
+        // (per migration 001) has no city/state/tags/metadata columns.
+        company_location,
+        source: l.source?.trim() || 'api',
+        status: 'new' as const,
+        assigned_to: null,
+        score: 0,
+        red_flags: [],
+        score_breakdown: {},
+      }
+    })
 
   if (rows.length === 0) {
     return NextResponse.json({ error: 'No valid leads (company_name required)' }, { status: 400 })
