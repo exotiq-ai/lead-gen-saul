@@ -119,7 +119,7 @@ export function LeadRow({ lead, index, onClick, onScoreClick, onStatusClick, onS
       initial="hidden"
       animate="visible"
       onClick={onClick}
-      className="group cursor-pointer transition-colors duration-150 hover:bg-[rgba(28,36,57,0.5)] border-b border-[rgba(255,255,255,0.04)] last:border-0"
+      className="group cursor-pointer transition-colors duration-150 hover:bg-[var(--color-saul-overlay)] border-b border-[var(--color-saul-border-soft)] last:border-0"
     >
       {/* Company */}
       <td className="px-4 py-2.5 max-w-[200px]">
@@ -189,7 +189,7 @@ export function LeadRow({ lead, index, onClick, onScoreClick, onStatusClick, onS
                 className="fixed inset-0 z-40"
                 onClick={(e) => { e.stopPropagation(); setStageDropdownOpen(false) }}
               />
-              <div className="absolute top-full left-0 mt-1 z-50 min-w-[140px] py-1 rounded-lg bg-[var(--color-saul-bg-600)] border border-[rgba(255,255,255,0.1)] shadow-lg">
+              <div className="absolute top-full left-0 mt-1 z-50 min-w-[140px] py-1 rounded-lg bg-[var(--color-saul-bg-600)] border border-[var(--color-saul-border-strong)] shadow-lg">
                 {(Object.entries(STATUS_CONFIG) as [LeadStatus, typeof statusCfg][]).map(([key, cfg]) => (
                   <button
                     key={key}
@@ -201,8 +201,8 @@ export function LeadRow({ lead, index, onClick, onScoreClick, onStatusClick, onS
                     className={[
                       'w-full text-left px-3 py-1.5 text-[12px] font-medium transition-colors duration-100',
                       key === lead.status
-                        ? 'text-[var(--color-saul-cyan)] bg-[rgba(0,212,170,0.08)]'
-                        : 'text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:bg-[rgba(255,255,255,0.04)]',
+                        ? 'text-[var(--color-saul-cyan)] bg-[color-mix(in_srgb,var(--color-saul-cyan)_8%,transparent)]'
+                        : 'text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-low)]',
                     ].join(' ')}
                   >
                     {cfg.label}

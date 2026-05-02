@@ -58,10 +58,10 @@ export function ActivityFeed() {
 
   return (
     <div
-      className="flex flex-col h-full bg-[var(--color-saul-bg-900)] border-l border-[rgba(255,255,255,0.06)]"
+      className="flex flex-col h-full bg-[var(--color-saul-bg-900)] border-l border-[var(--color-saul-border)]"
     >
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-[rgba(255,255,255,0.06)] shrink-0">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--color-saul-border)] shrink-0">
         <span className="relative flex h-2 w-2">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
           <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
@@ -78,7 +78,7 @@ export function ActivityFeed() {
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="h-12 rounded-[6px] bg-[rgba(255,255,255,0.04)] animate-pulse"
+                className="h-12 rounded-[6px] bg-[var(--color-saul-overlay-low)] animate-pulse"
               />
             ))}
           </div>
@@ -87,7 +87,7 @@ export function ActivityFeed() {
             No recent activity
           </p>
         ) : (
-          <ul className="flex flex-col divide-y divide-[rgba(255,255,255,0.04)]">
+          <ul className="flex flex-col divide-y divide-[var(--color-saul-border-soft)]">
             <AnimatePresence initial={false}>
               {activities.slice(0, 10).map((item) => {
                 const Icon = ACTIVITY_ICONS[item.activity_type] ?? Lightning
@@ -100,7 +100,7 @@ export function ActivityFeed() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 8 }}
                     transition={{ duration: 0.2, ease: 'easeOut' }}
-                    className="flex items-start gap-2.5 px-3 py-2.5 hover:bg-[rgba(255,255,255,0.03)] transition-colors duration-150"
+                    className="flex items-start gap-2.5 px-3 py-2.5 hover:bg-[var(--color-saul-overlay-soft)] transition-colors duration-150"
                   >
                     {/* Icon */}
                     <span className={`mt-0.5 shrink-0 ${iconColor}`}>

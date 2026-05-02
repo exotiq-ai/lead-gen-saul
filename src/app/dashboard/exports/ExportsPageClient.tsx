@@ -63,7 +63,7 @@ export function ExportsPageClient() {
           return (
             <li
               key={d.id}
-              className="rounded-lg border border-[rgba(255,255,255,0.08)] bg-[var(--color-saul-bg-800)] p-4 flex flex-col gap-3"
+              className="rounded-lg border border-[var(--color-saul-border-strong)] bg-[var(--color-saul-bg-800)] p-4 flex flex-col gap-3"
             >
               <div className="flex items-center gap-2">
                 <Icon size={20} weight="duotone" className="text-[var(--color-saul-cyan)]" />

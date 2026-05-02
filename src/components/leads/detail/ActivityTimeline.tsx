@@ -12,6 +12,7 @@ import {
 } from '@phosphor-icons/react'
 
 import { formatRelative, formatDate } from '@/lib/utils/formatters'
+import { useChartPalette, type ChartPalette } from '@/lib/utils/chartColors'
 import type { LeadActivity } from '@/types/lead'
 import type { ScoringHistoryRecord } from '@/app/dashboard/leads/[id]/page'
 
@@ -43,20 +44,21 @@ function ActivityIcon({ type }: { type: string }) {
   return <>{map[type] ?? <ArrowsClockwise className={iconClass} />}</>
 }
 
-function activityColor(type: string | null | undefined): string {
+function activityColor(type: string | null | undefined, palette: ChartPalette): string {
   // Defensive: rows from migrations or older webhooks may have null
   // activity_type. Default to the neutral grey rather than crashing.
-  if (!type) return '#8B95A8'
-  if (type.startsWith('dm_'))    return '#00D4AA'
-  if (type.startsWith('call_'))  return '#3B82F6'
-  if (type === 'score_changed')  return '#FFAE42'
-  if (type === 'enriched')       return '#A855F7'
-  return '#8B95A8'
+  if (!type) return palette.neutral
+  if (type.startsWith('dm_'))    return palette.primary
+  if (type.startsWith('call_'))  return palette.info
+  if (type === 'score_changed')  return palette.warning
+  if (type === 'enriched')       return palette.violet
+  return palette.neutral
 }
 
 // ─── Activity Timeline ────────────────────────────────────────────────────────
 
 export function ActivityTimeline({ activities }: { activities: LeadActivity[] }) {
+  const palette = useChartPalette()
   if (!activities.length) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-2">
@@ -73,7 +75,7 @@ export function ActivityTimeline({ activities }: { activities: LeadActivity[] })
         // The API returns activity_type; we keep `type` as a legacy alias.
         // See src/types/lead.ts for why both can appear.
         const kind = activity.activity_type ?? activity.type ?? ''
-        const color = activityColor(kind)
+        const color = activityColor(kind, palette)
         const label =
           (kind && ACTIVITY_LABELS[kind]) ||
           (kind ? kind.replace(/_/g, ' ') : 'activity')
@@ -90,7 +92,7 @@ export function ActivityTimeline({ activities }: { activities: LeadActivity[] })
             {i < activities.length - 1 && (
               <div
                 className="absolute left-[15px] top-7 bottom-0 w-px"
-                style={{ background: 'rgba(255,255,255,0.06)' }}
+                style={{ background: 'var(--color-saul-border)' }}
               />
             )}
 
@@ -136,6 +138,7 @@ export function ActivityTimeline({ activities }: { activities: LeadActivity[] })
 // ─── Scoring Timeline ─────────────────────────────────────────────────────────
 
 export function ScoringTimeline({ history }: { history: ScoringHistoryRecord[] }) {
+  const palette = useChartPalette()
   if (!history.length) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-2">
@@ -151,7 +154,7 @@ export function ScoringTimeline({ history }: { history: ScoringHistoryRecord[] }
       {history.map((rec, i) => {
         const increased = rec.old_score != null && rec.new_score > rec.old_score
         const decreased = rec.old_score != null && rec.new_score < rec.old_score
-        const color = increased ? '#00D4AA' : decreased ? '#FF4757' : '#8B95A8'
+        const color = increased ? palette.success : decreased ? palette.danger : palette.neutral
 
         return (
           <motion.div
@@ -164,7 +167,7 @@ export function ScoringTimeline({ history }: { history: ScoringHistoryRecord[] }
             {i < history.length - 1 && (
               <div
                 className="absolute left-[15px] top-7 bottom-0 w-px"
-                style={{ background: 'rgba(255,255,255,0.06)' }}
+                style={{ background: 'var(--color-saul-border)' }}
               />
             )}
 

@@ -138,7 +138,7 @@ export function SettingsPageClient() {
         className="flex items-center justify-between"
       >
         <div className="flex items-center gap-3">
-          <span className="flex items-center justify-center w-10 h-10 rounded-[8px] bg-[var(--color-saul-bg-600)] border border-[rgba(255,255,255,0.06)]">
+          <span className="flex items-center justify-center w-10 h-10 rounded-[8px] bg-[var(--color-saul-bg-600)] border border-[var(--color-saul-border)]">
             <Gear size={20} weight="regular" className="text-[var(--color-saul-cyan)]" />
           </span>
           <div>
@@ -155,7 +155,7 @@ export function SettingsPageClient() {
           {dirty && (
             <button
               onClick={resetToSaved}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-[rgba(255,255,255,0.08)] text-[12px] font-medium text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-[var(--color-saul-border-strong)] text-[12px] font-medium text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] transition-all"
             >
               <ArrowCounterClockwise size={13} weight="bold" />
               Reset
@@ -188,7 +188,7 @@ export function SettingsPageClient() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[rgba(255,255,255,0.06)] p-5"
+        className="rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[var(--color-saul-border)] p-5"
       >
         <h2 className="text-[14px] font-semibold text-[var(--color-saul-text-primary)] mb-3">
           Tenant Type
@@ -201,8 +201,8 @@ export function SettingsPageClient() {
               className={[
                 'px-4 py-2 rounded-[6px] text-[13px] font-medium border transition-all',
                 criteria.tenant_type === type
-                  ? 'bg-[rgba(0,212,170,0.1)] border-[rgba(0,212,170,0.3)] text-[var(--color-saul-cyan)]'
-                  : 'bg-[var(--color-saul-bg-600)] border-[rgba(255,255,255,0.06)] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)]',
+                  ? 'bg-[color-mix(in_srgb,var(--color-saul-cyan)_10%,transparent)] border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] text-[var(--color-saul-cyan)]'
+                  : 'bg-[var(--color-saul-bg-600)] border-[var(--color-saul-border)] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)]',
               ].join(' ')}
             >
               {type === 'automotive' ? '🚗 Automotive' : '💉 MedSpa'}
@@ -216,7 +216,7 @@ export function SettingsPageClient() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[rgba(255,255,255,0.06)] p-5"
+        className="rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[var(--color-saul-border)] p-5"
       >
         <h2 className="text-[14px] font-semibold text-[var(--color-saul-text-primary)] mb-1">
           ICP Scoring Weights
@@ -255,7 +255,7 @@ export function SettingsPageClient() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[rgba(255,255,255,0.06)] p-5"
+        className="rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[var(--color-saul-border)] p-5"
       >
         <h2 className="text-[14px] font-semibold text-[var(--color-saul-text-primary)] mb-1">
           Scoring Tiers
@@ -268,7 +268,7 @@ export function SettingsPageClient() {
           {Object.entries(tiers).map(([key, tier]) => (
             <div
               key={key}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-[6px] bg-[var(--color-saul-bg-600)] border border-[rgba(255,255,255,0.04)]"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-[6px] bg-[var(--color-saul-bg-600)] border border-[var(--color-saul-border-soft)]"
             >
               <span className="text-[13px] font-medium text-[var(--color-saul-text-primary)] flex-1">
                 {tier.label ?? key}
@@ -279,10 +279,10 @@ export function SettingsPageClient() {
               <span className={[
                 'text-[11px] font-semibold px-2 py-0.5 rounded-full',
                 tier.assigned_to === 'gregory'
-                  ? 'bg-[rgba(0,212,170,0.1)] text-[var(--color-saul-cyan)]'
+                  ? 'bg-[color-mix(in_srgb,var(--color-saul-cyan)_10%,transparent)] text-[var(--color-saul-cyan)]'
                   : tier.assigned_to === 'team'
-                    ? 'bg-[rgba(255,255,255,0.06)] text-[var(--color-saul-text-secondary)]'
-                    : 'bg-[rgba(255,100,100,0.08)] text-red-400',
+                    ? 'bg-[var(--color-saul-overlay)] text-[var(--color-saul-text-secondary)]'
+                    : 'bg-[color-mix(in_srgb,var(--color-saul-danger)_10%,transparent)] text-[var(--color-saul-danger)]',
               ].join(' ')}>
                 {tier.assigned_to ?? 'unassigned'}
               </span>
@@ -299,7 +299,7 @@ export function SettingsPageClient() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[rgba(255,100,100,0.15)] p-5"
+        className="rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[color-mix(in_srgb,var(--color-saul-danger)_18%,transparent)] p-5"
       >
         <div className="flex items-center gap-2 mb-3">
           <Warning size={16} weight="fill" className="text-red-400" />
@@ -317,7 +317,7 @@ export function SettingsPageClient() {
               alert('Bulk re-score not yet implemented')
             }
           }}
-          className="px-4 py-2 rounded-[6px] border border-[rgba(255,100,100,0.25)] text-[12px] font-medium text-red-400 hover:bg-[rgba(255,100,100,0.08)] transition-all"
+          className="px-4 py-2 rounded-[6px] border border-[color-mix(in_srgb,var(--color-saul-danger)_28%,transparent)] text-[12px] font-medium text-[var(--color-saul-danger)] hover:bg-[color-mix(in_srgb,var(--color-saul-danger)_10%,transparent)] transition-all"
         >
           Re-score All Leads
         </button>
@@ -409,7 +409,7 @@ function PipelineStagesSection({ tenantId }: { tenantId: string }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.18 }}
-      className="rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[rgba(255,255,255,0.06)] p-5"
+      className="rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[var(--color-saul-border)] p-5"
     >
       <div className="flex items-start justify-between gap-2 mb-1">
         <div>
@@ -458,7 +458,7 @@ function PipelineStagesSection({ tenantId }: { tenantId: string }) {
         {order.map((stage, i) => (
           <li
             key={stage.id}
-            className="flex items-center gap-2 px-3 py-2 rounded-[6px] bg-[var(--color-saul-bg-600)] border border-[rgba(255,255,255,0.04)]"
+            className="flex items-center gap-2 px-3 py-2 rounded-[6px] bg-[var(--color-saul-bg-600)] border border-[var(--color-saul-border-soft)]"
           >
             <span className="text-[11px] font-mono text-[var(--color-saul-text-tertiary)] w-6 text-center">
               {i + 1}
@@ -481,7 +481,7 @@ function PipelineStagesSection({ tenantId }: { tenantId: string }) {
             <button
               onClick={() => move(i, -1)}
               disabled={i === 0 || saving}
-              className="px-2 py-0.5 text-[12px] font-mono rounded border border-[rgba(255,255,255,0.08)] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] disabled:opacity-30"
+              className="px-2 py-0.5 text-[12px] font-mono rounded border border-[var(--color-saul-border-strong)] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] disabled:opacity-30"
               aria-label="Move up"
             >
               ↑
@@ -489,7 +489,7 @@ function PipelineStagesSection({ tenantId }: { tenantId: string }) {
             <button
               onClick={() => move(i, 1)}
               disabled={i === order.length - 1 || saving}
-              className="px-2 py-0.5 text-[12px] font-mono rounded border border-[rgba(255,255,255,0.08)] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] disabled:opacity-30"
+              className="px-2 py-0.5 text-[12px] font-mono rounded border border-[var(--color-saul-border-strong)] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] disabled:opacity-30"
               aria-label="Move down"
             >
               ↓

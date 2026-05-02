@@ -12,34 +12,35 @@ import {
 } from '@phosphor-icons/react'
 
 import { Badge } from '@/components/ui/Badge'
+import { useChartPalette, type ChartPalette } from '@/lib/utils/chartColors'
 import type { Lead } from '@/types/lead'
 
 // ─── Tier helpers ─────────────────────────────────────────────────────────────
 
-export function getTierInfo(score: number): { tier: number; label: string; color: string } {
-  if (score >= 80) return { tier: 5, label: 'Whale',       color: '#00D4AA' }
-  if (score >= 60) return { tier: 4, label: 'Powerhouse',  color: '#3B82F6' }
-  if (score >= 40) return { tier: 3, label: 'Mid-Market',  color: '#FFAE42' }
-  if (score >= 20) return { tier: 2, label: 'Small Fleet', color: '#F97316' }
-  return                   { tier: 1, label: 'Prospect',   color: '#FF4757' }
+export function getTierInfo(score: number): { tier: number; label: string; colorVar: string } {
+  if (score >= 80) return { tier: 5, label: 'Whale',       colorVar: 'var(--color-saul-cyan)' }
+  if (score >= 60) return { tier: 4, label: 'Powerhouse',  colorVar: 'var(--color-saul-info)' }
+  if (score >= 40) return { tier: 3, label: 'Mid-Market',  colorVar: 'var(--color-saul-warning)' }
+  if (score >= 20) return { tier: 2, label: 'Small Fleet', colorVar: 'var(--color-saul-orange)' }
+  return                   { tier: 1, label: 'Prospect',   colorVar: 'var(--color-saul-danger)' }
 }
 
-function getRingColor(score: number): string {
-  if (score >= 80) return '#00D4AA'
-  if (score >= 60) return '#3B82F6'
-  if (score >= 40) return '#FFAE42'
-  return '#FF4757'
+function getRingColor(score: number, palette: ChartPalette): string {
+  if (score >= 80) return palette.success
+  if (score >= 60) return palette.info
+  if (score >= 40) return palette.warning
+  return palette.danger
 }
 
 // ─── SVG Score Ring ───────────────────────────────────────────────────────────
 
-function ScoreRing({ score }: { score: number }) {
+function ScoreRing({ score, palette }: { score: number; palette: ChartPalette }) {
   const radius = 52
   const cx = 68
   const cy = 68
   const circumference = 2 * Math.PI * radius
   const dashOffset = circumference - (Math.min(score, 100) / 100) * circumference
-  const color = getRingColor(score)
+  const color = getRingColor(score, palette)
   const tier = getTierInfo(score)
 
   return (
@@ -50,7 +51,7 @@ function ScoreRing({ score }: { score: number }) {
           <circle
             cx={cx} cy={cy} r={radius}
             fill="none"
-            stroke="rgba(255,255,255,0.06)"
+            stroke={palette.divider}
             strokeWidth="8"
           />
           {/* Fill */}
@@ -82,7 +83,7 @@ function ScoreRing({ score }: { score: number }) {
       <div className="flex flex-col items-center gap-1">
         <span
           className="text-sm font-semibold"
-          style={{ color: tier.color, fontFamily: 'var(--font-mono)' }}
+          style={{ color: tier.colorVar, fontFamily: 'var(--font-mono)' }}
         >
           Tier {tier.tier} — {tier.label}
         </span>
@@ -93,11 +94,11 @@ function ScoreRing({ score }: { score: number }) {
 
 // ─── Mini bar ─────────────────────────────────────────────────────────────────
 
-function MiniBar({ label, value, max = 100, color = '#00D4AA' }: {
+function MiniBar({ label, value, max = 100, color }: {
   label: string
   value: number
   max?: number
-  color?: string
+  color: string
 }) {
   const pct = Math.min(Math.round((value / max) * 100), 100)
   return (
@@ -105,7 +106,7 @@ function MiniBar({ label, value, max = 100, color = '#00D4AA' }: {
       <span className="text-[11px] w-28 shrink-0" style={{ color: 'var(--color-saul-text-secondary)' }}>
         {label}
       </span>
-      <div className="flex-1 h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
+      <div className="flex-1 h-1.5 rounded-full" style={{ background: 'var(--color-saul-overlay)' }}>
         <motion.div
           className="h-full rounded-full"
           style={{ background: color }}
@@ -132,6 +133,7 @@ interface ScoreBreakdownPanelProps {
 }
 
 export function ScoreBreakdownPanel({ lead, isAssignedToGregory }: ScoreBreakdownPanelProps) {
+  const palette = useChartPalette()
   const [copied, setCopied] = useState(false)
 
   const score     = lead.score ?? 0
@@ -165,7 +167,7 @@ export function ScoreBreakdownPanel({ lead, isAssignedToGregory }: ScoreBreakdow
         className="rounded-[8px] border p-5 flex flex-col gap-3"
         style={{
           background: 'var(--color-saul-bg-700)',
-          borderColor: 'rgba(255,255,255,0.06)',
+          borderColor: 'var(--color-saul-border)',
         }}
       >
         <div className="flex flex-col gap-1">
@@ -218,14 +220,14 @@ export function ScoreBreakdownPanel({ lead, isAssignedToGregory }: ScoreBreakdow
         className="rounded-[8px] border p-4"
         style={{
           background: 'var(--color-saul-bg-700)',
-          borderColor: 'rgba(255,255,255,0.06)',
+          borderColor: 'var(--color-saul-border)',
         }}
       >
-        <ScoreRing score={score} />
+        <ScoreRing score={score} palette={palette} />
 
         {/* Score breakdown bars */}
         {(icpFitScore !== null || engagementScore !== null || breakdown) && (
-          <div className="flex flex-col gap-2.5 mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex flex-col gap-2.5 mt-3 pt-3" style={{ borderTop: '1px solid var(--color-saul-border)' }}>
             <span
               className="text-[11px] uppercase tracking-wider font-medium mb-0.5"
               style={{ color: 'var(--color-saul-text-tertiary)' }}
@@ -234,21 +236,21 @@ export function ScoreBreakdownPanel({ lead, isAssignedToGregory }: ScoreBreakdow
             </span>
 
             {icpFitScore !== null && (
-              <MiniBar label="ICP Fit" value={icpFitScore} color="#00D4AA" />
+              <MiniBar label="ICP Fit" value={icpFitScore} color={palette.primary} />
             )}
             {engagementScore !== null && (
-              <MiniBar label="Engagement" value={engagementScore} color="#3B82F6" />
+              <MiniBar label="Engagement" value={engagementScore} color={palette.info} />
             )}
             {breakdown && (
               <>
                 {breakdown.fleet_size > 0 && (
-                  <MiniBar label="Fleet Size" value={breakdown.fleet_size} max={30} color="#FFAE42" />
+                  <MiniBar label="Fleet Size" value={breakdown.fleet_size} max={30} color={palette.warning} />
                 )}
                 {breakdown.market_tier > 0 && (
-                  <MiniBar label="Market Tier" value={breakdown.market_tier} max={20} color="#A855F7" />
+                  <MiniBar label="Market Tier" value={breakdown.market_tier} max={20} color={palette.violet} />
                 )}
                 {breakdown.vehicle_quality > 0 && (
-                  <MiniBar label="Vehicle Quality" value={breakdown.vehicle_quality} max={15} color="#06B6D4" />
+                  <MiniBar label="Vehicle Quality" value={breakdown.vehicle_quality} max={15} color={palette.teal} />
                 )}
               </>
             )}
@@ -261,7 +263,7 @@ export function ScoreBreakdownPanel({ lead, isAssignedToGregory }: ScoreBreakdow
         className="rounded-[8px] border p-4 flex flex-col gap-2.5"
         style={{
           background: 'var(--color-saul-bg-700)',
-          borderColor: 'rgba(255,255,255,0.06)',
+          borderColor: 'var(--color-saul-border)',
         }}
       >
         <span
@@ -349,13 +351,13 @@ export function ScoreBreakdownPanel({ lead, isAssignedToGregory }: ScoreBreakdow
         <div
           className="rounded-lg p-3 flex flex-col gap-2"
           style={{
-            background: 'rgba(255,71,87,0.08)',
-            border: '1px solid rgba(255,71,87,0.2)',
+            background: 'color-mix(in srgb, var(--color-saul-danger) 8%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--color-saul-danger) 20%, transparent)',
           }}
         >
           <div className="flex items-center gap-1.5">
-            <Warning size={13} style={{ color: '#FF4757' }} weight="fill" />
-            <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#FF4757' }}>
+            <Warning size={13} style={{ color: 'var(--color-saul-danger)' }} weight="fill" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--color-saul-danger)' }}>
               Red Flags
             </span>
           </div>
@@ -366,11 +368,19 @@ export function ScoreBreakdownPanel({ lead, isAssignedToGregory }: ScoreBreakdow
                 <Warning
                   size={12}
                   weight={isCritical ? 'fill' : 'regular'}
-                  style={{ color: isCritical ? '#FF4757' : 'rgba(255,71,87,0.7)', marginTop: 1, flexShrink: 0 }}
+                  style={{
+                    color: isCritical ? 'var(--color-saul-danger)' : 'color-mix(in srgb, var(--color-saul-danger) 70%, transparent)',
+                    marginTop: 1,
+                    flexShrink: 0,
+                  }}
                 />
                 <span
                   className="text-[12px] leading-snug"
-                  style={{ color: isCritical ? '#FF6B7A' : 'rgba(255,107,122,0.8)' }}
+                  style={{
+                    color: isCritical
+                      ? 'color-mix(in srgb, var(--color-saul-danger) 80%, var(--color-saul-text-primary))'
+                      : 'color-mix(in srgb, var(--color-saul-danger) 65%, var(--color-saul-text-secondary))',
+                  }}
                 >
                   {f.reason}
                 </span>
