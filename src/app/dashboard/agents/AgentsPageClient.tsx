@@ -49,7 +49,12 @@ type RunRow = {
 }
 
 type ApiAgents = {
-  gateway: { status: string; last_heartbeat: string; model: string; protocol: string }
+  gateway: {
+    status: 'online' | 'stale' | 'offline' | string
+    last_heartbeat: string | null
+    model: string
+    protocol: string
+  }
   cron: { interval_minutes: number; next_run_at: string }
   agent_cards: Array<{
     agent_type: string
@@ -91,36 +96,67 @@ export function AgentsPageClient() {
         </header>
 
         {/* Gateway bar */}
-        <motion.div
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-wrap items-center gap-3 rounded-lg border border-[rgba(0,212,170,0.2)] bg-[rgba(0,212,170,0.05)] px-4 py-3"
-        >
-          <Plugs size={22} className="text-[var(--color-saul-cyan)]" weight="duotone" />
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 text-[12px] font-mono text-emerald-300">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              {data?.gateway?.status ?? 'online'}
-            </span>
-            <span className="text-[11px] text-[var(--color-saul-text-secondary)]">
-              {data?.gateway?.protocol}
-            </span>
-          </div>
-          <div className="h-4 w-px bg-[rgba(255,255,255,0.1)] hidden sm:block" />
-          <div className="text-[12px] text-[var(--color-saul-text-secondary)]">
-            <span className="text-[var(--color-saul-text-primary)]/80">Model</span>{' '}
-            <code className="text-[var(--color-saul-cyan)] text-[11px]">{data?.gateway?.model ?? '—'}</code>
-          </div>
-          <div className="text-[12px] text-[var(--color-saul-text-secondary)]">
-            <Pulse className="inline mr-1 -mt-0.5" size={14} />
-            Last heartbeat:{' '}
-            <span className="text-[var(--color-saul-text-primary)]">
-              {data?.gateway?.last_heartbeat
-                ? formatDistanceToNow(new Date(data.gateway.last_heartbeat), { addSuffix: true })
-                : '—'}
-            </span>
-          </div>
-        </motion.div>
+        {(() => {
+          const status = data?.gateway?.status ?? 'offline'
+          const tone =
+            status === 'online'
+              ? {
+                  border: 'border-[rgba(0,212,170,0.2)]',
+                  bg: 'bg-[rgba(0,212,170,0.05)]',
+                  pillBg: 'bg-emerald-400',
+                  pillText: 'text-emerald-300',
+                  pulse: 'animate-pulse',
+                }
+              : status === 'stale'
+                ? {
+                    border: 'border-amber-400/25',
+                    bg: 'bg-amber-400/5',
+                    pillBg: 'bg-amber-400',
+                    pillText: 'text-amber-200',
+                    pulse: '',
+                  }
+                : {
+                    border: 'border-rose-400/25',
+                    bg: 'bg-rose-400/5',
+                    pillBg: 'bg-rose-400',
+                    pillText: 'text-rose-200',
+                    pulse: '',
+                  }
+          return (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`flex flex-wrap items-center gap-3 rounded-lg border ${tone.border} ${tone.bg} px-4 py-3`}
+            >
+              <Plugs size={22} className="text-[var(--color-saul-cyan)]" weight="duotone" />
+              <div className="flex items-center gap-2">
+                <span className={`flex items-center gap-1.5 text-[12px] font-mono ${tone.pillText}`}>
+                  <span className={`w-2 h-2 rounded-full ${tone.pillBg} ${tone.pulse}`} />
+                  {status}
+                </span>
+                <span className="text-[11px] text-[var(--color-saul-text-secondary)]">
+                  {data?.gateway?.protocol}
+                </span>
+              </div>
+              <div className="h-4 w-px bg-[rgba(255,255,255,0.1)] hidden sm:block" />
+              <div className="text-[12px] text-[var(--color-saul-text-secondary)]">
+                <span className="text-[var(--color-saul-text-primary)]/80">Model</span>{' '}
+                <code className="text-[var(--color-saul-cyan)] text-[11px]">
+                  {data?.gateway?.model ?? '—'}
+                </code>
+              </div>
+              <div className="text-[12px] text-[var(--color-saul-text-secondary)]">
+                <Pulse className="inline mr-1 -mt-0.5" size={14} />
+                Last heartbeat:{' '}
+                <span className="text-[var(--color-saul-text-primary)]">
+                  {data?.gateway?.last_heartbeat
+                    ? formatDistanceToNow(new Date(data.gateway.last_heartbeat), { addSuffix: true })
+                    : 'never'}
+                </span>
+              </div>
+            </motion.div>
+          )
+        })()}
 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="text-[12px] text-[var(--color-saul-text-secondary)] flex items-center gap-1">

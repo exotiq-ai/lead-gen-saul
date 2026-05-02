@@ -71,13 +71,31 @@ export async function GET(req: NextRequest) {
   const lastRun = rows[0] as
     | { started_at: string; completed_at: string | null }
     | undefined
-  const lastHeartbeat = lastRun?.completed_at || lastRun?.started_at
+  const lastHeartbeat = lastRun?.completed_at || lastRun?.started_at || null
+
+  // Status is "online" iff the last heartbeat is within the cron interval
+  // plus a 5min grace. Otherwise we surface "stale" (within 6h) or
+  // "offline". Hard-coded "online" was lying to the user when the python
+  // service had crashed (e.g. discover.py syntax error before Stage 0d).
+  const HEARTBEAT_HORIZON_MS = (15 + 5) * 60 * 1000
+  const STALE_HORIZON_MS = 6 * 60 * 60 * 1000
+  let gatewayStatus: 'online' | 'stale' | 'offline'
+  if (!lastHeartbeat) {
+    gatewayStatus = 'offline'
+  } else {
+    const ageMs = Date.now() - new Date(lastHeartbeat).getTime()
+    if (ageMs <= HEARTBEAT_HORIZON_MS) gatewayStatus = 'online'
+    else if (ageMs <= STALE_HORIZON_MS) gatewayStatus = 'stale'
+    else gatewayStatus = 'offline'
+  }
 
   return NextResponse.json({
     gateway: {
-      status: 'online' as const,
+      status: gatewayStatus,
       protocol: 'OpenClaw WebSocket (Gateway)',
-      last_heartbeat: lastHeartbeat || new Date().toISOString(),
+      // null when we genuinely have no signal -- callers should render
+      // a dash, not a faked "now".
+      last_heartbeat: lastHeartbeat,
       model: process.env.SAUL_MODEL_NAME || 'claude-sonnet-4',
     },
     cron: {
