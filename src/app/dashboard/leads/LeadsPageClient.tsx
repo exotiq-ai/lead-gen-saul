@@ -363,16 +363,22 @@ export function LeadsPageClient() {
 
   // Local state
   const [sort, setSort] = useState('score_desc')
-  const [page, setPage] = useState(1)
   const [jumpInput, setJumpInput] = useState('')
   const [showImport, setShowImport] = useState(false)
 
   const debouncedSearch = useDebounce(search, 300)
 
-  // Reset to page 1 when filters change
-  useEffect(() => {
+  // Reset to page 1 when filters change. Storing the previous filter key in
+  // state and comparing during render is the React-19-blessed pattern for
+  // "derived state that resets on prop/dep change". setState-during-render
+  // is fine; setState-in-effect is what the lint rule blocks.
+  const filterKey = `${debouncedSearch}|${statusFilter.join(',')}|${assignedToFilter}|${redFlagsOnly}|${sort}`
+  const [page, setPage] = useState(1)
+  const [lastFilterKey, setLastFilterKey] = useState(filterKey)
+  if (lastFilterKey !== filterKey) {
+    setLastFilterKey(filterKey)
     setPage(1)
-  }, [debouncedSearch, statusFilter, assignedToFilter, redFlagsOnly, sort])
+  }
 
   const tenantId = useTenantId()
 

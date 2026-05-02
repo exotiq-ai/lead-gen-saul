@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Gear, FloppyDisk, ArrowCounterClockwise, Check, Warning } from '@phosphor-icons/react'
 import useSWR from 'swr'
@@ -46,12 +46,20 @@ export function SettingsPageClient() {
   const [saving, setSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle')
 
-  useEffect(() => {
-    if (data?.icp_profile?.criteria) {
+  // Hydrate the editor from the freshest server snapshot. Stores the last
+  // payload fingerprint in state and compares during render -- the
+  // React-19-blessed pattern for "derived state that resets on prop change".
+  const incomingFingerprint = data?.icp_profile?.criteria
+    ? JSON.stringify(data.icp_profile.criteria)
+    : null
+  const [lastIncomingFingerprint, setLastIncomingFingerprint] = useState<string | null>(null)
+  if (incomingFingerprint && incomingFingerprint !== lastIncomingFingerprint) {
+    setLastIncomingFingerprint(incomingFingerprint)
+    // Only overwrite local edits if the user hasn't touched this snapshot.
+    if (!dirty && data?.icp_profile?.criteria) {
       setCriteria(data.icp_profile.criteria)
-      setDirty(false)
     }
-  }, [data])
+  }
 
   function updateWeight(key: string, value: number) {
     setCriteria((prev) => ({

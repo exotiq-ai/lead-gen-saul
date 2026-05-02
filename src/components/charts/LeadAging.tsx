@@ -156,7 +156,7 @@ export function LeadAging({ data: propData, onBucketClick, demoMode = false }: L
         <BarChart
           data={chartData}
           margin={{ top: 24, right: 4, left: -8, bottom: 0 }}
-          // @ts-ignore – recharts onClick type is overly narrow
+          // @ts-expect-error – recharts onClick type is overly narrow
           onClick={(e: { activePayload?: Array<{ payload: ChartEntry }> }) => {
             if (e?.activePayload?.[0]) {
               const d = e.activePayload[0].payload
@@ -201,7 +201,7 @@ export function LeadAging({ data: propData, onBucketClick, demoMode = false }: L
             isAnimationActive
             animationDuration={300}
             animationEasing="ease-out"
-            // @ts-ignore – recharts label prop accepts function components
+            // @ts-expect-error – recharts label prop accepts function components
             label={(props: { x?: number; y?: number; width?: number; value?: number; index?: number }) => (
               <CustomLabel
                 x={props.x}
