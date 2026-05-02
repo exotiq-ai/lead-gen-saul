@@ -291,6 +291,9 @@ export function SettingsPageClient() {
         </div>
       </motion.section>
 
+      {/* Pipeline Stages -- new in Stage 3b. Render as a reorderable list. */}
+      <PipelineStagesSection tenantId={tenantId} />
+
       {/* Danger Zone */}
       <motion.section
         initial={{ opacity: 0, y: 8 }}
@@ -326,5 +329,174 @@ export function SettingsPageClient() {
         </p>
       )}
     </div>
+  )
+}
+
+// ─── Pipeline Stages Section ──────────────────────────────────────────
+//
+// Reorder via simple up/down buttons. We avoid HTML5 drag-and-drop here
+// because it's brittle across mobile + desktop and the stage list is
+// rarely longer than 7 items.
+
+type Stage = {
+  id: string
+  name: string
+  slug: string
+  position: number
+  color: string | null
+  is_terminal: boolean
+  terminal_type: string | null
+}
+
+function PipelineStagesSection({ tenantId }: { tenantId: string }) {
+  const { data, isLoading, error, mutate } = useSWR<{ stages: Stage[] }>(
+    `/api/pipeline/stages?tenant_id=${tenantId}`,
+    fetcher,
+  )
+
+  const [order, setOrder] = useState<Stage[]>([])
+  const [saving, setSaving] = useState(false)
+  const [errMsg, setErrMsg] = useState<string | null>(null)
+
+  // Hydrate from server snapshot using the React-19-blessed
+  // setState-during-render pattern.
+  const fingerprint = data ? data.stages.map((s) => s.id).join(',') : null
+  const [lastFingerprint, setLastFingerprint] = useState<string | null>(null)
+  if (fingerprint && fingerprint !== lastFingerprint) {
+    setLastFingerprint(fingerprint)
+    if (data) setOrder(data.stages)
+  }
+
+  const dirty =
+    !!data &&
+    JSON.stringify(order.map((s) => s.id)) !==
+      JSON.stringify(data.stages.map((s) => s.id))
+
+  function move(idx: number, dir: -1 | 1) {
+    const next = [...order]
+    const target = idx + dir
+    if (target < 0 || target >= next.length) return
+    const tmp = next[idx]
+    next[idx] = next[target]
+    next[target] = tmp
+    setOrder(next)
+  }
+
+  async function save() {
+    setSaving(true)
+    setErrMsg(null)
+    try {
+      const res = await fetch('/api/pipeline/stages', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          order: order.map((s) => s.id),
+        }),
+      })
+      const j = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) throw new Error(j.error || `HTTP ${res.status}`)
+      void mutate()
+    } catch (e) {
+      setErrMsg(e instanceof Error ? e.message : 'save failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.18 }}
+      className="rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[rgba(255,255,255,0.06)] p-5"
+    >
+      <div className="flex items-start justify-between gap-2 mb-1">
+        <div>
+          <h2 className="text-[14px] font-semibold text-[var(--color-saul-text-primary)]">
+            Pipeline Stages
+          </h2>
+          <p className="text-[12px] text-[var(--color-saul-text-secondary)]">
+            Order shown on the funnel chart and stage promotion dropdown.
+          </p>
+        </div>
+        <button
+          onClick={save}
+          disabled={!dirty || saving}
+          className={[
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-[12px] font-semibold transition-all',
+            dirty
+              ? 'bg-[var(--color-saul-cyan)] text-[var(--color-saul-bg-900)] hover:brightness-110'
+              : 'bg-[var(--color-saul-bg-600)] text-[var(--color-saul-text-secondary)] cursor-not-allowed',
+          ].join(' ')}
+        >
+          {saving ? 'Saving…' : 'Save order'}
+        </button>
+      </div>
+
+      {isLoading && (
+        <p className="text-[12px] text-[var(--color-saul-text-secondary)] mt-3">
+          Loading stages…
+        </p>
+      )}
+      {error && (
+        <p className="text-[12px] text-rose-300 mt-3">Failed to load stages.</p>
+      )}
+      {errMsg && (
+        <p className="text-[12px] text-rose-300 mt-2">Save failed: {errMsg}</p>
+      )}
+
+      {!isLoading && !error && order.length === 0 && (
+        <p className="text-[12px] text-[var(--color-saul-text-secondary)] mt-3">
+          No stages defined for this tenant. Insert rows into{' '}
+          <code className="text-[var(--color-saul-cyan)]">pipeline_stages</code>{' '}
+          and refresh.
+        </p>
+      )}
+
+      <ul className="mt-3 space-y-1.5">
+        {order.map((stage, i) => (
+          <li
+            key={stage.id}
+            className="flex items-center gap-2 px-3 py-2 rounded-[6px] bg-[var(--color-saul-bg-600)] border border-[rgba(255,255,255,0.04)]"
+          >
+            <span className="text-[11px] font-mono text-[var(--color-saul-text-tertiary)] w-6 text-center">
+              {i + 1}
+            </span>
+            <span className="text-[13px] font-medium text-[var(--color-saul-text-primary)] flex-1">
+              {stage.name}
+            </span>
+            {stage.is_terminal && (
+              <span
+                className={[
+                  'text-[10px] font-mono uppercase px-2 py-0.5 rounded-full',
+                  stage.terminal_type === 'won'
+                    ? 'bg-emerald-500/15 text-emerald-300'
+                    : 'bg-rose-500/15 text-rose-300',
+                ].join(' ')}
+              >
+                {stage.terminal_type ?? 'terminal'}
+              </span>
+            )}
+            <button
+              onClick={() => move(i, -1)}
+              disabled={i === 0 || saving}
+              className="px-2 py-0.5 text-[12px] font-mono rounded border border-[rgba(255,255,255,0.08)] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] disabled:opacity-30"
+              aria-label="Move up"
+            >
+              ↑
+            </button>
+            <button
+              onClick={() => move(i, 1)}
+              disabled={i === order.length - 1 || saving}
+              className="px-2 py-0.5 text-[12px] font-mono rounded border border-[rgba(255,255,255,0.08)] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] disabled:opacity-30"
+              aria-label="Move down"
+            >
+              ↓
+            </button>
+          </li>
+        ))}
+      </ul>
+    </motion.section>
   )
 }
