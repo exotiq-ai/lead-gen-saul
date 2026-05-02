@@ -60,8 +60,17 @@ def _log(event: str, data: dict = None):
 
 
 def log_agent_run(tenant_id: str, agent_type: str, status: str, data: dict, duration_ms: int):
-    """Write an agent_runs record to Supabase for the dashboard."""
+    """Write an agent_runs record to Supabase for the dashboard.
+
+    Stage 3c: extract cost_cents and tokens_used from the skill summary
+    if present so /dashboard/economics shows real numbers instead of all
+    zeros. Skills emit these via the cost_cents/tokens_used keys (see
+    python-agent/costs.py for rates)."""
     try:
+        cost_cents = int(data.get("cost_cents") or 0) if isinstance(data, dict) else 0
+        tokens_used = int(data.get("tokens_used") or 0) if isinstance(data, dict) else 0
+        leads_processed = int(data.get("leads_processed") or 0) if isinstance(data, dict) else 0
+
         db = get_db()
         db.table("agent_runs").insert({
             "tenant_id": tenant_id,
@@ -69,6 +78,9 @@ def log_agent_run(tenant_id: str, agent_type: str, status: str, data: dict, dura
             "status": status,
             "output_data": data,
             "duration_ms": duration_ms,
+            "cost_cents": cost_cents,
+            "tokens_used": tokens_used,
+            "leads_processed": leads_processed,
             "completed_at": datetime.now(timezone.utc).isoformat(),
         }).execute()
     except Exception as e:

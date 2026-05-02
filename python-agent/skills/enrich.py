@@ -10,12 +10,19 @@ hitting Apollo directly from Python. This keeps enrichment logic
 in one place (TypeScript) and lets the dashboard track costs.
 """
 
+import sys
+from pathlib import Path
+
 import requests
 import time
 from typing import Any
 
-from db import get_db
-from config import APP_BASE_URL, ENRICHMENT_BATCH_SIZE, RATE_LIMIT_DELAY
+# Stage 3c: shared cost table so we attribute Apollo / OpenAI / etc.
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from costs import PER_CALL_COSTS_CENTS  # noqa: E402
+
+from db import get_db  # noqa: E402
+from config import APP_BASE_URL, ENRICHMENT_BATCH_SIZE, RATE_LIMIT_DELAY  # noqa: E402
 
 DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001"
 
@@ -64,10 +71,13 @@ def process_enrichment_queue(
 
         time.sleep(RATE_LIMIT_DELAY)
 
+    cost_cents = triggered * PER_CALL_COSTS_CENTS["apollo_people_match"]
     summary = {
         "new_leads_found": len(new_leads),
         "triggered": triggered,
         "errors": errors,
+        "leads_processed": triggered,
+        "cost_cents": cost_cents,
     }
     print(f"Enrichment complete: {summary}")
     return summary
