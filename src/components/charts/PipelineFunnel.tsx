@@ -85,7 +85,7 @@ export function PipelineFunnel({
             {dropPct !== null && (
               <div
                 className="flex items-center gap-1 py-1 text-xs"
-                style={{ color: 'var(--color-saul-text-secondary)' }}
+                style={{ color: palette.textSecondary }}
               >
                 <span>↓</span>
                 <span style={{ fontFamily: 'var(--font-mono)' }}>{dropPct}% drop</span>
@@ -125,7 +125,7 @@ export function PipelineFunnel({
               >
                 <span
                   className="text-sm font-medium truncate"
-                  style={{ color: isSelected ? color : 'var(--color-saul-text-primary)' }}
+                  style={{ color: isSelected ? color : palette.textPrimary }}
                 >
                   {stage.name}
                 </span>
@@ -170,12 +170,12 @@ export function PipelineFunnel({
         className="mt-4 pt-4 flex items-center justify-between text-xs"
         style={{
           borderTop: `1px solid ${palette.divider}`,
-          color: 'var(--color-saul-text-secondary)',
+          color: palette.textSecondary,
         }}
       >
         <span>
           Total:{' '}
-          <span style={{ color: 'var(--color-saul-text-primary)', fontFamily: 'var(--font-mono)' }}>
+          <span style={{ color: palette.textPrimary, fontFamily: 'var(--font-mono)' }}>
             {formatNumber(sorted[0]?.count ?? 0)}
           </span>{' '}
           leads entered
@@ -183,7 +183,7 @@ export function PipelineFunnel({
         {sorted.length > 1 && (
           <span>
             Win rate:{' '}
-            <span style={{ color: 'var(--color-saul-cyan)', fontFamily: 'var(--font-mono)' }}>
+            <span style={{ color: palette.primary, fontFamily: 'var(--font-mono)' }}>
               {Math.round(((sorted[sorted.length - 1].count) / (sorted[0]?.count ?? 1)) * 100)}%
             </span>
           </span>

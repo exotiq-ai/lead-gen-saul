@@ -191,9 +191,10 @@ export function ScoreDistribution({
 
           <XAxis
             dataKey="label"
-            tick={{ fill: palette.axisFill, fontSize: 10, fontFamily: 'var(--font-mono)' }}
+            tick={{ fill: palette.axisFill, fontSize: 11, fontFamily: 'var(--font-mono)' }}
             axisLine={false}
             tickLine={false}
+            interval={0}
           />
 
           <YAxis

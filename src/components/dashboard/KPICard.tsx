@@ -123,7 +123,11 @@ export function KPICard({
           {title}
         </span>
         {sparklineData && sparklineData.length >= 2 && (
-          <MetricSparkline data={sparklineData} color={resolvedAccent} />
+          <MetricSparkline
+            data={sparklineData}
+            color={accentColor}
+            trend={trend}
+          />
         )}
       </div>
 
