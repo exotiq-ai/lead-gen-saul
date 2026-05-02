@@ -47,12 +47,12 @@ function rateToColor(rate: number, max: number, baseColor: string): string {
 
 export function ConversionCohort({ data: propData, demoMode = false }: ConversionCohortProps) {
   const palette = useChartPalette()
-  const data = demoMode || !propData ? DEMO_DATA : propData
+  const data = demoMode || !propData || propData.length === 0 ? DEMO_DATA : propData
   const [hoveredRow, setHoveredRow] = useState<string | null>(null)
 
-  const maxPredicted = Math.max(...data.map((d) => d.predicted))
-  const maxActual = Math.max(...data.map((d) => d.actual))
-  const maxVal = Math.max(maxPredicted, maxActual)
+  const maxPredicted = Math.max(...data.map((d) => d.predicted), 0)
+  const maxActual = Math.max(...data.map((d) => d.actual), 0)
+  const maxVal = Math.max(maxPredicted, maxActual, 1)
 
   function rateToTextColor(rate: number, max: number): string {
     const intensity = Math.min(1, rate / max)
@@ -176,7 +176,7 @@ export function ConversionCohort({ data: propData, demoMode = false }: Conversio
             {formatPercent(
               100 -
                 (data.reduce((s, d) => s + Math.abs(d.actual - d.predicted), 0) /
-                  data.reduce((s, d) => s + d.predicted, 0)) *
+                  Math.max(data.reduce((s, d) => s + d.predicted, 0), 1)) *
                   100
             )}
           </span>
@@ -184,11 +184,11 @@ export function ConversionCohort({ data: propData, demoMode = false }: Conversio
         <span>
           Avg predicted:{' '}
           <span style={{ color: palette.violet, fontFamily: 'var(--font-mono)' }}>
-            {formatPercent(data.reduce((s, d) => s + d.predicted, 0) / data.length)}
+            {formatPercent(data.reduce((s, d) => s + d.predicted, 0) / Math.max(data.length, 1))}
           </span>{' '}
           · Avg actual:{' '}
           <span style={{ color: palette.primary, fontFamily: 'var(--font-mono)' }}>
-            {formatPercent(data.reduce((s, d) => s + d.actual, 0) / data.length)}
+            {formatPercent(data.reduce((s, d) => s + d.actual, 0) / Math.max(data.length, 1))}
           </span>
         </span>
       </div>
