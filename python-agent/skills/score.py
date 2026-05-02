@@ -27,20 +27,82 @@ def _has_composite(score_breakdown: Any) -> bool:
     return score_breakdown.get("composite") is not None
 
 
+def _activity_driven_lead_ids(db, tenant_id: str, lookback_hours: int = 24) -> list[str]:
+    """Return lead_ids whose latest lead_activities.created_at is newer
+    than the lead's own updated_at. We pull recent activity for the
+    tenant in one PostgREST call, then group by lead_id taking the max
+    created_at, and finally compare against the lead.updated_at.
+
+    This closes the "responded lead never re-scored" feedback loop the
+    master prompt describes (Phase 4 step 4)."""
+    from datetime import datetime, timezone, timedelta
+
+    since = (datetime.now(timezone.utc) - timedelta(hours=lookback_hours)).isoformat()
+    act_resp = db.table("lead_activities")\
+        .select("lead_id, created_at")\
+        .eq("tenant_id", tenant_id)\
+        .gte("created_at", since)\
+        .order("created_at", desc=True)\
+        .limit(2000)\
+        .execute()
+
+    latest_per_lead: dict[str, str] = {}
+    for row in act_resp.data or []:
+        lid = row.get("lead_id")
+        ts = row.get("created_at")
+        if not lid or not ts:
+            continue
+        if lid not in latest_per_lead or ts > latest_per_lead[lid]:
+            latest_per_lead[lid] = ts
+
+    if not latest_per_lead:
+        return []
+
+    # Look up lead.updated_at for the leads we found activity on. PostgREST
+    # in_() takes a list, so we batch.
+    out: list[str] = []
+    lead_ids = list(latest_per_lead.keys())
+    for chunk_start in range(0, len(lead_ids), 100):
+        chunk = lead_ids[chunk_start : chunk_start + 100]
+        leads_resp = db.table("leads")\
+            .select("id, updated_at, status")\
+            .eq("tenant_id", tenant_id)\
+            .in_("id", chunk)\
+            .execute()
+        for lead in leads_resp.data or []:
+            lid = lead["id"]
+            # Don't re-score terminal leads.
+            if lead.get("status") in ("lost", "disqualified", "converted"):
+                continue
+            lead_updated = lead.get("updated_at")
+            activity_ts = latest_per_lead.get(lid)
+            if not lead_updated or not activity_ts:
+                continue
+            if activity_ts > lead_updated:
+                out.append(lid)
+    return out
+
+
 def process_scoring_queue(
     tenant_id: str = DEFAULT_TENANT_ID,
     batch_size: int = SCORING_BATCH_SIZE,
 ) -> dict[str, Any]:
     """
-    Score leads that need scoring. Two pickup paths:
+    Score leads that need scoring. Three pickup paths:
 
       1. Status == 'enriching' AND has a completed enrichment row
          (the original autonomous-pipeline path).
       2. score_breakdown.composite is NULL (Stage 1d guard) — covers
          migrated leads, manual inserts, and any lead the engine has
-         never seen. Prevents the "stale scores" gap forever.
+         never seen.
+      3. Latest lead_activities.created_at > lead.updated_at within the
+         last 24h (Stage 2d) — closes the "responded lead never
+         re-scored" feedback loop. Triggered by GHL inbound polling
+         updating activities, by the outreach mark_sent activity log,
+         and by webhook activity inserts.
 
-    The two queries are unioned client-side.
+    The three queries are unioned client-side; status='enriching' wins
+    ties because it has its own enrichment-completed gate.
     """
     db = get_db()
 
@@ -68,8 +130,28 @@ def process_scoring_queue(
         if not _has_composite(l.get("score_breakdown"))
     ]
 
-    # Dedup by id; status == 'enriching' candidates take priority.
-    by_id: dict[str, dict] = {l["id"]: l for l in missing_leads}
+    # New cohort: activity newer than updated_at.
+    activity_driven_ids = _activity_driven_lead_ids(db, tenant_id)
+    activity_driven_leads: list[dict] = []
+    if activity_driven_ids:
+        # Fetch the same shape the other paths use, so the loop body is
+        # uniform.
+        for chunk_start in range(0, len(activity_driven_ids), 100):
+            chunk = activity_driven_ids[chunk_start : chunk_start + 100]
+            ad_resp = db.table("leads")\
+                .select("id, company_name, status, score_breakdown")\
+                .eq("tenant_id", tenant_id)\
+                .in_("id", chunk)\
+                .execute()
+            activity_driven_leads.extend(ad_resp.data or [])
+
+    # Dedup by id; status == 'enriching' wins ties because it has the
+    # enrichment-completed gate downstream.
+    by_id: dict[str, dict] = {}
+    for l in activity_driven_leads:
+        by_id[l["id"]] = l
+    for l in missing_leads:
+        by_id[l["id"]] = l
     for l in enriching_leads:
         by_id[l["id"]] = l
     leads_to_score = list(by_id.values())[:batch_size]
@@ -78,6 +160,7 @@ def process_scoring_queue(
     skipped_no_enrichment = 0
     skipped_already_composite = 0
     errors = 0
+    activity_count = len(activity_driven_ids)
 
     for lead in leads_to_score:
         # Status == 'enriching' still requires a completed enrichment
@@ -119,6 +202,7 @@ def process_scoring_queue(
         "scored": scored,
         "skipped_no_enrichment": skipped_no_enrichment,
         "skipped_already_composite": skipped_already_composite,
+        "activity_driven_candidates": activity_count,
         "errors": errors,
     }
     print(f"Scoring complete: {summary}")
