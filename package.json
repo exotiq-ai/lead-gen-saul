@@ -12,7 +12,8 @@
     "git:push-main": "git pull --rebase origin main && git push origin main",
     "seed": "tsx scripts/seed.ts",
     "reset-demo": "tsx scripts/reset-demo.ts",
-    "migrate": "tsx scripts/migrate.ts"
+    "migrate": "tsx scripts/migrate.ts",
+    "backfill-scores": "tsx scripts/backfill_scores.ts"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
