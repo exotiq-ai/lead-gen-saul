@@ -1,7 +1,19 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useSyncExternalStore } from 'react'
 import { motion, useInView } from 'framer-motion'
+
+// Avoid SSR / hydration churn for the chart-heavy economics page.
+// useSyncExternalStore returns the snapshot eagerly on the client and the
+// fallback ('false') during SSR -- so we render after hydration without
+// the React-19-discouraged setState-in-effect pattern.
+function useHasMounted(): boolean {
+  return useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  )
+}
 import { KPICard } from '@/components/dashboard/KPICard'
 import { ChartContainer } from '@/components/charts/ChartContainer'
 import { TokenUsageChart } from '@/components/charts/TokenUsageChart'
@@ -299,12 +311,7 @@ function ErrorBanner({ message }: { message: string }) {
 // ─── Main Client Component ────────────────────────────────────────────────────
 
 export function EconomicsPageClient({ data, error }: Props) {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
+  const mounted = useHasMounted()
   if (!mounted) return null
 
   const tokenChartData = (data?.token_daily ?? []).map(d => ({

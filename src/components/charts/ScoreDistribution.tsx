@@ -169,7 +169,7 @@ export function ScoreDistribution({
         <BarChart
           data={bins}
           margin={{ top: 4, right: 4, left: -8, bottom: 0 }}
-          // @ts-ignore – recharts onClick type is overly narrow
+          // @ts-expect-error – recharts onClick type is overly narrow
           onClick={(e: { activePayload?: Array<{ payload: BinData }> }) => {
             if (e?.activePayload?.[0]) {
               const d = e.activePayload[0].payload
