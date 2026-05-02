@@ -1,0 +1,45 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [main, "cursor/**"]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  next:
+    name: typecheck + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - name: install
+        run: npm ci --no-audit --no-fund
+      - name: typecheck
+        run: npm run typecheck
+      - name: build
+        # Build needs no runtime secrets — both supabase clients fall back
+        # to a placeholder URL when env is missing (lib/supabase/{client,server}.ts).
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+
+  python:
+    name: python-agent compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: py_compile every python-agent file
+        run: |
+          find python-agent -type f -name '*.py' -print0 \
+            | xargs -0 python3 -m py_compile
