@@ -163,4 +163,37 @@ export function SkeletonTable({ rows = 5, columns = 5, className = '' }: Skeleto
   )
 }
 
-export type { SkeletonTextProps, SkeletonKPIProps, SkeletonChartProps, SkeletonRowProps }
+// SkeletonBlock — generic shimmering rectangle. Use for ad-hoc placeholders
+// (cards, panels, lazy-loaded sections) instead of bespoke `animate-pulse` divs.
+interface SkeletonBlockProps {
+  className?: string
+  height?: number | string
+  width?: number | string
+  rounded?: string
+}
+
+export function SkeletonBlock({
+  className = '',
+  height,
+  width,
+  rounded = 'rounded-[8px]',
+}: SkeletonBlockProps) {
+  return (
+    <div
+      className={`skeleton-shimmer ${rounded} ${className}`}
+      style={{
+        height: height != null ? (typeof height === 'number' ? `${height}px` : height) : undefined,
+        width: width != null ? (typeof width === 'number' ? `${width}px` : width) : undefined,
+      }}
+      aria-hidden="true"
+    />
+  )
+}
+
+export type {
+  SkeletonTextProps,
+  SkeletonKPIProps,
+  SkeletonChartProps,
+  SkeletonRowProps,
+  SkeletonBlockProps,
+}

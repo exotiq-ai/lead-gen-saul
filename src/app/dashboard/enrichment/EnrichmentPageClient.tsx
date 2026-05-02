@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { Sparkle, Tray } from '@phosphor-icons/react'
 import { formatCurrency, formatRelative, formatPercent } from '@/lib/utils/formatters'
+import { EmptyState } from '@/components/ui'
 
 export interface EnrichmentData {
   status_counts: {
@@ -215,7 +217,7 @@ function ProviderBadge({ provider }: { provider: string }) {
 function ProviderTable({ data }: { data: EnrichmentData['by_provider'] }) {
   return (
     <div
-      className="rounded-xl overflow-hidden"
+      className="rounded-[8px] overflow-hidden"
       style={{
         background: 'var(--color-saul-bg-700)',
         border: '1px solid var(--color-saul-border)',
@@ -234,11 +236,11 @@ function ProviderTable({ data }: { data: EnrichmentData['by_provider'] }) {
       </div>
 
       {data.length === 0 ? (
-        <div className="flex items-center justify-center py-12">
-          <p className="text-sm" style={{ color: 'var(--color-saul-text-secondary)' }}>
-            No enrichment runs recorded yet.
-          </p>
-        </div>
+        <EmptyState
+          icon={Sparkle}
+          title="No enrichment runs recorded yet"
+          description="Once enrichment jobs run, provider stats will appear here."
+        />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -374,7 +376,7 @@ function ProviderTable({ data }: { data: EnrichmentData['by_provider'] }) {
 function RecentQueue({ items }: { items: EnrichmentData['recent'] }) {
   return (
     <div
-      className="rounded-xl overflow-hidden"
+      className="rounded-[8px] overflow-hidden"
       style={{
         background: 'var(--color-saul-bg-700)',
         border: '1px solid var(--color-saul-border)',
@@ -393,11 +395,11 @@ function RecentQueue({ items }: { items: EnrichmentData['recent'] }) {
       </div>
 
       {items.length === 0 ? (
-        <div className="flex items-center justify-center py-12">
-          <p className="text-sm" style={{ color: 'var(--color-saul-text-secondary)' }}>
-            No enrichment jobs found.
-          </p>
-        </div>
+        <EmptyState
+          icon={Tray}
+          title="No enrichment jobs found"
+          description="Newly queued enrichment runs will surface here."
+        />
       ) : (
         <div className="divide-y" style={{ borderColor: 'var(--color-saul-border-soft)' }}>
           {items.map((item, i) => {
@@ -477,7 +479,7 @@ function RecommendationCallout() {
 
   return (
     <div
-      className="rounded-xl p-6 flex flex-col gap-4"
+      className="rounded-[8px] p-5 flex flex-col gap-4"
       style={{
         background:
           'linear-gradient(135deg, color-mix(in srgb, var(--color-saul-cyan) 6%, transparent) 0%, color-mix(in srgb, var(--color-saul-info) 4%, transparent) 100%)',

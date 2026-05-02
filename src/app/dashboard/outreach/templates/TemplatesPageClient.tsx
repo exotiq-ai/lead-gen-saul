@@ -3,8 +3,9 @@
 import { useMemo, useState } from 'react'
 import useSWR from 'swr'
 import Link from 'next/link'
-import { ArrowLeft, FloppyDisk, ArrowCounterClockwise } from '@phosphor-icons/react'
+import { ArrowLeft, FloppyDisk, ArrowCounterClockwise, Tray, Warning } from '@phosphor-icons/react'
 import { useTenantId } from '@/lib/hooks/useTenant'
+import { EmptyState, SkeletonBlock } from '@/components/ui'
 
 type Step = {
   variant: string
@@ -43,7 +44,7 @@ export function TemplatesPageClient() {
       <div className="flex items-center gap-2 mb-3">
         <Link
           href="/dashboard/outreach"
-          className="text-[12px] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] inline-flex items-center gap-1"
+          className="text-[12px] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-soft)] inline-flex items-center gap-1 px-2 py-1 -mx-2 rounded-[6px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
         >
           <ArrowLeft size={12} weight="bold" />
           Back to outreach
@@ -52,14 +53,26 @@ export function TemplatesPageClient() {
       <h1 className="text-2xl font-bold text-[var(--color-saul-text-primary)] tracking-tight mb-1">
         Outreach templates
       </h1>
-      <p className="text-[14px] text-[var(--color-saul-text-secondary)] mb-6 max-w-2xl">
+      <p className="text-[14px] text-[var(--color-saul-text-secondary)] mb-8 max-w-2xl">
         SDRs can edit message copy and score bands without a code change. Saul
         picks the variant whose score band contains the lead&apos;s score when
         drafting.
       </p>
 
-      {isLoading && <p className="text-[var(--color-saul-text-secondary)] text-sm">Loading…</p>}
-      {error && <p className="text-rose-300 text-sm">Could not load templates.</p>}
+      {isLoading && (
+        <div className="flex flex-col gap-3">
+          {[1, 2].map((i) => (
+            <SkeletonBlock key={i} height={220} className="border border-[var(--color-saul-border-soft)]" />
+          ))}
+        </div>
+      )}
+      {error && (
+        <EmptyState
+          icon={Warning}
+          title="Could not load templates"
+          description="Check the API route or your Supabase connection and try again."
+        />
+      )}
 
       <div className="flex flex-col gap-6">
         {(data?.sequences ?? []).map((seq) => (
@@ -73,13 +86,19 @@ export function TemplatesPageClient() {
       </div>
 
       {data && data.sequences.length === 0 && (
-        <p className="text-[var(--color-saul-text-secondary)] text-sm">
-          No active sequences for this tenant. Run{' '}
-          <code className="text-[var(--color-saul-cyan)]">
-            supabase/migrations/010_outreach_templates_seed.sql
-          </code>{' '}
-          and re-load.
-        </p>
+        <EmptyState
+          icon={Tray}
+          title="No active sequences for this tenant"
+          description={
+            <>
+              Run{' '}
+              <code className="text-[var(--color-saul-cyan)]">
+                supabase/migrations/010_outreach_templates_seed.sql
+              </code>{' '}
+              and reload.
+            </>
+          }
+        />
       )}
     </div>
   )
@@ -148,7 +167,7 @@ function SequenceEditor({
           {dirty && (
             <button
               onClick={() => setDraft(seq.steps)}
-              className="text-[12px] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] inline-flex items-center gap-1"
+              className="text-[12px] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-soft)] inline-flex items-center gap-1 px-2 py-1 rounded-[6px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
               disabled={saving}
             >
               <ArrowCounterClockwise size={12} weight="bold" />
@@ -158,7 +177,7 @@ function SequenceEditor({
           <button
             onClick={save}
             disabled={!dirty || saving}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-[6px] bg-[var(--color-saul-cyan)] text-[var(--color-saul-bg-900)] disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-[6px] bg-[var(--color-saul-cyan)] text-[var(--color-saul-text-on-accent)] hover:brightness-110 transition-[filter] duration-150 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
           >
             <FloppyDisk size={13} weight="bold" />
             {saving ? 'Saving…' : 'Save changes'}
@@ -167,7 +186,7 @@ function SequenceEditor({
       </div>
 
       {err && (
-        <p className="text-rose-300 text-[12px] mb-3">Save failed: {err}</p>
+        <p className="text-[var(--color-saul-danger)] text-[12px] mb-3">Save failed: {err}</p>
       )}
 
       <div className="flex flex-col gap-3">
@@ -196,7 +215,7 @@ function SequenceEditor({
                   max={100}
                   value={step.score_min}
                   onChange={(e) => updateStep(i, { score_min: Number(e.target.value) })}
-                  className="w-14 px-2 py-1 rounded-md bg-[var(--color-saul-bg-900)] border border-[var(--color-saul-border-strong)] text-[var(--color-saul-text-primary)]"
+                  className="w-14 px-2 py-1 rounded-md bg-[var(--color-saul-bg-900)] border border-[var(--color-saul-border-strong)] text-[var(--color-saul-text-primary)] focus-visible:outline-none focus:border-[color-mix(in_srgb,var(--color-saul-cyan)_35%,transparent)]"
                 />
               </label>
               <label className="flex items-center gap-1.5">
@@ -207,12 +226,12 @@ function SequenceEditor({
                   max={100}
                   value={step.score_max}
                   onChange={(e) => updateStep(i, { score_max: Number(e.target.value) })}
-                  className="w-14 px-2 py-1 rounded-md bg-[var(--color-saul-bg-900)] border border-[var(--color-saul-border-strong)] text-[var(--color-saul-text-primary)]"
+                  className="w-14 px-2 py-1 rounded-md bg-[var(--color-saul-bg-900)] border border-[var(--color-saul-border-strong)] text-[var(--color-saul-text-primary)] focus-visible:outline-none focus:border-[color-mix(in_srgb,var(--color-saul-cyan)_35%,transparent)]"
                 />
               </label>
             </div>
             <textarea
-              className="w-full min-h-[140px] rounded-md bg-[var(--color-saul-bg-900)] border border-[var(--color-saul-border-strong)] p-3 text-[13px] text-[var(--color-saul-text-primary)] font-sans"
+              className="w-full min-h-[140px] rounded-md bg-[var(--color-saul-bg-900)] border border-[var(--color-saul-border-strong)] p-3 text-[13px] text-[var(--color-saul-text-primary)] font-sans focus-visible:outline-none focus:border-[color-mix(in_srgb,var(--color-saul-cyan)_35%,transparent)]"
               value={step.body}
               onChange={(e) => updateStep(i, { body: e.target.value })}
             />

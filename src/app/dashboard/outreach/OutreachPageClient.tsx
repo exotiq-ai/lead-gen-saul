@@ -4,8 +4,9 @@ import { useState, useMemo } from 'react'
 import useSWR from 'swr'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { PaperPlaneTilt, ChatCircle, NotePencil, Check, Prohibit } from '@phosphor-icons/react'
+import { PaperPlaneTilt, ChatCircle, NotePencil, Check, Prohibit, Tray, Warning } from '@phosphor-icons/react'
 import { ApprovalCard, type QueueItem } from '@/components/outreach/ApprovalCard'
+import { EmptyState, SkeletonBlock } from '@/components/ui'
 import { useTenantId } from '@/lib/hooks/useTenant'
 
 const TABS = [
@@ -126,7 +127,7 @@ export function OutreachPageClient() {
           </h1>
           <Link
             href="/dashboard/outreach/templates"
-            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-[6px] border border-[var(--color-saul-border-strong)] text-[var(--color-saul-text-secondary)] hover:border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] hover:text-[var(--color-saul-text-primary)]"
+            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-[6px] border border-[var(--color-saul-border-strong)] text-[var(--color-saul-text-secondary)] hover:border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-soft)] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
           >
             <NotePencil size={14} weight="bold" />
             Templates
@@ -153,10 +154,10 @@ export function OutreachPageClient() {
               clearSelection()
             }}
             className={[
-              'px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors',
+              'px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]',
               tab === t.id
-                ? 'bg-[var(--color-saul-cyan)]/20 text-[var(--color-saul-cyan)] border border-[var(--color-saul-cyan)]/40'
-                : 'bg-[var(--color-saul-bg-700)] text-[var(--color-saul-text-secondary)] border border-[var(--color-saul-border)] hover:border-[var(--color-saul-border-strong)]',
+                ? 'bg-[color-mix(in_srgb,var(--color-saul-cyan)_20%,transparent)] text-[var(--color-saul-cyan)] border border-[color-mix(in_srgb,var(--color-saul-cyan)_40%,transparent)]'
+                : 'bg-[var(--color-saul-bg-700)] text-[var(--color-saul-text-secondary)] border border-[var(--color-saul-border)] hover:border-[var(--color-saul-border-strong)] hover:bg-[var(--color-saul-overlay-soft)] hover:text-[var(--color-saul-text-primary)]',
             ].join(' ')}
           >
             {t.label}
@@ -183,7 +184,7 @@ export function OutreachPageClient() {
             <button
               onClick={() => bulk('approve')}
               disabled={selected.size === 0 || bulkBusy}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-md bg-[var(--color-saul-cyan)]/20 text-[var(--color-saul-cyan)] border border-[var(--color-saul-cyan)]/30 disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-md bg-[color-mix(in_srgb,var(--color-saul-cyan)_20%,transparent)] text-[var(--color-saul-cyan)] border border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-saul-cyan)_28%,transparent)] transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
             >
               <Check size={13} weight="bold" />
               Approve selected
@@ -191,7 +192,7 @@ export function OutreachPageClient() {
             <button
               onClick={() => bulk('reject')}
               disabled={selected.size === 0 || bulkBusy}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-md bg-rose-500/15 text-rose-200 border border-rose-500/25 disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-md bg-[color-mix(in_srgb,var(--color-saul-danger)_15%,transparent)] text-[var(--color-saul-danger)] border border-[color-mix(in_srgb,var(--color-saul-danger)_25%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-saul-danger)_22%,transparent)] transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-danger)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
             >
               <Prohibit size={13} weight="bold" />
               Reject selected
@@ -201,24 +202,32 @@ export function OutreachPageClient() {
       )}
 
       {isLoading && (
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="h-40 rounded-lg bg-[var(--color-saul-bg-800)] border border-[var(--color-saul-border-soft)] skeleton-shimmer"
-            />
+            <SkeletonBlock key={i} height={160} className="border border-[var(--color-saul-border-soft)]" />
           ))}
         </div>
       )}
 
       {error && (
-        <p className="text-rose-300 text-sm">
-          Could not load queue. Run Supabase migration <code className="text-[var(--color-saul-cyan)]">006_outreach_schema.sql</code> and re-seed.
-        </p>
+        <EmptyState
+          icon={Warning}
+          title="Could not load queue"
+          description={
+            <>
+              Run Supabase migration{' '}
+              <code className="text-[var(--color-saul-cyan)]">006_outreach_schema.sql</code> and re-seed.
+            </>
+          }
+        />
       )}
 
       {!isLoading && !error && items.length === 0 && (
-        <p className="text-[var(--color-saul-text-secondary)] text-sm">No items in this view.</p>
+        <EmptyState
+          icon={Tray}
+          title="No items in this view"
+          description="Switch tabs above to see drafts in other states, or wait for Saul to drop new pending messages here."
+        />
       )}
 
       <div className="flex flex-col gap-4">
