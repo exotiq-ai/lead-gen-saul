@@ -69,30 +69,72 @@ export async function GET(req: NextRequest) {
   const prevConverted = prevRows.filter(l => l.status === 'converted').length
   const prevConvRate = prevRows.length > 0 ? (prevConverted / prevRows.length) * 100 : conversionRate
 
-  // --- Sparklines: last 7 days, one bucket per day ---
-  const recent = rows.filter(l => l.created_at >= d7)
-  const dayBuckets: Record<string, { count: number; totalScore: number; scoreCount: number; converted: number }> = {}
+  // --- Sparklines: 7 daily buckets ending today (UTC) ---
+  //
+  // The previous implementation keyed every sparkline on `created_at` for the
+  // last 7 days. For a stable population where most leads were created weeks
+  // ago, that meant `active` and `velocity` sparklines were structurally
+  // [0,0,0,0,0,0,0] forever. Fix:
+  //
+  //   - active sparkline   = running count of active leads at end-of-day
+  //                          (active = not lost AND not disqualified)
+  //   - velocity sparkline = leads created in 24h window ending that day
+  //                          (the meaningful per-day signal)
+  //   - score sparkline    = avg score of leads existing at end-of-day
+  //                          (falls back to overall avg when bucket empty)
+  //   - conversion         = converted / total at end-of-day
+  //
+  // We compute end-of-day cutoffs in UTC and walk the row set once per day.
+  const dayLabels: string[] = []
+  const dayCutoffs: number[] = []
+  const todayUtc = new Date(now.toISOString().split('T')[0] + 'T23:59:59.999Z').getTime()
   for (let i = 6; i >= 0; i--) {
-    const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
-    const key = d.toISOString().split('T')[0]
-    dayBuckets[key] = { count: 0, totalScore: 0, scoreCount: 0, converted: 0 }
+    const cutoff = todayUtc - i * 24 * 60 * 60 * 1000
+    dayCutoffs.push(cutoff)
+    dayLabels.push(new Date(cutoff).toISOString().split('T')[0])
   }
-  for (const lead of recent) {
-    const key = (lead.created_at as string).split('T')[0]
-    if (dayBuckets[key]) {
-      dayBuckets[key].count++
+
+  const activeSparkline: number[] = []
+  const velocitySparkline: number[] = []
+  const scoreSparkline: number[] = []
+  const convSparkline: number[] = []
+
+  for (let i = 0; i < dayCutoffs.length; i++) {
+    const cutoffMs = dayCutoffs[i]
+    const dayStartMs = cutoffMs - 24 * 60 * 60 * 1000
+
+    let activeAtEod = 0
+    let createdToday = 0
+    let scoreSum = 0
+    let scoreCnt = 0
+    let totalAtEod = 0
+    let convertedAtEod = 0
+
+    for (const lead of rows) {
+      const createdMs = new Date(lead.created_at as string).getTime()
+      if (createdMs > cutoffMs) continue
+      // Existed at end-of-day. We don't have full status history so we
+      // approximate using the current status: lost/disqualified leads are
+      // excluded from the active count (matches the headline metric).
+      totalAtEod++
+      if (lead.status !== 'lost' && lead.status !== 'disqualified') activeAtEod++
+      if (lead.status === 'converted') convertedAtEod++
       if (lead.score != null) {
-        dayBuckets[key].totalScore += lead.score as number
-        dayBuckets[key].scoreCount++
+        scoreSum += lead.score as number
+        scoreCnt++
       }
-      if (lead.status === 'converted') dayBuckets[key].converted++
+      if (createdMs >= dayStartMs && createdMs <= cutoffMs) createdToday++
     }
+
+    activeSparkline.push(activeAtEod)
+    velocitySparkline.push(createdToday)
+    scoreSparkline.push(scoreCnt > 0 ? Math.round(scoreSum / scoreCnt) : Math.round(avgScore))
+    convSparkline.push(
+      totalAtEod > 0
+        ? Math.round((convertedAtEod / totalAtEod) * 1000) / 10
+        : Math.round(conversionRate * 10) / 10,
+    )
   }
-  const days = Object.values(dayBuckets)
-  const activeSparkline   = days.map(d => d.count)
-  const velocitySparkline = days.map(d => d.count)
-  const scoreSparkline    = days.map(d => (d.scoreCount > 0 ? Math.round(d.totalScore / d.scoreCount) : Math.round(avgScore)))
-  const convSparkline     = days.map(d => (d.count > 0 ? Math.round((d.converted / d.count) * 1000) / 10 : Math.round(conversionRate * 10) / 10))
 
   return NextResponse.json({
     total_active:       totalActive ?? 0,
