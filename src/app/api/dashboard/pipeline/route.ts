@@ -12,10 +12,14 @@ export async function GET(req: NextRequest) {
 
   const supabase = createServerClient()
 
-  // Fetch pipeline stages
+  // Fetch pipeline stages -- MUST filter by tenant. Without this, the route
+  // returns one tenant's stage list while the lead.stage_id values reference
+  // a different tenant's stage UUIDs, causing every stageMap lookup to miss
+  // and the funnel chart to render empty. (Bug §2.6 in REVIEW_AND_ROADMAP.)
   const { data: stages, error: stagesError } = await supabase
     .from('pipeline_stages')
     .select('id, name, position, color')
+    .eq('tenant_id', tenantId)
     .order('position', { ascending: true })
 
   if (stagesError || !stages?.length) {
@@ -58,10 +62,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ stages: result })
   }
 
-  // Fetch leads with stage_id
+  // Fetch leads with stage_id. The `ghl_pipeline_stage_id` column does not
+  // exist on the leads table (commit cc8daf4 confirmed and removed the same
+  // dead reference elsewhere). We rely on `stage_id` only.
   const { data: leads } = await supabase
     .from('leads')
-    .select('stage_id, ghl_pipeline_stage_id, score')
+    .select('stage_id, score')
     .eq('tenant_id', tenantId)
     .not('status', 'in', '(lost,disqualified)')
 
@@ -70,8 +76,7 @@ export async function GET(req: NextRequest) {
     stageMap[stage.id] = { count: 0, totalScore: 0, scoreCount: 0 }
   }
   for (const lead of leads ?? []) {
-    const sid = (lead as Record<string, unknown>).stage_id as string
-      ?? (lead as Record<string, unknown>).ghl_pipeline_stage_id as string
+    const sid = (lead as Record<string, unknown>).stage_id as string | undefined
     if (sid && stageMap[sid]) {
       stageMap[sid].count++
       if (lead.score != null) {
