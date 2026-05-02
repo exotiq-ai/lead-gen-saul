@@ -6,6 +6,7 @@
 | `migrations/00X_*.sql` | Run in numeric order, each file **once** per project. |
 | `apply_006_outreach_idempotent.sql` | DB already has schema through `005` and you only need outreach tables + RLS. Safe to re-run. |
 | `migrations/009_tenant_views_and_grants.sql` | Replaces the broad anon `GRANT SELECT` from migration `008` with tenant-scoped policies + a `set_request_tenant(uuid)` helper. **Idempotent — safe to re-run.** Apply this on every project after Stage 1c lands. |
+| `migrations/010_outreach_templates_seed.sql` | Seeds Exotiq + MedSpa default outreach sequences into `outreach_sequences.steps`. **Idempotent** via `ON CONFLICT (tenant_id, slug)`. SDRs edit copy at `/dashboard/outreach/templates`. |
 
 ## “relation already exists”
 
