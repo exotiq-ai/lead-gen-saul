@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Gear, FloppyDisk, ArrowCounterClockwise, Check, Warning } from '@phosphor-icons/react'
+import { Gear, FloppyDisk, ArrowCounterClockwise, Check, Warning, Tray } from '@phosphor-icons/react'
 import useSWR from 'swr'
 import { useTenantId } from '@/lib/hooks/useTenant'
+import { EmptyState, SkeletonBlock } from '@/components/ui'
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
@@ -106,20 +107,22 @@ export function SettingsPageClient() {
 
   if (isLoading) {
     return (
-      <div className="px-3 sm:px-6 py-6 max-w-3xl">
-        <div className="animate-pulse space-y-4">
-          <div className="h-6 w-48 bg-[var(--color-saul-bg-600)] rounded" />
-          <div className="h-40 bg-[var(--color-saul-bg-600)] rounded-[10px]" />
-          <div className="h-60 bg-[var(--color-saul-bg-600)] rounded-[10px]" />
-        </div>
+      <div className="px-3 sm:px-6 py-6 max-w-3xl flex flex-col gap-4">
+        <SkeletonBlock height={24} width={192} />
+        <SkeletonBlock height={160} rounded="rounded-[10px]" />
+        <SkeletonBlock height={240} rounded="rounded-[10px]" />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="px-6 py-6">
-        <p className="text-red-400 text-sm">Failed to load settings</p>
+      <div className="px-3 sm:px-6 py-6 max-w-3xl">
+        <EmptyState
+          icon={Warning}
+          title="Failed to load settings"
+          description="Verify the settings API and try refreshing the page."
+        />
       </div>
     )
   }
@@ -155,7 +158,7 @@ export function SettingsPageClient() {
           {dirty && (
             <button
               onClick={resetToSaved}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-[var(--color-saul-border-strong)] text-[12px] font-medium text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-[var(--color-saul-border-strong)] text-[12px] font-medium text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-soft)] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
             >
               <ArrowCounterClockwise size={13} weight="bold" />
               Reset
@@ -165,9 +168,9 @@ export function SettingsPageClient() {
             onClick={save}
             disabled={!dirty || saving}
             className={[
-              'flex items-center gap-1.5 px-4 py-1.5 rounded-[6px] text-[12px] font-semibold transition-all',
+              'flex items-center gap-1.5 px-4 py-1.5 rounded-[6px] text-[12px] font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]',
               dirty
-                ? 'bg-[var(--color-saul-cyan)] text-[var(--color-saul-bg-900)] hover:brightness-110'
+                ? 'bg-[var(--color-saul-cyan)] text-[var(--color-saul-text-on-accent)] hover:brightness-110'
                 : 'bg-[var(--color-saul-bg-600)] text-[var(--color-saul-text-secondary)] cursor-not-allowed',
             ].join(' ')}
           >
@@ -199,10 +202,10 @@ export function SettingsPageClient() {
               key={type}
               onClick={() => updateTenantType(type)}
               className={[
-                'px-4 py-2 rounded-[6px] text-[13px] font-medium border transition-all',
+                'px-4 py-2 rounded-[6px] text-[13px] font-medium border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]',
                 criteria.tenant_type === type
                   ? 'bg-[color-mix(in_srgb,var(--color-saul-cyan)_10%,transparent)] border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] text-[var(--color-saul-cyan)]'
-                  : 'bg-[var(--color-saul-bg-600)] border-[var(--color-saul-border)] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)]',
+                  : 'bg-[var(--color-saul-bg-600)] border-[var(--color-saul-border)] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:border-[var(--color-saul-border-strong)] hover:bg-[var(--color-saul-overlay-soft)]',
               ].join(' ')}
             >
               {type === 'automotive' ? '🚗 Automotive' : '💉 MedSpa'}
@@ -302,8 +305,8 @@ export function SettingsPageClient() {
         className="rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[color-mix(in_srgb,var(--color-saul-danger)_18%,transparent)] p-5"
       >
         <div className="flex items-center gap-2 mb-3">
-          <Warning size={16} weight="fill" className="text-red-400" />
-          <h2 className="text-[14px] font-semibold text-red-400">
+          <Warning size={16} weight="fill" className="text-[var(--color-saul-danger)]" />
+          <h2 className="text-[14px] font-semibold text-[var(--color-saul-danger)]">
             Danger Zone
           </h2>
         </div>
@@ -317,14 +320,14 @@ export function SettingsPageClient() {
               alert('Bulk re-score not yet implemented')
             }
           }}
-          className="px-4 py-2 rounded-[6px] border border-[color-mix(in_srgb,var(--color-saul-danger)_28%,transparent)] text-[12px] font-medium text-[var(--color-saul-danger)] hover:bg-[color-mix(in_srgb,var(--color-saul-danger)_10%,transparent)] transition-all"
+          className="px-4 py-2 rounded-[6px] border border-[color-mix(in_srgb,var(--color-saul-danger)_28%,transparent)] text-[12px] font-medium text-[var(--color-saul-danger)] hover:bg-[color-mix(in_srgb,var(--color-saul-danger)_10%,transparent)] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-danger)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
         >
           Re-score All Leads
         </button>
       </motion.section>
 
       {saveStatus === 'error' && (
-        <p className="text-red-400 text-[12px] font-medium">
+        <p className="text-[var(--color-saul-danger)] text-[12px] font-medium">
           Save failed. Check console for details.
         </p>
       )}
@@ -424,9 +427,9 @@ function PipelineStagesSection({ tenantId }: { tenantId: string }) {
           onClick={save}
           disabled={!dirty || saving}
           className={[
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-[12px] font-semibold transition-all',
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-[12px] font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]',
             dirty
-              ? 'bg-[var(--color-saul-cyan)] text-[var(--color-saul-bg-900)] hover:brightness-110'
+              ? 'bg-[var(--color-saul-cyan)] text-[var(--color-saul-text-on-accent)] hover:brightness-110'
               : 'bg-[var(--color-saul-bg-600)] text-[var(--color-saul-text-secondary)] cursor-not-allowed',
           ].join(' ')}
         >
@@ -435,23 +438,35 @@ function PipelineStagesSection({ tenantId }: { tenantId: string }) {
       </div>
 
       {isLoading && (
-        <p className="text-[12px] text-[var(--color-saul-text-secondary)] mt-3">
-          Loading stages…
-        </p>
+        <div className="mt-3">
+          <SkeletonBlock height={120} />
+        </div>
       )}
       {error && (
-        <p className="text-[12px] text-rose-300 mt-3">Failed to load stages.</p>
+        <p className="text-[12px] text-[var(--color-saul-danger)] mt-3">
+          Failed to load stages.
+        </p>
       )}
       {errMsg && (
-        <p className="text-[12px] text-rose-300 mt-2">Save failed: {errMsg}</p>
+        <p className="text-[12px] text-[var(--color-saul-danger)] mt-2">
+          Save failed: {errMsg}
+        </p>
       )}
 
       {!isLoading && !error && order.length === 0 && (
-        <p className="text-[12px] text-[var(--color-saul-text-secondary)] mt-3">
-          No stages defined for this tenant. Insert rows into{' '}
-          <code className="text-[var(--color-saul-cyan)]">pipeline_stages</code>{' '}
-          and refresh.
-        </p>
+        <div className="mt-3">
+          <EmptyState
+            icon={Tray}
+            title="No stages defined for this tenant"
+            description={
+              <>
+                Insert rows into{' '}
+                <code className="text-[var(--color-saul-cyan)]">pipeline_stages</code>{' '}
+                and refresh.
+              </>
+            }
+          />
+        </div>
       )}
 
       <ul className="mt-3 space-y-1.5">
@@ -481,7 +496,7 @@ function PipelineStagesSection({ tenantId }: { tenantId: string }) {
             <button
               onClick={() => move(i, -1)}
               disabled={i === 0 || saving}
-              className="px-2 py-0.5 text-[12px] font-mono rounded border border-[var(--color-saul-border-strong)] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] disabled:opacity-30"
+              className="px-2 py-0.5 text-[12px] font-mono rounded border border-[var(--color-saul-border-strong)] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-soft)] disabled:opacity-30 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
               aria-label="Move up"
             >
               ↑
@@ -489,7 +504,7 @@ function PipelineStagesSection({ tenantId }: { tenantId: string }) {
             <button
               onClick={() => move(i, 1)}
               disabled={i === order.length - 1 || saving}
-              className="px-2 py-0.5 text-[12px] font-mono rounded border border-[var(--color-saul-border-strong)] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] disabled:opacity-30"
+              className="px-2 py-0.5 text-[12px] font-mono rounded border border-[var(--color-saul-border-strong)] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-soft)] disabled:opacity-30 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
               aria-label="Move down"
             >
               ↓

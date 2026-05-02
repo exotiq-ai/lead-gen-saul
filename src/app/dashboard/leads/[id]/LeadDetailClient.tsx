@@ -8,24 +8,27 @@ import { ArrowLeft } from '@phosphor-icons/react'
 
 import { LeadHeader } from '@/components/leads/detail/LeadHeader'
 import { ScoreBreakdownPanel } from '@/components/leads/detail/ScoreBreakdownPanel'
+import { SkeletonBlock } from '@/components/ui'
 import type { Lead, LeadActivity } from '@/types/lead'
 import type { EnrichmentRecord } from '@/types/enrichment'
 import type { ScoringHistoryRecord } from './page'
 
 // Below-the-fold timelines: lazy-loaded to keep first paint light.
+const TimelineFallback = () => <SkeletonBlock height={128} rounded="rounded-md" />
+
 const ActivityTimeline = dynamic(
   () => import('@/components/leads/detail/ActivityTimeline').then(m => m.ActivityTimeline),
-  { ssr: false, loading: () => <div className="h-32 skeleton-shimmer rounded-md" /> },
+  { ssr: false, loading: TimelineFallback },
 )
 
 const ScoringTimeline = dynamic(
   () => import('@/components/leads/detail/ActivityTimeline').then(m => m.ScoringTimeline),
-  { ssr: false, loading: () => <div className="h-32 skeleton-shimmer rounded-md" /> },
+  { ssr: false, loading: TimelineFallback },
 )
 
 const EnrichmentTimeline = dynamic(
   () => import('@/components/leads/detail/EnrichmentTimeline').then(m => m.EnrichmentTimeline),
-  { ssr: false, loading: () => <div className="h-32 skeleton-shimmer rounded-md" /> },
+  { ssr: false, loading: TimelineFallback },
 )
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -60,10 +63,7 @@ export function LeadDetailClient({
       <div className="px-6 pt-4 pb-2">
         <button
           onClick={() => router.push('/dashboard/leads')}
-          className="flex items-center gap-1.5 text-sm transition-colors duration-150 cursor-pointer"
-          style={{ color: 'var(--color-saul-text-secondary)' }}
-          onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-saul-text-primary)')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-saul-text-secondary)')}
+          className="flex items-center gap-1.5 text-sm rounded-[6px] px-2 py-1 -mx-2 text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-soft)] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
         >
           <ArrowLeft size={14} />
           <span>All Leads</span>
@@ -106,7 +106,7 @@ export function LeadDetailClient({
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className="px-4 py-3 text-[13px] font-medium relative cursor-pointer transition-colors duration-150"
+                  className="px-4 py-3 text-[13px] font-medium relative cursor-pointer transition-colors duration-150 hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-soft)] rounded-t-[6px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-700)]"
                   style={{
                     color: activeTab === tab.key
                       ? 'var(--color-saul-text-primary)'

@@ -4,6 +4,8 @@ import { ChartContainer } from '@/components/charts/ChartContainer'
 import { ScoreDistribution } from '@/components/charts/ScoreDistribution'
 import { ConversionCohort } from '@/components/charts/ConversionCohort'
 import { formatPercent } from '@/lib/utils/formatters'
+import { EmptyState } from '@/components/ui'
+import { ChartLineUp, ShieldCheck } from '@phosphor-icons/react'
 
 export interface ScoringData {
   total_scored: number
@@ -217,9 +219,11 @@ function ScoreBySourceChart({ data }: { data: ScoringData['score_by_source'] }) 
   return (
     <div className="flex flex-col gap-2">
       {data.length === 0 && (
-        <p className="text-sm py-8 text-center" style={{ color: 'var(--color-saul-text-secondary)' }}>
-          No source data available
-        </p>
+        <EmptyState
+          icon={ChartLineUp}
+          title="No source data available"
+          description="Sources appear here once leads are scored."
+        />
       )}
       {data.map((row) => (
         <div key={row.source} className="flex items-center gap-3 group">
@@ -257,9 +261,11 @@ function ScoreByStageChart({ data }: { data: ScoringData['score_by_stage'] }) {
   return (
     <div className="flex flex-col gap-2">
       {data.length === 0 && (
-        <p className="text-sm py-8 text-center" style={{ color: 'var(--color-saul-text-secondary)' }}>
-          No stage data available
-        </p>
+        <EmptyState
+          icon={ChartLineUp}
+          title="No stage data available"
+          description="Stages appear here once leads progress through the pipeline."
+        />
       )}
       {data.map((row) => (
         <div key={row.stage} className="flex items-center gap-3">
@@ -308,14 +314,14 @@ function RedFlagTable({
 }) {
   return (
     <div
-      className="rounded-xl overflow-hidden"
+      className="rounded-[8px] overflow-hidden"
       style={{
         background: 'var(--color-saul-bg-700)',
         border: '1px solid var(--color-saul-border)',
       }}
     >
       {/* Header */}
-      <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--color-saul-border)' }}>
+      <div className="px-5 py-4 border-b" style={{ borderColor: 'var(--color-saul-border)' }}>
         <h3
           className="text-sm font-semibold"
           style={{ color: 'var(--color-saul-text-primary)', fontFamily: 'var(--font-sans)' }}
@@ -328,11 +334,11 @@ function RedFlagTable({
       </div>
 
       {data.length === 0 ? (
-        <div className="flex items-center justify-center py-12">
-          <p className="text-sm" style={{ color: 'var(--color-saul-text-secondary)' }}>
-            No red flags detected — clean pipeline.
-          </p>
-        </div>
+        <EmptyState
+          icon={ShieldCheck}
+          title="No red flags detected"
+          description="Your pipeline is clean — every scored lead passed disqualifying checks."
+        />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -503,7 +509,7 @@ export function ScoringPageClient({ data }: ScoringPageClientProps) {
       <div className="grid grid-cols-2 gap-4">
         {/* Score by Source */}
         <div
-          className="rounded-xl p-6 flex flex-col gap-4"
+          className="rounded-[8px] p-5 flex flex-col gap-4"
           style={{
             background: 'var(--color-saul-bg-700)',
             border: '1px solid var(--color-saul-border)',
@@ -549,7 +555,7 @@ export function ScoringPageClient({ data }: ScoringPageClientProps) {
 
         {/* Score by Stage */}
         <div
-          className="rounded-xl p-6 flex flex-col gap-4"
+          className="rounded-[8px] p-5 flex flex-col gap-4"
           style={{
             background: 'var(--color-saul-bg-700)',
             border: '1px solid var(--color-saul-border)',

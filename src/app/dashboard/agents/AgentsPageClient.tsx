@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef } from 'react'
 import useSWR from 'swr'
 import { motion } from 'framer-motion'
-import { Robot, Pulse, Timer, Plugs, Cpu, Broadcast } from '@phosphor-icons/react'
+import { Robot, Pulse, Timer, Plugs, Cpu, Broadcast, Tray, Warning } from '@phosphor-icons/react'
 import { formatDistanceToNow } from 'date-fns'
 import { useTenantId } from '@/lib/hooks/useTenant'
+import { EmptyState, SkeletonBlock } from '@/components/ui'
 
 const SOUL_EXCERPT = `## Voice
 - Direct. No corporate filler. One sentence when one sentence is enough.
@@ -125,14 +126,14 @@ export function AgentsPageClient() {
         {(() => {
           const status = data?.gateway?.status ?? 'offline'
           const tone =
-            status === 'online'
-              ? {
-                  border: 'border-[rgba(0,212,170,0.2)]',
-                  bg: 'bg-[rgba(0,212,170,0.05)]',
-                  pillBg: 'bg-emerald-400',
-                  pillText: 'text-emerald-300',
-                  pulse: 'animate-pulse',
-                }
+          status === 'online'
+            ? {
+                border: 'border-[color-mix(in_srgb,var(--color-saul-cyan)_20%,transparent)]',
+                bg: 'bg-[color-mix(in_srgb,var(--color-saul-cyan)_5%,transparent)]',
+                pillBg: 'bg-emerald-400',
+                pillText: 'text-emerald-300',
+                pulse: 'animate-pulse',
+              }
               : status === 'stale'
                 ? {
                     border: 'border-amber-400/25',
@@ -190,7 +191,7 @@ export function AgentsPageClient() {
             <span>Heartbeat every {data?.cron?.interval_minutes ?? 15} min — next: {nextRun}</span>
           </div>
           <select
-            className="bg-[var(--color-saul-bg-800)] border border-[var(--color-saul-border-strong)] rounded-md text-[12px] px-2 py-1 text-[var(--color-saul-text-primary)]"
+            className="bg-[var(--color-saul-bg-800)] border border-[var(--color-saul-border-strong)] rounded-md text-[12px] px-2 py-1 text-[var(--color-saul-text-primary)] hover:border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
             value={range}
             onChange={(e) => setRange(e.target.value as typeof range)}
           >
@@ -202,8 +203,14 @@ export function AgentsPageClient() {
           </select>
         </div>
 
-        {isLoading && <div className="h-32 skeleton-shimmer rounded-lg" />}
-        {error && <p className="text-rose-300 text-sm">Could not load agents</p>}
+        {isLoading && <SkeletonBlock height={128} />}
+        {error && (
+          <EmptyState
+            icon={Warning}
+            title="Could not load agents"
+            description="The agents endpoint failed. Verify Supabase connectivity and try again."
+          />
+        )}
 
         {/* 6 cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -284,7 +291,7 @@ export function AgentsPageClient() {
                       key={r.id}
                       className={[
                         'border-b border-[var(--color-saul-border-soft)] hover:bg-[var(--color-saul-overlay-soft)]',
-                        r.__live ? 'bg-[rgba(0,212,170,0.04)]' : '',
+                        r.__live ? 'bg-[color-mix(in_srgb,var(--color-saul-cyan)_4%,transparent)]' : '',
                       ].join(' ')}
                     >
                       <td className="p-2 font-mono text-[var(--color-saul-cyan)]">
@@ -306,9 +313,11 @@ export function AgentsPageClient() {
             {(!data?.recent_runs || data.recent_runs.length === 0) &&
               liveEvents.length === 0 &&
               !isLoading && (
-                <p className="p-6 text-center text-[var(--color-saul-text-secondary)] text-[13px]">
-                  No agent runs yet. When Saul and workers execute, they appear here.
-                </p>
+                <EmptyState
+                  icon={Tray}
+                  title="No agent runs yet"
+                  description="When Saul and workers execute, they'll appear here."
+                />
               )}
           </div>
         </div>
@@ -316,8 +325,8 @@ export function AgentsPageClient() {
 
       {/* SOUL.md rail */}
       <aside className="w-full xl:w-[380px] shrink-0">
-        <div className="sticky top-6 rounded-lg border border-[rgba(0,212,170,0.15)] bg-[var(--color-saul-bg-900)] overflow-hidden">
-          <div className="px-3 py-2 border-b border-[rgba(0,212,170,0.1)] flex items-center justify-between bg-[rgba(0,212,170,0.06)]">
+        <div className="sticky top-6 rounded-lg border border-[color-mix(in_srgb,var(--color-saul-cyan)_15%,transparent)] bg-[var(--color-saul-bg-900)] overflow-hidden">
+          <div className="px-3 py-2 border-b border-[color-mix(in_srgb,var(--color-saul-cyan)_10%,transparent)] flex items-center justify-between bg-[color-mix(in_srgb,var(--color-saul-cyan)_6%,transparent)]">
             <span className="text-[11px] font-mono text-[var(--color-saul-cyan)]">SOUL.md</span>
             <span className="text-[10px] text-[var(--color-saul-text-secondary)]">OpenClaw personality</span>
           </div>

@@ -63,7 +63,7 @@ export function ExportsPageClient() {
           return (
             <li
               key={d.id}
-              className="rounded-lg border border-[var(--color-saul-border-strong)] bg-[var(--color-saul-bg-800)] p-4 flex flex-col gap-3"
+              className="rounded-lg border border-[var(--color-saul-border-strong)] bg-[var(--color-saul-bg-800)] p-4 flex flex-col gap-3 transition-colors duration-150 hover:border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] hover:bg-[var(--color-saul-overlay-soft)]"
             >
               <div className="flex items-center gap-2">
                 <Icon size={20} weight="duotone" className="text-[var(--color-saul-cyan)]" />
@@ -80,7 +80,7 @@ export function ExportsPageClient() {
               <a
                 href={href}
                 download
-                className="inline-flex items-center gap-1.5 self-start px-3 py-1.5 text-[12px] font-semibold rounded-[6px] bg-[var(--color-saul-cyan)] text-[var(--color-saul-bg-900)] hover:brightness-110"
+                className="inline-flex items-center gap-1.5 self-start px-3 py-1.5 text-[12px] font-semibold rounded-[6px] bg-[var(--color-saul-cyan)] text-[var(--color-saul-text-on-accent)] hover:brightness-110 transition-[filter,background-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
               >
                 <DownloadSimple size={13} weight="bold" />
                 Download CSV

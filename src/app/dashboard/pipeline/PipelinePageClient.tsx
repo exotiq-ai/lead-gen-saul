@@ -150,7 +150,7 @@ function StageStats({ stage }: { stage: PipelineStageDetail }) {
     <div className="flex items-center gap-3 px-3 py-2 border-b border-[var(--color-saul-border-soft)] bg-[var(--color-saul-overlay-soft)]">
       {/* Gregory */}
       <div className="flex items-center gap-1" title="Assigned to Gregory">
-        <span className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-[rgba(0,212,170,0.12)] border border-[rgba(0,212,170,0.25)] text-[9px] font-bold text-[var(--color-saul-cyan)] leading-none select-none">
+        <span className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-[color-mix(in_srgb,var(--color-saul-cyan)_12%,transparent)] border border-[color-mix(in_srgb,var(--color-saul-cyan)_25%,transparent)] text-[9px] font-bold text-[var(--color-saul-cyan)] leading-none select-none">
           G
         </span>
         <span className="text-[11px] font-mono tabular-nums text-[var(--color-saul-text-secondary)]">
@@ -436,7 +436,7 @@ export function PipelinePageClient({ data }: PipelinePageClientProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] border border-[rgba(0,212,170,0.2)] bg-[rgba(0,212,170,0.06)] text-[11px] font-medium text-[var(--color-saul-cyan)]">
+          <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] border border-[color-mix(in_srgb,var(--color-saul-cyan)_20%,transparent)] bg-[color-mix(in_srgb,var(--color-saul-cyan)_6%,transparent)] text-[11px] font-medium text-[var(--color-saul-cyan)]">
             <ArrowsClockwise size={11} />
             Live
           </span>
@@ -449,7 +449,10 @@ export function PipelinePageClient({ data }: PipelinePageClientProps) {
       {/* Stage columns — horizontally scrollable */}
       <div
         className="flex flex-row items-start overflow-x-auto pb-4 gap-0"
-        style={{ scrollbarColor: 'rgba(0,212,170,0.2) transparent' }}
+        style={{
+          scrollbarColor:
+            'color-mix(in srgb, var(--color-saul-cyan) 20%, transparent) transparent',
+        }}
       >
         {stages.flatMap((stage, i) => {
           const showConnector =

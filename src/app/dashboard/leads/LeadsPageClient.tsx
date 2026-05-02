@@ -20,6 +20,7 @@ import { useFilterStore } from '@/stores/filterStore'
 import { useTenantId } from '@/lib/hooks/useTenant'
 import { LeadRow } from '@/components/leads/LeadRow'
 import { CsvImportModal } from '@/components/leads/CsvImportModal'
+import { EmptyState } from '@/components/ui/EmptyState'
 import type { Lead, LeadStatus } from '@/types/lead'
 
 // ---------------------------------------------------------------------------
@@ -108,12 +109,12 @@ function Pill({ active, onClick, children, danger = false, className = '' }: Pil
     <button
       onClick={onClick}
       className={[
-        'h-7 px-3 text-[12px] font-medium rounded-[6px] border transition-all duration-150 cursor-pointer whitespace-nowrap leading-none',
+        'h-7 px-3 text-[12px] font-medium rounded-[6px] border transition-all duration-150 cursor-pointer whitespace-nowrap leading-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]',
         active && !danger
           ? 'bg-[color-mix(in_srgb,var(--color-saul-cyan)_15%,transparent)] text-[var(--color-saul-cyan)] border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)]'
           : active && danger
             ? 'bg-[color-mix(in_srgb,var(--color-saul-danger)_15%,transparent)] text-[var(--color-saul-danger)] border-[color-mix(in_srgb,var(--color-saul-danger)_30%,transparent)]'
-            : 'bg-transparent text-[var(--color-saul-text-secondary)] border-[var(--color-saul-border)] hover:border-[var(--color-saul-border-strong)] hover:text-[var(--color-saul-text-primary)]',
+            : 'bg-transparent text-[var(--color-saul-text-secondary)] border-[var(--color-saul-border)] hover:border-[var(--color-saul-border-strong)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-soft)]',
         className,
       ]
         .filter(Boolean)
@@ -149,7 +150,7 @@ function SortDropdown({ value, onChange }: SortDropdownProps) {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((p) => !p)}
-        className="h-7 px-3 flex items-center gap-1.5 text-[12px] font-medium rounded-[6px] border transition-all duration-150 cursor-pointer bg-transparent text-[var(--color-saul-text-secondary)] border-[var(--color-saul-border)] hover:border-[var(--color-saul-border-strong)] hover:text-[var(--color-saul-text-primary)] whitespace-nowrap"
+        className="h-7 px-3 flex items-center gap-1.5 text-[12px] font-medium rounded-[6px] border transition-all duration-150 cursor-pointer bg-transparent text-[var(--color-saul-text-secondary)] border-[var(--color-saul-border)] hover:border-[var(--color-saul-border-strong)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-soft)] whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
       >
         <ArrowsDownUp size={12} weight="bold" />
         {label}
@@ -176,7 +177,7 @@ function SortDropdown({ value, onChange }: SortDropdownProps) {
                   setOpen(false)
                 }}
                 className={[
-                  'w-full px-3 py-2 text-left text-[12px] transition-colors duration-100 cursor-pointer',
+                  'w-full px-3 py-2 text-left text-[12px] transition-colors duration-100 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-inset',
                   value === opt.value
                     ? 'text-[var(--color-saul-cyan)] bg-[color-mix(in_srgb,var(--color-saul-cyan)_8%,transparent)]'
                     : 'text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-low)]',
@@ -249,31 +250,28 @@ function SkeletonTableRows() {
 }
 
 // ---------------------------------------------------------------------------
-// Empty state
+// Empty state — wraps the shared <EmptyState/> in a table row so it spans
+// every column and stays vertically centered inside the table body.
 // ---------------------------------------------------------------------------
-function EmptyState({ onClear }: { onClear: () => void }) {
+function LeadsEmptyState({ onClear }: { onClear: () => void }) {
   return (
     <tr>
       <td colSpan={9}>
-        <div className="flex flex-col items-center justify-center py-16 gap-4">
-          <span className="flex items-center justify-center w-14 h-14 rounded-[10px] bg-[var(--color-saul-bg-600)] border border-[var(--color-saul-border)]">
-            <Car size={28} weight="duotone" className="text-[var(--color-saul-text-tertiary)]" />
-          </span>
-          <div className="text-center">
-            <p className="text-[14px] font-semibold text-[var(--color-saul-text-primary)]">
-              No leads match your filters
-            </p>
-            <p className="text-[12px] text-[var(--color-saul-text-secondary)] mt-1">
-              Try adjusting or clearing your current filters.
-            </p>
-          </div>
-          <button
-            onClick={onClear}
-            className="h-7 px-3 text-[12px] font-medium rounded-[6px] border cursor-pointer transition-all duration-150 bg-[color-mix(in_srgb,var(--color-saul-cyan)_10%,transparent)] text-[var(--color-saul-cyan)] border-[color-mix(in_srgb,var(--color-saul-cyan)_22%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-saul-cyan)_16%,transparent)]"
-          >
-            Clear filters
-          </button>
-        </div>
+        <EmptyState
+          icon={Car}
+          title="No leads match your filters"
+          description="Try adjusting or clearing your current filters."
+          action={
+            <button
+              type="button"
+              onClick={onClear}
+              className="h-7 px-3 text-[12px] font-medium rounded-[6px] border cursor-pointer transition-all duration-150 bg-[color-mix(in_srgb,var(--color-saul-cyan)_10%,transparent)] text-[var(--color-saul-cyan)] border-[color-mix(in_srgb,var(--color-saul-cyan)_22%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-saul-cyan)_16%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
+            >
+              Clear filters
+            </button>
+          }
+          className="py-12"
+        />
       </td>
     </tr>
   )
@@ -471,14 +469,14 @@ export function LeadsPageClient() {
               a.href = url; a.download = `leads-export-${new Date().toISOString().slice(0,10)}.csv`
               a.click(); URL.revokeObjectURL(url)
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[var(--color-saul-bg-600)] border border-[var(--color-saul-border-strong)] text-[12px] font-medium text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] transition-all duration-150"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[var(--color-saul-bg-600)] border border-[var(--color-saul-border-strong)] text-[12px] font-medium text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] hover:bg-[var(--color-saul-overlay-soft)] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
           >
             <DownloadSimple size={14} weight="bold" />
             Export CSV
           </button>
           <button
             onClick={() => setShowImport(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[var(--color-saul-bg-600)] border border-[var(--color-saul-border-strong)] text-[12px] font-medium text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] transition-all duration-150"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[var(--color-saul-bg-600)] border border-[var(--color-saul-border-strong)] text-[12px] font-medium text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] hover:bg-[var(--color-saul-overlay-soft)] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
           >
             <UploadSimple size={14} weight="bold" />
             Import CSV
@@ -627,7 +625,7 @@ export function LeadsPageClient() {
                 {isLoading && leads.length === 0 ? (
                   <SkeletonTableRows />
                 ) : leads.length === 0 ? (
-                  <EmptyState onClear={clearFilters} />
+                  <LeadsEmptyState onClear={clearFilters} />
                 ) : (
                   leads.map((lead, i) => (
                     <LeadRow
@@ -688,14 +686,14 @@ export function LeadsPageClient() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="w-7 h-7 flex items-center justify-center rounded-[5px] border border-[var(--color-saul-border)] bg-transparent text-[var(--color-saul-text-secondary)] transition-all duration-150 cursor-pointer hover:border-[var(--color-saul-border-strong)] hover:text-[var(--color-saul-text-primary)] disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-7 h-7 flex items-center justify-center rounded-[5px] border border-[var(--color-saul-border)] bg-transparent text-[var(--color-saul-text-secondary)] transition-all duration-150 cursor-pointer hover:border-[var(--color-saul-border-strong)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-soft)] disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
               >
                 <CaretLeft size={12} weight="bold" />
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}
                 disabled={page >= meta.totalPages}
-                className="w-7 h-7 flex items-center justify-center rounded-[5px] border border-[var(--color-saul-border)] bg-transparent text-[var(--color-saul-text-secondary)] transition-all duration-150 cursor-pointer hover:border-[var(--color-saul-border-strong)] hover:text-[var(--color-saul-text-primary)] disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-7 h-7 flex items-center justify-center rounded-[5px] border border-[var(--color-saul-border)] bg-transparent text-[var(--color-saul-text-secondary)] transition-all duration-150 cursor-pointer hover:border-[var(--color-saul-border-strong)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-soft)] disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
               >
                 <CaretRight size={12} weight="bold" />
               </button>
