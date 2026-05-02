@@ -43,7 +43,10 @@ function ActivityIcon({ type }: { type: string }) {
   return <>{map[type] ?? <ArrowsClockwise className={iconClass} />}</>
 }
 
-function activityColor(type: string): string {
+function activityColor(type: string | null | undefined): string {
+  // Defensive: rows from migrations or older webhooks may have null
+  // activity_type. Default to the neutral grey rather than crashing.
+  if (!type) return '#8B95A8'
   if (type.startsWith('dm_'))    return '#00D4AA'
   if (type.startsWith('call_'))  return '#3B82F6'
   if (type === 'score_changed')  return '#FFAE42'
@@ -67,8 +70,13 @@ export function ActivityTimeline({ activities }: { activities: LeadActivity[] })
   return (
     <div className="flex flex-col gap-0">
       {activities.map((activity, i) => {
-        const color = activityColor(activity.type)
-        const label = ACTIVITY_LABELS[activity.type] ?? activity.type.replace(/_/g, ' ')
+        // The API returns activity_type; we keep `type` as a legacy alias.
+        // See src/types/lead.ts for why both can appear.
+        const kind = activity.activity_type ?? activity.type ?? ''
+        const color = activityColor(kind)
+        const label =
+          (kind && ACTIVITY_LABELS[kind]) ||
+          (kind ? kind.replace(/_/g, ' ') : 'activity')
 
         return (
           <motion.div
@@ -95,7 +103,7 @@ export function ActivityTimeline({ activities }: { activities: LeadActivity[] })
                 color,
               }}
             >
-              <ActivityIcon type={activity.type} />
+              <ActivityIcon type={kind} />
             </div>
 
             {/* Content */}
