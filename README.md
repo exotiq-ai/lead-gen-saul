@@ -18,6 +18,9 @@ Copy `.env.local` and set at least:
 | `GHL_SKIP_SIGNATURE` | `true` to skip verification (local only) |
 | `GHL_DEFAULT_TENANT_ID` | Optional UUID for webhook lead resolution |
 | `SAUL_MODEL_NAME` | Shown on Agents page (cosmetic) |
+| `GHL_API_KEY` / `GHL_LOCATION_ID` | Outbound GHL send (Exotiq sub-account) |
+| `GHL_MEDSPA_API_KEY` / `GHL_MEDSPA_LOCATION_ID` | Outbound GHL send (MedSpa sub-account) |
+| `GHL_OUTBOUND_DRY_RUN` | `true` (default) logs sends instead of hitting GHL; set `false` in prod |
 
 ## Database
 
