@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 import { useDashboardStore, type Theme } from '@/stores/dashboardStore'
 
 /**
@@ -125,13 +125,18 @@ export function getChartPalette(theme?: Theme): ChartPalette {
 /**
  * Reactive theme hook. SSR-safe: returns `'dark'` on the server and during the
  * first client render, then re-renders with the actual persisted value once
- * zustand has hydrated.
+ * zustand has hydrated. Uses useSyncExternalStore -- React-19-blessed pattern
+ * for the "render server fallback then real value" hydration shape, avoids
+ * the set-state-in-effect lint error.
  */
 export function useTheme(): Theme {
   const storeTheme = useDashboardStore((s) => s.theme)
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
-  return mounted ? storeTheme : 'dark'
+  const hasMounted = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  )
+  return hasMounted ? storeTheme : 'dark'
 }
 
 /** Convenience hook returning the live palette for the current theme. */
