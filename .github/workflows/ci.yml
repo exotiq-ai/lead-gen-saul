@@ -30,6 +30,13 @@ jobs:
         run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
+      - name: upload next build
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-build
+          path: .next/
+          include-hidden-files: true
+          retention-days: 2
 
   python:
     name: python-agent compile
@@ -58,11 +65,26 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: install playwright browsers
         run: npm run test:e2e:install
+      - name: download next build
+        uses: actions/download-artifact@v4
+        with:
+          name: next-build
+          path: .next/
+      - name: start prod server
+        run: |
+          npm run start -- -p 3000 &
+          npx wait-on http://127.0.0.1:3000 -t 120000
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          NEXT_PUBLIC_SUPABASE_URL: ""
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ""
+          SUPABASE_SERVICE_ROLE_KEY: ""
       - name: run e2e
         run: npm run test:e2e
         env:
           NEXT_TELEMETRY_DISABLED: "1"
           CI: "1"
+          BASE_URL: http://127.0.0.1:3000
       - name: upload playwright report
         if: failure()
         uses: actions/upload-artifact@v4
