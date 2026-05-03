@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test'
 import { attachMocks } from './fixtures/mockApi'
 
-// CI cold-start with Tailwind 4 + Turbopack can take >5s.
-const FIRST_PAINT_TIMEOUT = 20_000
+// First navigation after `next start` is quick; keep a cushion for CI CPU.
+const FIRST_PAINT_TIMEOUT = 15_000
 
 test.describe('pipeline walk', () => {
   test.beforeEach(async ({ page }) => {
