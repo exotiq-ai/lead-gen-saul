@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { formatPercent } from '@/lib/utils/formatters'
+import { useChartPalette } from '@/lib/utils/chartColors'
 
 interface CohortDecile {
   decile: string
@@ -27,31 +28,36 @@ const DEMO_DATA: CohortDecile[] = [
   { decile: '91–100', predicted: 42.5, actual: 40.1 },
 ]
 
-function rateToColor(rate: number, max: number, type: 'predicted' | 'actual'): string {
-  const intensity = Math.min(1, rate / max)
-  if (type === 'predicted') {
-    // Purple scale
-    const alpha = 0.15 + intensity * 0.7
-    return `rgba(168,85,247,${alpha.toFixed(2)})`
-  } else {
-    // Cyan scale
-    const alpha = 0.15 + intensity * 0.7
-    return `rgba(0,212,170,${alpha.toFixed(2)})`
-  }
+/** Convert a `#RRGGBB` to `rgba(r,g,b,a)` so we can build the heatmap alpha ramps. */
+function hexWithAlpha(hex: string, alpha: number): string {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex)
+  if (!m) return hex
+  const int = parseInt(m[1], 16)
+  const r = (int >> 16) & 0xff
+  const g = (int >> 8) & 0xff
+  const b = int & 0xff
+  return `rgba(${r},${g},${b},${alpha.toFixed(2)})`
 }
 
-function rateToTextColor(rate: number, max: number): string {
+function rateToColor(rate: number, max: number, baseColor: string): string {
   const intensity = Math.min(1, rate / max)
-  return intensity > 0.5 ? '#F0F2F5' : '#8B95A8'
+  const alpha = 0.15 + intensity * 0.7
+  return hexWithAlpha(baseColor, alpha)
 }
 
 export function ConversionCohort({ data: propData, demoMode = false }: ConversionCohortProps) {
-  const data = demoMode || !propData ? DEMO_DATA : propData
+  const palette = useChartPalette()
+  const data = demoMode || !propData || propData.length === 0 ? DEMO_DATA : propData
   const [hoveredRow, setHoveredRow] = useState<string | null>(null)
 
-  const maxPredicted = Math.max(...data.map((d) => d.predicted))
-  const maxActual = Math.max(...data.map((d) => d.actual))
-  const maxVal = Math.max(maxPredicted, maxActual)
+  const maxPredicted = Math.max(...data.map((d) => d.predicted), 0)
+  const maxActual = Math.max(...data.map((d) => d.actual), 0)
+  const maxVal = Math.max(maxPredicted, maxActual, 1)
+
+  function rateToTextColor(rate: number, max: number): string {
+    const intensity = Math.min(1, rate / max)
+    return intensity > 0.5 ? palette.textPrimary : palette.textSecondary
+  }
 
   return (
     <div className="flex flex-col gap-3 w-full min-h-[220px] md:min-h-[280px]">
@@ -60,16 +66,16 @@ export function ConversionCohort({ data: propData, demoMode = false }: Conversio
         <div className="flex items-center gap-2">
           <div
             className="w-3 h-3 rounded-sm"
-            style={{ background: 'rgba(168,85,247,0.7)' }}
+            style={{ background: hexWithAlpha(palette.violet, 0.7) }}
           />
-          <span className="text-xs" style={{ color: '#8B95A8' }}>Predicted conv. rate</span>
+          <span className="text-xs" style={{ color: palette.textSecondary }}>Predicted conv. rate</span>
         </div>
         <div className="flex items-center gap-2">
           <div
             className="w-3 h-3 rounded-sm"
-            style={{ background: 'rgba(0,212,170,0.7)' }}
+            style={{ background: hexWithAlpha(palette.primary, 0.7) }}
           />
-          <span className="text-xs" style={{ color: '#8B95A8' }}>Actual conv. rate</span>
+          <span className="text-xs" style={{ color: palette.textSecondary }}>Actual conv. rate</span>
         </div>
       </div>
 
@@ -78,8 +84,8 @@ export function ConversionCohort({ data: propData, demoMode = false }: Conversio
         className="grid text-xs font-medium"
         style={{
           gridTemplateColumns: '80px 1fr 1fr 72px',
-          color: '#8B95A8',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          color: palette.textSecondary,
+          borderBottom: `1px solid ${palette.divider}`,
           paddingBottom: 6,
         }}
       >
@@ -102,7 +108,7 @@ export function ConversionCohort({ data: propData, demoMode = false }: Conversio
               style={{
                 gridTemplateColumns: '80px 1fr 1fr 72px',
                 padding: '6px 8px',
-                background: isHovered ? 'rgba(255,255,255,0.04)' : 'transparent',
+                background: isHovered ? palette.cursorFill : 'transparent',
                 cursor: 'default',
               }}
               onMouseEnter={() => setHoveredRow(row.decile)}
@@ -111,7 +117,7 @@ export function ConversionCohort({ data: propData, demoMode = false }: Conversio
               {/* Decile label */}
               <span
                 className="text-xs font-medium"
-                style={{ color: '#8B95A8', fontFamily: 'var(--font-mono)' }}
+                style={{ color: palette.textSecondary, fontFamily: 'var(--font-mono)' }}
               >
                 {row.decile}
               </span>
@@ -121,7 +127,7 @@ export function ConversionCohort({ data: propData, demoMode = false }: Conversio
                 <div
                   className="rounded px-2 py-1 text-xs font-semibold text-center w-full"
                   style={{
-                    background: rateToColor(row.predicted, maxVal, 'predicted'),
+                    background: rateToColor(row.predicted, maxVal, palette.violet),
                     color: rateToTextColor(row.predicted, maxVal),
                     fontFamily: 'var(--font-mono)',
                   }}
@@ -135,7 +141,7 @@ export function ConversionCohort({ data: propData, demoMode = false }: Conversio
                 <div
                   className="rounded px-2 py-1 text-xs font-semibold text-center w-full"
                   style={{
-                    background: rateToColor(row.actual, maxVal, 'actual'),
+                    background: rateToColor(row.actual, maxVal, palette.primary),
                     color: rateToTextColor(row.actual, maxVal),
                     fontFamily: 'var(--font-mono)',
                   }}
@@ -149,7 +155,7 @@ export function ConversionCohort({ data: propData, demoMode = false }: Conversio
                 className="text-xs font-semibold text-right"
                 style={{
                   fontFamily: 'var(--font-mono)',
-                  color: delta >= 0 ? '#00D4AA' : '#FF4757',
+                  color: delta >= 0 ? palette.success : palette.danger,
                 }}
               >
                 {delta >= 0 ? '+' : ''}{formatPercent(delta)}
@@ -162,27 +168,27 @@ export function ConversionCohort({ data: propData, demoMode = false }: Conversio
       {/* Summary footer */}
       <div
         className="flex items-center justify-between text-xs pt-2"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.06)', color: '#8B95A8' }}
+        style={{ borderTop: `1px solid ${palette.divider}`, color: palette.textSecondary }}
       >
         <span>
           Model accuracy:{' '}
-          <span style={{ color: '#F0F2F5', fontFamily: 'var(--font-mono)' }}>
+          <span style={{ color: palette.textPrimary, fontFamily: 'var(--font-mono)' }}>
             {formatPercent(
               100 -
                 (data.reduce((s, d) => s + Math.abs(d.actual - d.predicted), 0) /
-                  data.reduce((s, d) => s + d.predicted, 0)) *
+                  Math.max(data.reduce((s, d) => s + d.predicted, 0), 1)) *
                   100
             )}
           </span>
         </span>
         <span>
           Avg predicted:{' '}
-          <span style={{ color: '#A855F7', fontFamily: 'var(--font-mono)' }}>
-            {formatPercent(data.reduce((s, d) => s + d.predicted, 0) / data.length)}
+          <span style={{ color: palette.violet, fontFamily: 'var(--font-mono)' }}>
+            {formatPercent(data.reduce((s, d) => s + d.predicted, 0) / Math.max(data.length, 1))}
           </span>{' '}
           · Avg actual:{' '}
-          <span style={{ color: '#00D4AA', fontFamily: 'var(--font-mono)' }}>
-            {formatPercent(data.reduce((s, d) => s + d.actual, 0) / data.length)}
+          <span style={{ color: palette.primary, fontFamily: 'var(--font-mono)' }}>
+            {formatPercent(data.reduce((s, d) => s + d.actual, 0) / Math.max(data.length, 1))}
           </span>
         </span>
       </div>

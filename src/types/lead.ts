@@ -50,9 +50,15 @@ export interface LeadActivity {
   id: string
   lead_id: string
   tenant_id: string
-  type: string
-  summary: string
-  metadata: Record<string, unknown>
+  // The DB column is `activity_type` per migration 001; the lead detail
+  // API returns it under that name. The legacy `type` alias is kept
+  // optional so older code paths don't break, but new code should read
+  // `activity_type` directly.
+  activity_type: string
+  type?: string
+  channel?: string | null
+  summary?: string
+  metadata?: Record<string, unknown>
   created_at: string
 }
 

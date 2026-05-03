@@ -1,6 +1,18 @@
 #!/bin/sh
-# Pre-push: TypeScript typecheck. Skip with: git push --no-verify
+# Pre-push: TypeScript typecheck + Python compile.
+# Skip with: git push --no-verify
 set -e
 cd -- "$(git rev-parse --show-toplevel)" || exit 1
+
 printf 'pre-push: running npm run typecheck...\n'
 npm run typecheck
+
+if command -v python3 >/dev/null 2>&1; then
+  printf 'pre-push: running python3 -m py_compile on python-agent/...\n'
+  # py_compile each .py file under python-agent. We don't want to import
+  # them because that pulls in supabase/etc.; we just want a parse check.
+  find python-agent -type f -name '*.py' -print0 \
+    | xargs -0 python3 -m py_compile
+else
+  printf 'pre-push: python3 not found; skipping python compile check\n'
+fi

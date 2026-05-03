@@ -6,11 +6,28 @@ import { useFilterStore } from '@/stores/filterStore'
 import { useDashboardStore } from '@/stores/dashboardStore'
 import type { Lead } from '@/types'
 
-interface LeadsResponse {
-  leads: Lead[]
+interface LeadsResponseMeta {
   total: number
   page: number
-  page_size: number
+  limit: number
+  totalPages: number
+  offset: number
+  has_more: boolean
+  red_flag_count: number
+  gregory_count: number
+  converted_this_month: number
+}
+
+interface LeadsResponse {
+  data: Lead[]
+  meta: LeadsResponseMeta
+  // Legacy fields the API also emits; kept here to preserve callers
+  // that haven't migrated yet.
+  leads?: Lead[]
+  total?: number
+  page?: number
+  limit?: number
+  has_more?: boolean
 }
 
 interface UseLeadsResult {
@@ -70,8 +87,8 @@ export function useLeads(): UseLeadsResult {
   })
 
   return {
-    leads: data?.leads ?? [],
-    total: data?.total ?? 0,
+    leads: data?.data ?? data?.leads ?? [],
+    total: data?.meta?.total ?? data?.total ?? 0,
     isLoading,
     isError: Boolean(error),
     mutate,

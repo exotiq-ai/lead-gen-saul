@@ -2,6 +2,8 @@
 
 Next.js 16 dashboard + Supabase + TypeScript. **Phase 2** adds Zod on all API routes, enrichment (`/api/enrichment/*`), scoring (`/api/scoring/*`), outreach approval queue (`/dashboard/outreach`), GHL webhooks, and the OpenClaw-style **Agents** page.
 
+> **Cursor agents:** this repo ships a `.cursor/mcp.json` that registers the Supabase MCP server in read-only mode. Add `SUPABASE_ACCESS_TOKEN` to your local Cursor env or to Cloud Agents Secrets to light it up. See [`.cursor/README.md`](.cursor/README.md) for one-time setup.
+
 **Git workflow, pre-push hook, and remote** are documented in [`AGENTS.md`](AGENTS.md).
 
 ## Environment
@@ -18,6 +20,9 @@ Copy `.env.local` and set at least:
 | `GHL_SKIP_SIGNATURE` | `true` to skip verification (local only) |
 | `GHL_DEFAULT_TENANT_ID` | Optional UUID for webhook lead resolution |
 | `SAUL_MODEL_NAME` | Shown on Agents page (cosmetic) |
+| `GHL_API_KEY` / `GHL_LOCATION_ID` | Outbound GHL send (Exotiq sub-account) |
+| `GHL_MEDSPA_API_KEY` / `GHL_MEDSPA_LOCATION_ID` | Outbound GHL send (MedSpa sub-account) |
+| `GHL_OUTBOUND_DRY_RUN` | Default = dry-run. Set to `false` (or `0`) to enable live GHL sends. Any other value or missing creds keeps the safe default. |
 
 ## Database
 

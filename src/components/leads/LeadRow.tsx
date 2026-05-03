@@ -85,13 +85,32 @@ function isStale(lastActivity: string | null): boolean {
 
 export function LeadRow({ lead, index, onClick, onScoreClick, onStatusClick, onStageChange }: LeadRowProps) {
   const [stageDropdownOpen, setStageDropdownOpen] = useState(false)
-  const displayName = lead.company_name || lead.full_name || '—'
-  const location = [lead.city, lead.state].filter(Boolean).join(', ')
+  const fullName = [lead.first_name, lead.last_name].filter(Boolean).join(' ') || lead.full_name || null
+  const displayName = lead.company_name || fullName || '—'
+  // Cast through unknown because the API returns extra columns
+  // (company_location, company_industry, score_breakdown JSON) that aren't
+  // on the typed Lead interface yet. See note at the top of types/lead.ts.
+  const apiRow = lead as unknown as Record<string, unknown>
+  // Prefer the real company_location column. Fall back to legacy city/state
+  // shape if any caller still emits them (none should after Stage 1a).
+  const location =
+    (apiRow.company_location as string | null) ??
+    [lead.city, lead.state].filter(Boolean).join(', ')
   const statusCfg = STATUS_CONFIG[lead.status] ?? { label: lead.status, variant: 'default' as const }
   const sourceCfg = getSourceConfig(lead.source)
   const lastActiveColor = getLastActiveColor(lead.last_activity_at)
-  const industry = (lead.metadata?.industry as string) ?? null
-  const fleetTier = (lead.metadata?.fleet_tier as string) ?? null
+  // Industry / fleet tier live on real columns now -- not nested metadata.
+  // company_industry is the canonical column; score_breakdown.fleet_size
+  // gives us a derived tier label.
+  const industry = (apiRow.company_industry as string | null) ?? null
+  const breakdown = (lead.score_breakdown ?? null) as Record<string, unknown> | null
+  const fleetSize = breakdown ? Number(breakdown.fleet_size ?? 0) || 0 : 0
+  const fleetTier =
+    fleetSize >= 20 ? 'Fleet 20+' :
+    fleetSize >= 10 ? 'Fleet 10-19' :
+    fleetSize >= 5 ? 'Fleet 5-9' :
+    fleetSize >= 1 ? `Fleet ${fleetSize}` :
+    null
 
   return (
     <motion.tr
@@ -100,7 +119,7 @@ export function LeadRow({ lead, index, onClick, onScoreClick, onStatusClick, onS
       initial="hidden"
       animate="visible"
       onClick={onClick}
-      className="group cursor-pointer transition-colors duration-150 hover:bg-[rgba(28,36,57,0.5)] border-b border-[rgba(255,255,255,0.04)] last:border-0"
+      className="group cursor-pointer transition-colors duration-150 hover:bg-[var(--color-saul-overlay)] border-b border-[var(--color-saul-border-soft)] last:border-0"
     >
       {/* Company */}
       <td className="px-4 py-2.5 max-w-[200px]">
@@ -170,7 +189,7 @@ export function LeadRow({ lead, index, onClick, onScoreClick, onStatusClick, onS
                 className="fixed inset-0 z-40"
                 onClick={(e) => { e.stopPropagation(); setStageDropdownOpen(false) }}
               />
-              <div className="absolute top-full left-0 mt-1 z-50 min-w-[140px] py-1 rounded-lg bg-[var(--color-saul-bg-600)] border border-[rgba(255,255,255,0.1)] shadow-lg">
+              <div className="absolute top-full left-0 mt-1 z-50 min-w-[140px] py-1 rounded-lg bg-[var(--color-saul-bg-600)] border border-[var(--color-saul-border-strong)] shadow-lg">
                 {(Object.entries(STATUS_CONFIG) as [LeadStatus, typeof statusCfg][]).map(([key, cfg]) => (
                   <button
                     key={key}
@@ -182,8 +201,8 @@ export function LeadRow({ lead, index, onClick, onScoreClick, onStatusClick, onS
                     className={[
                       'w-full text-left px-3 py-1.5 text-[12px] font-medium transition-colors duration-100',
                       key === lead.status
-                        ? 'text-[var(--color-saul-cyan)] bg-[rgba(0,212,170,0.08)]'
-                        : 'text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:bg-[rgba(255,255,255,0.04)]',
+                        ? 'text-[var(--color-saul-cyan)] bg-[color-mix(in_srgb,var(--color-saul-cyan)_8%,transparent)]'
+                        : 'text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-low)]',
                     ].join(' ')}
                   >
                     {cfg.label}

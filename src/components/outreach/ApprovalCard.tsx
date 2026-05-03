@@ -44,10 +44,16 @@ export function ApprovalCard({
   item,
   tenantId,
   onUpdated,
+  selectable = false,
+  selected = false,
+  onToggleSelect,
 }: {
   item: QueueItem
   tenantId: string
   onUpdated: () => void
+  selectable?: boolean
+  selected?: boolean
+  onToggleSelect?: () => void
 }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(item.message_draft)
@@ -91,10 +97,20 @@ export function ApprovalCard({
   return (
     <motion.article
       layout
-      className="rounded-lg border border-[rgba(255,255,255,0.08)] bg-[var(--color-saul-bg-800)] p-4"
+      className="rounded-lg border border-[var(--color-saul-border-strong)] bg-[var(--color-saul-bg-800)] p-4"
     >
       <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
-        <div>
+        <div className="flex items-start gap-2.5">
+          {selectable && (
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={() => onToggleSelect?.()}
+              aria-label={`Select draft for ${title}`}
+              className="mt-1 accent-[var(--color-saul-cyan)]"
+            />
+          )}
+          <div>
           <div className="flex items-center gap-2 flex-wrap">
             <Link
               href={`/dashboard/leads/${item.lead_id}`}
@@ -113,6 +129,7 @@ export function ApprovalCard({
               {lead.company_location}
             </p>
           )}
+          </div>
         </div>
         <div className="flex items-center gap-1.5 flex-wrap justify-end">
           <Badge className="font-mono text-[10px]">{channelLabel(item.channel)}</Badge>
@@ -137,12 +154,12 @@ export function ApprovalCard({
 
       {editing ? (
         <textarea
-          className="w-full min-h-[120px] rounded-md bg-[var(--color-saul-bg-900)] border border-[rgba(255,255,255,0.1)] p-3 text-[13px] text-[var(--color-saul-text-primary)] font-sans"
+          className="w-full min-h-[120px] rounded-md bg-[var(--color-saul-bg-900)] border border-[var(--color-saul-border-strong)] p-3 text-[13px] text-[var(--color-saul-text-primary)] font-sans"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
         />
       ) : (
-        <p className="text-[13px] text-[var(--color-saul-text-primary)]/90 leading-relaxed whitespace-pre-wrap">
+        <p className="text-[13px] text-[var(--color-saul-text-primary)]/90 leading-relaxed whitespace-pre-wrap break-words">
           {item.message_draft}
         </p>
       )}

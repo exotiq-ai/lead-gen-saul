@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { Sparkle, Tray } from '@phosphor-icons/react'
 import { formatCurrency, formatRelative, formatPercent } from '@/lib/utils/formatters'
+import { EmptyState } from '@/components/ui'
 
 export interface EnrichmentData {
   status_counts: {
@@ -41,28 +43,44 @@ const STATUS_CONFIG: Record<
   string,
   { dot: string; bg: string; label: string; pulse?: boolean }
 > = {
-  pending: { dot: '#FFAE42', bg: 'rgba(255,174,66,0.08)', label: 'Pending' },
+  pending: {
+    dot: 'var(--color-saul-warning)',
+    bg: 'color-mix(in srgb, var(--color-saul-warning) 8%, transparent)',
+    label: 'Pending',
+  },
   processing: {
-    dot: '#3B82F6',
-    bg: 'rgba(59,130,246,0.08)',
+    dot: 'var(--color-saul-info)',
+    bg: 'color-mix(in srgb, var(--color-saul-info) 8%, transparent)',
     label: 'Processing',
     pulse: true,
   },
-  completed: { dot: '#00D4AA', bg: 'rgba(0,212,170,0.08)', label: 'Completed' },
-  failed: { dot: '#FF4757', bg: 'rgba(255,71,87,0.08)', label: 'Failed' },
-  skipped: { dot: '#4A5568', bg: 'rgba(74,85,104,0.08)', label: 'Skipped' },
+  completed: {
+    dot: 'var(--color-saul-cyan)',
+    bg: 'color-mix(in srgb, var(--color-saul-cyan) 8%, transparent)',
+    label: 'Completed',
+  },
+  failed: {
+    dot: 'var(--color-saul-danger)',
+    bg: 'color-mix(in srgb, var(--color-saul-danger) 8%, transparent)',
+    label: 'Failed',
+  },
+  skipped: {
+    dot: 'var(--color-saul-text-tertiary)',
+    bg: 'var(--color-saul-overlay)',
+    label: 'Skipped',
+  },
 }
 
 const PROVIDER_COLORS: Record<string, string> = {
-  apollo: '#3B82F6',
-  saul_web: '#00D4AA',
-  clearbit: '#A855F7',
-  linkedin: '#0077B5',
-  hunter: '#F97316',
-  openai: '#10B981',
-  perplexity: '#8B5CF6',
-  scraper: '#8B95A8',
-  manual: '#6B7280',
+  apollo: 'var(--color-saul-info)',
+  saul_web: 'var(--color-saul-cyan)',
+  clearbit: 'var(--color-saul-violet)',
+  linkedin: '#0077B5', // LinkedIn brand color — kept literal
+  hunter: 'var(--color-saul-orange)',
+  openai: 'var(--color-saul-success)',
+  perplexity: 'var(--color-saul-violet)',
+  scraper: 'var(--color-saul-text-secondary)',
+  manual: 'var(--color-saul-text-tertiary)',
 }
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -78,11 +96,11 @@ const PROVIDER_LABELS: Record<string, string> = {
 }
 
 const STATUS_BADGE: Record<string, { bg: string; text: string }> = {
-  completed: { bg: 'rgba(0,212,170,0.1)', text: '#00D4AA' },
-  failed: { bg: 'rgba(255,71,87,0.1)', text: '#FF4757' },
-  pending: { bg: 'rgba(255,174,66,0.1)', text: '#FFAE42' },
-  processing: { bg: 'rgba(59,130,246,0.1)', text: '#3B82F6' },
-  skipped: { bg: 'rgba(74,85,104,0.1)', text: '#8B95A8' },
+  completed:  { bg: 'color-mix(in srgb, var(--color-saul-cyan) 10%, transparent)',    text: 'var(--color-saul-cyan)' },
+  failed:     { bg: 'color-mix(in srgb, var(--color-saul-danger) 10%, transparent)',  text: 'var(--color-saul-danger)' },
+  pending:    { bg: 'color-mix(in srgb, var(--color-saul-warning) 10%, transparent)', text: 'var(--color-saul-warning)' },
+  processing: { bg: 'color-mix(in srgb, var(--color-saul-info) 10%, transparent)',    text: 'var(--color-saul-info)' },
+  skipped:    { bg: 'var(--color-saul-overlay)',                                       text: 'var(--color-saul-text-secondary)' },
 }
 
 function StatusCard({
@@ -99,7 +117,7 @@ function StatusCard({
       className="flex flex-col gap-3 p-4 rounded-[8px]"
       style={{
         background: 'var(--color-saul-bg-700)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '1px solid var(--color-saul-border)',
       }}
     >
       <div className="flex items-center gap-2">
@@ -140,7 +158,7 @@ function CoverageCard({ pct }: { pct: number }) {
       className="flex flex-col gap-3 p-5 rounded-[8px]"
       style={{
         background: 'var(--color-saul-bg-700)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '1px solid var(--color-saul-border)',
       }}
     >
       <span
@@ -160,13 +178,13 @@ function CoverageCard({ pct }: { pct: number }) {
       <div>
         <div
           className="h-1.5 rounded-full overflow-hidden"
-          style={{ background: 'rgba(255,255,255,0.06)' }}
+          style={{ background: 'var(--color-saul-overlay)' }}
         >
           <div
             className="h-full rounded-full transition-all duration-700"
             style={{
               width: `${Math.min(100, pct)}%`,
-              background: 'linear-gradient(90deg, #00A888, #00D4AA)',
+              background: 'linear-gradient(90deg, var(--color-saul-cyan-600), var(--color-saul-cyan))',
             }}
           />
         </div>
@@ -179,16 +197,16 @@ function CoverageCard({ pct }: { pct: number }) {
 }
 
 function ProviderBadge({ provider }: { provider: string }) {
-  const color = PROVIDER_COLORS[provider] ?? '#8B95A8'
+  const color = PROVIDER_COLORS[provider] ?? 'var(--color-saul-text-secondary)'
   const label = PROVIDER_LABELS[provider] ?? provider
 
   return (
     <span
       className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold"
       style={{
-        background: `${color}18`,
+        background: `color-mix(in srgb, ${color} 16%, transparent)`,
         color,
-        border: `1px solid ${color}30`,
+        border: `1px solid color-mix(in srgb, ${color} 32%, transparent)`,
       }}
     >
       {label}
@@ -199,13 +217,13 @@ function ProviderBadge({ provider }: { provider: string }) {
 function ProviderTable({ data }: { data: EnrichmentData['by_provider'] }) {
   return (
     <div
-      className="rounded-xl overflow-hidden"
+      className="rounded-[8px] overflow-hidden"
       style={{
         background: 'var(--color-saul-bg-700)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '1px solid var(--color-saul-border)',
       }}
     >
-      <div className="px-6 py-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+      <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--color-saul-border)' }}>
         <h3
           className="text-sm font-semibold"
           style={{ color: 'var(--color-saul-text-primary)', fontFamily: 'var(--font-sans)' }}
@@ -218,16 +236,16 @@ function ProviderTable({ data }: { data: EnrichmentData['by_provider'] }) {
       </div>
 
       {data.length === 0 ? (
-        <div className="flex items-center justify-center py-12">
-          <p className="text-sm" style={{ color: 'var(--color-saul-text-secondary)' }}>
-            No enrichment runs recorded yet.
-          </p>
-        </div>
+        <EmptyState
+          icon={Sparkle}
+          title="No enrichment runs recorded yet"
+          description="Once enrichment jobs run, provider stats will appear here."
+        />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <tr style={{ borderBottom: '1px solid var(--color-saul-border)' }}>
                 {[
                   'Provider',
                   'Total Runs',
@@ -253,9 +271,9 @@ function ProviderTable({ data }: { data: EnrichmentData['by_provider'] }) {
                   key={row.provider}
                   style={{
                     borderBottom:
-                      i < data.length - 1 ? '1px solid rgba(255,255,255,0.04)' : undefined,
+                      i < data.length - 1 ? '1px solid var(--color-saul-border-soft)' : undefined,
                   }}
-                  className="transition-colors duration-100 hover:bg-[rgba(255,255,255,0.02)]"
+                  className="transition-colors duration-100 hover:bg-[var(--color-saul-overlay-soft)]"
                 >
                   <td className="px-6 py-3">
                     <ProviderBadge provider={row.provider} />
@@ -274,7 +292,7 @@ function ProviderTable({ data }: { data: EnrichmentData['by_provider'] }) {
                   <td className="px-6 py-3">
                     <span
                       className="text-sm tabular-nums"
-                      style={{ color: '#00D4AA', fontFamily: 'var(--font-mono)' }}
+                      style={{ color: 'var(--color-saul-cyan)', fontFamily: 'var(--font-mono)' }}
                     >
                       {row.completed.toLocaleString()}
                     </span>
@@ -285,7 +303,7 @@ function ProviderTable({ data }: { data: EnrichmentData['by_provider'] }) {
                       style={{
                         color:
                           row.failed > 0
-                            ? '#FF4757'
+                            ? 'var(--color-saul-danger)'
                             : 'var(--color-saul-text-secondary)',
                         fontFamily: 'var(--font-mono)',
                       }}
@@ -297,7 +315,7 @@ function ProviderTable({ data }: { data: EnrichmentData['by_provider'] }) {
                     <div className="flex items-center gap-2">
                       <div
                         className="h-1.5 rounded-full overflow-hidden"
-                        style={{ width: 48, background: 'rgba(255,255,255,0.06)' }}
+                        style={{ width: 48, background: 'var(--color-saul-overlay)' }}
                       >
                         <div
                           className="h-full rounded-full"
@@ -305,10 +323,10 @@ function ProviderTable({ data }: { data: EnrichmentData['by_provider'] }) {
                             width: `${row.success_rate}%`,
                             background:
                               row.success_rate >= 80
-                                ? '#00D4AA'
+                                ? 'var(--color-saul-cyan)'
                                 : row.success_rate >= 50
-                                ? '#FFAE42'
-                                : '#FF4757',
+                                ? 'var(--color-saul-warning)'
+                                : 'var(--color-saul-danger)',
                           }}
                         />
                       </div>
@@ -358,13 +376,13 @@ function ProviderTable({ data }: { data: EnrichmentData['by_provider'] }) {
 function RecentQueue({ items }: { items: EnrichmentData['recent'] }) {
   return (
     <div
-      className="rounded-xl overflow-hidden"
+      className="rounded-[8px] overflow-hidden"
       style={{
         background: 'var(--color-saul-bg-700)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '1px solid var(--color-saul-border)',
       }}
     >
-      <div className="px-6 py-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+      <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--color-saul-border)' }}>
         <h3
           className="text-sm font-semibold"
           style={{ color: 'var(--color-saul-text-primary)', fontFamily: 'var(--font-sans)' }}
@@ -377,13 +395,13 @@ function RecentQueue({ items }: { items: EnrichmentData['recent'] }) {
       </div>
 
       {items.length === 0 ? (
-        <div className="flex items-center justify-center py-12">
-          <p className="text-sm" style={{ color: 'var(--color-saul-text-secondary)' }}>
-            No enrichment jobs found.
-          </p>
-        </div>
+        <EmptyState
+          icon={Tray}
+          title="No enrichment jobs found"
+          description="Newly queued enrichment runs will surface here."
+        />
       ) : (
-        <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
+        <div className="divide-y" style={{ borderColor: 'var(--color-saul-border-soft)' }}>
           {items.map((item, i) => {
             const isFailed = item.status === 'failed'
             const badge = STATUS_BADGE[item.status] ?? STATUS_BADGE.skipped
@@ -394,11 +412,11 @@ function RecentQueue({ items }: { items: EnrichmentData['recent'] }) {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25, delay: i * 0.04, ease: 'easeOut' }}
-                className="flex items-center gap-4 px-6 py-4 transition-colors duration-100 hover:bg-[rgba(255,255,255,0.02)]"
+                className="flex items-center gap-4 px-6 py-4 transition-colors duration-100 hover:bg-[var(--color-saul-overlay-soft)]"
                 style={
                   isFailed
                     ? {
-                        borderLeft: '2px solid #FF4757',
+                        borderLeft: '2px solid var(--color-saul-danger)',
                         paddingLeft: '22px',
                       }
                     : { borderLeft: '2px solid transparent' }
@@ -461,10 +479,11 @@ function RecommendationCallout() {
 
   return (
     <div
-      className="rounded-xl p-6 flex flex-col gap-4"
+      className="rounded-[8px] p-5 flex flex-col gap-4"
       style={{
-        background: 'linear-gradient(135deg, rgba(0,212,170,0.06) 0%, rgba(59,130,246,0.04) 100%)',
-        border: '1px solid rgba(0,212,170,0.15)',
+        background:
+          'linear-gradient(135deg, color-mix(in srgb, var(--color-saul-cyan) 6%, transparent) 0%, color-mix(in srgb, var(--color-saul-info) 4%, transparent) 100%)',
+        border: '1px solid color-mix(in srgb, var(--color-saul-cyan) 18%, transparent)',
       }}
     >
       <div className="flex items-start justify-between gap-4">
@@ -472,7 +491,7 @@ function RecommendationCallout() {
           <div className="flex items-center gap-2">
             <span
               className="text-[10px] font-semibold uppercase tracking-[0.08em] px-2 py-0.5 rounded"
-              style={{ background: 'rgba(0,212,170,0.12)', color: '#00D4AA' }}
+              style={{ background: 'color-mix(in srgb, var(--color-saul-cyan) 12%, transparent)', color: 'var(--color-saul-cyan)' }}
             >
               Recommendation
             </span>
@@ -496,14 +515,14 @@ function RecommendationCallout() {
             are missing LinkedIn data. Running Proxycurl on these leads is estimated to cost{' '}
             <span
               className="font-semibold"
-              style={{ color: '#00D4AA', fontFamily: 'var(--font-mono)' }}
+              style={{ color: 'var(--color-saul-cyan)', fontFamily: 'var(--font-mono)' }}
             >
               $2.25
             </span>{' '}
             and could increase their avg score by{' '}
             <span
               className="font-semibold"
-              style={{ color: '#FFAE42' }}
+              style={{ color: 'var(--color-saul-warning)' }}
             >
               8–12 points
             </span>
@@ -518,20 +537,20 @@ function RecommendationCallout() {
           style={{
             background:
               state === 'success'
-                ? 'rgba(0,212,170,0.15)'
+                ? 'color-mix(in srgb, var(--color-saul-cyan) 15%, transparent)'
                 : state === 'loading'
-                ? 'rgba(255,255,255,0.06)'
-                : 'rgba(0,212,170,0.12)',
+                ? 'var(--color-saul-overlay)'
+                : 'color-mix(in srgb, var(--color-saul-cyan) 12%, transparent)',
             color:
               state === 'success'
-                ? '#00D4AA'
+                ? 'var(--color-saul-cyan)'
                 : state === 'loading'
                 ? 'var(--color-saul-text-secondary)'
-                : '#00D4AA',
+                : 'var(--color-saul-cyan)',
             border:
               state === 'success'
-                ? '1px solid rgba(0,212,170,0.3)'
-                : '1px solid rgba(0,212,170,0.2)',
+                ? '1px solid color-mix(in srgb, var(--color-saul-cyan) 30%, transparent)'
+                : '1px solid color-mix(in srgb, var(--color-saul-cyan) 22%, transparent)',
           }}
         >
           {state === 'idle' && 'Queue Enrichment'}
@@ -566,12 +585,12 @@ function RecommendationCallout() {
 
       <div
         className="grid grid-cols-3 gap-4 pt-4 border-t"
-        style={{ borderColor: 'rgba(255,255,255,0.06)' }}
+        style={{ borderColor: 'var(--color-saul-border)' }}
       >
         {[
           { label: 'Leads Targeted', value: '15', color: 'var(--color-saul-text-primary)' },
-          { label: 'Estimated Cost', value: '$2.25', color: '#00D4AA' },
-          { label: 'Expected Score Gain', value: '+8–12 pts', color: '#FFAE42' },
+          { label: 'Estimated Cost', value: '$2.25', color: 'var(--color-saul-cyan)' },
+          { label: 'Expected Score Gain', value: '+8–12 pts', color: 'var(--color-saul-warning)' },
         ].map((stat) => (
           <div key={stat.label} className="flex flex-col gap-0.5">
             <span
@@ -632,7 +651,7 @@ export function EnrichmentPageClient({ data }: EnrichmentPageClientProps) {
           className="flex flex-col gap-3 p-5 rounded-[8px]"
           style={{
             background: 'var(--color-saul-bg-700)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            border: '1px solid var(--color-saul-border)',
           }}
         >
           <span

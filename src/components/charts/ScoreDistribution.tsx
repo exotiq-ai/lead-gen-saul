@@ -11,7 +11,8 @@ import {
   ReferenceLine,
   ResponsiveContainer,
 } from 'recharts'
-import { formatNumber, formatPercent } from '@/lib/utils/formatters'
+import { formatNumber } from '@/lib/utils/formatters'
+import { useChartPalette, type ChartPalette } from '@/lib/utils/chartColors'
 
 interface ScoreDistributionProps {
   leads?: Array<{ score: number }>
@@ -36,20 +37,6 @@ const DEMO_LEADS: Array<{ score: number }> = (() => {
 
 const DEMO_AVG = 52
 
-// Bin colors: gradient from danger → warning → cyan
-const BIN_COLORS = [
-  '#FF4757', // 0-10
-  '#FF5F6D', // 11-20
-  '#FF7C3C', // 21-30
-  '#FFAE42', // 31-40
-  '#FFCF72', // 41-50
-  '#A8D080', // 51-60
-  '#4DC4A0', // 61-70
-  '#00D4AA', // 71-80
-  '#00EDBE', // 81-90
-  '#33FFD0', // 91-100
-]
-
 interface BinData {
   label: string
   count: number
@@ -57,12 +44,29 @@ interface BinData {
   fill: string
 }
 
-function buildBins(leads: Array<{ score: number }>): BinData[] {
+/** Bin colors flow danger → warning → success across deciles. */
+function buildBinColors(palette: ChartPalette): string[] {
+  return [
+    palette.danger,           // 0-10
+    palette.danger,           // 11-20  (slight fade in light, kept consistent)
+    palette.orange,           // 21-30
+    palette.warning,          // 31-40
+    palette.warning,          // 41-50
+    palette.success,          // 51-60
+    palette.success,          // 61-70
+    palette.success,          // 71-80
+    palette.success,          // 81-90
+    palette.success,          // 91-100
+  ]
+}
+
+function buildBins(leads: Array<{ score: number }>, palette: ChartPalette): BinData[] {
+  const colors = buildBinColors(palette)
   const bins: BinData[] = Array.from({ length: 10 }, (_, i) => ({
     label: `${i * 10 + 1}–${i * 10 + 10}`,
     count: 0,
     range: [i * 10 + 1, i * 10 + 10] as [number, number],
-    fill: BIN_COLORS[i],
+    fill: colors[i],
   }))
   bins[0].label = '0–10'
   bins[0].range = [0, 10]
@@ -84,9 +88,10 @@ function computePercentile(leads: Array<{ score: number }>, pct: number): number
 interface ScoreTooltipProps {
   active?: boolean
   payload?: Array<{ payload: BinData }>
+  palette: ChartPalette
 }
 
-function CustomTooltip({ active, payload }: ScoreTooltipProps) {
+function CustomTooltip({ active, payload, palette }: ScoreTooltipProps) {
   if (!active || !payload?.length) return null
   const d = payload[0]?.payload as BinData
 
@@ -94,15 +99,15 @@ function CustomTooltip({ active, payload }: ScoreTooltipProps) {
     <div
       className="rounded-lg px-3 py-2.5 text-xs flex flex-col gap-1"
       style={{
-        background: '#151B2E',
-        border: '1px solid rgba(255,255,255,0.1)',
-        color: '#F0F2F5',
+        background: palette.tooltipBg,
+        border: `1px solid ${palette.tooltipBorder}`,
+        color: palette.tooltipText,
       }}
     >
       <p className="font-semibold" style={{ color: d.fill }}>Score {d.label}</p>
       <div className="flex items-center justify-between gap-6">
-        <span style={{ color: '#8B95A8' }}>Leads</span>
-        <span style={{ fontFamily: 'var(--font-mono)', color: '#F0F2F5' }}>{formatNumber(d.count)}</span>
+        <span style={{ color: palette.textSecondary }}>Leads</span>
+        <span style={{ fontFamily: 'var(--font-mono)', color: palette.textPrimary }}>{formatNumber(d.count)}</span>
       </div>
     </div>
   )
@@ -114,9 +119,10 @@ export function ScoreDistribution({
   onBinClick,
   demoMode = false,
 }: ScoreDistributionProps) {
+  const palette = useChartPalette()
   const leads = demoMode || !propLeads ? DEMO_LEADS : propLeads
   const avgScore = propAvg ?? (demoMode ? DEMO_AVG : leads.reduce((s, l) => s + l.score, 0) / (leads.length || 1))
-  const bins = buildBins(leads)
+  const bins = buildBins(leads, palette)
 
   const p25 = computePercentile(leads, 25)
   const p50 = computePercentile(leads, 50)
@@ -133,34 +139,34 @@ export function ScoreDistribution({
       {/* KPI header */}
       <div className="flex items-center gap-4">
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs" style={{ color: '#8B95A8' }}>Average Score</span>
+          <span className="text-xs" style={{ color: palette.textSecondary }}>Average Score</span>
           <span
             className="text-2xl font-bold leading-none"
-            style={{ color: '#00D4AA', fontFamily: 'var(--font-mono)' }}
+            style={{ color: palette.primary, fontFamily: 'var(--font-mono)' }}
           >
             {Math.round(avgScore)}
           </span>
         </div>
         <div
           className="w-px self-stretch"
-          style={{ background: 'rgba(255,255,255,0.06)' }}
+          style={{ background: palette.divider }}
         />
-        <div className="flex gap-4 text-xs" style={{ color: '#8B95A8' }}>
+        <div className="flex gap-4 text-xs" style={{ color: palette.textSecondary }}>
           <div className="flex flex-col gap-0.5">
             <span>P25</span>
-            <span style={{ color: '#F0F2F5', fontFamily: 'var(--font-mono)' }}>{p25}</span>
+            <span style={{ color: palette.textPrimary, fontFamily: 'var(--font-mono)' }}>{p25}</span>
           </div>
           <div className="flex flex-col gap-0.5">
             <span>Median</span>
-            <span style={{ color: '#F0F2F5', fontFamily: 'var(--font-mono)' }}>{p50}</span>
+            <span style={{ color: palette.textPrimary, fontFamily: 'var(--font-mono)' }}>{p50}</span>
           </div>
           <div className="flex flex-col gap-0.5">
             <span>P75</span>
-            <span style={{ color: '#F0F2F5', fontFamily: 'var(--font-mono)' }}>{p75}</span>
+            <span style={{ color: palette.textPrimary, fontFamily: 'var(--font-mono)' }}>{p75}</span>
           </div>
           <div className="flex flex-col gap-0.5">
             <span>Total</span>
-            <span style={{ color: '#F0F2F5', fontFamily: 'var(--font-mono)' }}>{formatNumber(leads.length)}</span>
+            <span style={{ color: palette.textPrimary, fontFamily: 'var(--font-mono)' }}>{formatNumber(leads.length)}</span>
           </div>
         </div>
       </div>
@@ -169,7 +175,7 @@ export function ScoreDistribution({
         <BarChart
           data={bins}
           margin={{ top: 4, right: 4, left: -8, bottom: 0 }}
-          // @ts-ignore – recharts onClick type is overly narrow
+          // @ts-expect-error – recharts onClick type is overly narrow
           onClick={(e: { activePayload?: Array<{ payload: BinData }> }) => {
             if (e?.activePayload?.[0]) {
               const d = e.activePayload[0].payload
@@ -179,63 +185,64 @@ export function ScoreDistribution({
         >
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="rgba(255,255,255,0.04)"
+            stroke={palette.gridStroke}
             vertical={false}
           />
 
           <XAxis
             dataKey="label"
-            tick={{ fill: '#8B95A8', fontSize: 10, fontFamily: 'var(--font-mono)' }}
+            tick={{ fill: palette.axisFill, fontSize: 11, fontFamily: 'var(--font-mono)' }}
             axisLine={false}
             tickLine={false}
+            interval={0}
           />
 
           <YAxis
             tickFormatter={formatNumber}
-            tick={{ fill: '#8B95A8', fontSize: 11, fontFamily: 'var(--font-mono)' }}
+            tick={{ fill: palette.axisFill, fontSize: 11, fontFamily: 'var(--font-mono)' }}
             axisLine={false}
             tickLine={false}
             width={36}
           />
 
           <Tooltip
-            content={<CustomTooltip />}
-            cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+            content={<CustomTooltip palette={palette} />}
+            cursor={{ fill: palette.cursorFill }}
           />
 
           {/* Percentile reference lines */}
           <ReferenceLine
             x={scoreToLabel(p25)}
-            stroke="rgba(255,255,255,0.2)"
+            stroke={palette.divider}
             strokeDasharray="4 4"
             label={{
               value: 'P25',
               position: 'top',
-              fill: '#8B95A8',
+              fill: palette.axisFill,
               fontSize: 10,
               fontFamily: 'var(--font-mono)',
             }}
           />
           <ReferenceLine
             x={scoreToLabel(p50)}
-            stroke="rgba(255,255,255,0.3)"
+            stroke={palette.divider}
             strokeDasharray="4 4"
             label={{
               value: 'P50',
               position: 'top',
-              fill: '#8B95A8',
+              fill: palette.axisFill,
               fontSize: 10,
               fontFamily: 'var(--font-mono)',
             }}
           />
           <ReferenceLine
             x={scoreToLabel(p75)}
-            stroke="rgba(255,255,255,0.2)"
+            stroke={palette.divider}
             strokeDasharray="4 4"
             label={{
               value: 'P75',
               position: 'top',
-              fill: '#8B95A8',
+              fill: palette.axisFill,
               fontSize: 10,
               fontFamily: 'var(--font-mono)',
             }}

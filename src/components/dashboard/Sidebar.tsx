@@ -14,6 +14,7 @@ import {
   Robot,
   CurrencyDollar,
   Gear,
+  DownloadSimple,
 } from '@phosphor-icons/react'
 import { TenantSelector } from './TenantSelector'
 import { useSidebarStore } from '@/stores/sidebarStore'
@@ -34,6 +35,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Outreach', href: '/dashboard/outreach', icon: PaperPlaneTilt },
   { label: 'Agents', href: '/dashboard/agents', icon: Robot },
   { label: 'Economics', href: '/dashboard/economics', icon: CurrencyDollar },
+  { label: 'Exports', href: '/dashboard/exports', icon: DownloadSimple },
   { label: 'Settings', href: '/dashboard/settings', icon: Gear },
 ]
 
@@ -70,7 +72,7 @@ export function Sidebar() {
   return (
     <>
       {/* Desktop sidebar (hidden on mobile screens) */}
-      <aside className="hidden lg:flex fixed inset-y-0 left-0 z-30 flex-col w-[240px] bg-[var(--color-saul-bg-900)] border-r border-[rgba(255,255,255,0.05)]">
+      <aside className="hidden lg:flex fixed inset-y-0 left-0 z-30 flex-col w-[240px] bg-[var(--color-saul-bg-900)] border-r border-[var(--color-saul-border-soft)]">
         {/* Logo */}
         <div className="px-5 pt-6 pb-5">
           <div className="flex flex-col gap-0.5">
@@ -84,7 +86,7 @@ export function Sidebar() {
         </div>
 
         {/* Divider */}
-        <div className="mx-5 h-px bg-[rgba(255,255,255,0.05)] mb-3" />
+        <div className="mx-5 h-px bg-[var(--color-saul-border-soft)] mb-3" />
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 flex flex-col gap-0.5" aria-label="Primary navigation">
@@ -132,7 +134,7 @@ export function Sidebar() {
                   {item.label}
                   {item.href === '/dashboard/outreach' && pendingOutreach > 0 && (
                     <span
-                      className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-[rgba(0,212,170,0.2)] text-[10px] font-mono font-bold text-[var(--color-saul-cyan)] flex items-center justify-center"
+                      className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-[color-mix(in_srgb,var(--color-saul-cyan)_20%,transparent)] text-[10px] font-mono font-bold text-[var(--color-saul-cyan)] flex items-center justify-center"
                       title="Pending approval"
                     >
                       {pendingOutreach > 9 ? '9+' : pendingOutreach}
@@ -145,7 +147,7 @@ export function Sidebar() {
         </nav>
 
         {/* Divider */}
-        <div className="mx-5 h-px bg-[rgba(255,255,255,0.05)] mt-3" />
+        <div className="mx-5 h-px bg-[var(--color-saul-border-soft)] mt-3" />
 
         {/* Tenant Selector pinned at bottom */}
         <div className="pt-3">
@@ -157,12 +159,12 @@ export function Sidebar() {
       <div className={`lg:hidden ${open ? 'pointer-events-auto' : 'pointer-events-none'}`}>
         {/* Backdrop */}
         <div 
-          className={`fixed inset-0 z-40 bg-black transition-opacity duration-300 ${open ? 'opacity-60' : 'opacity-0'}`}
+          className={`fixed inset-0 z-40 bg-[var(--color-saul-shadow-strong)] transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0'}`}
           onClick={close}
         />
         
         {/* Sidebar panel */}
-        <aside className={`fixed inset-y-0 left-0 z-50 w-[260px] bg-[var(--color-saul-bg-900)] border-r border-[rgba(255,255,255,0.05)] transform transition-transform duration-300 ease-out ${open ? 'translate-x-0' : '-translate-x-full'}`}>
+        <aside className={`fixed inset-y-0 left-0 z-50 w-[260px] bg-[var(--color-saul-bg-900)] border-r border-[var(--color-saul-border-soft)] transform transition-transform duration-300 ease-out ${open ? 'translate-x-0' : '-translate-x-full'}`}>
           {/* Logo */}
           <div className="px-5 pt-6 pb-5">
             <div className="flex flex-col gap-0.5">
@@ -176,7 +178,7 @@ export function Sidebar() {
           </div>
 
           {/* Divider */}
-          <div className="mx-5 h-px bg-[rgba(255,255,255,0.05)] mb-3" />
+          <div className="mx-5 h-px bg-[var(--color-saul-border-soft)] mb-3" />
 
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto px-3 flex flex-col gap-0.5" aria-label="Primary navigation">
@@ -224,7 +226,7 @@ export function Sidebar() {
                     {item.label}
                     {item.href === '/dashboard/outreach' && pendingOutreach > 0 && (
                       <span
-                        className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-[rgba(0,212,170,0.2)] text-[10px] font-mono font-bold text-[var(--color-saul-cyan)] flex items-center justify-center"
+                        className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-[color-mix(in_srgb,var(--color-saul-cyan)_20%,transparent)] text-[10px] font-mono font-bold text-[var(--color-saul-cyan)] flex items-center justify-center"
                         title="Pending approval"
                       >
                         {pendingOutreach > 9 ? '9+' : pendingOutreach}
@@ -237,7 +239,7 @@ export function Sidebar() {
           </nav>
 
           {/* Divider */}
-          <div className="mx-5 h-px bg-[rgba(255,255,255,0.05)] mt-3" />
+          <div className="mx-5 h-px bg-[var(--color-saul-border-soft)] mt-3" />
 
           {/* Tenant Selector pinned at bottom */}
           <div className="pt-3">

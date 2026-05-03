@@ -12,7 +12,7 @@ import {
   LeadAging,
 } from '@/components/charts'
 import { SkeletonKPI } from '@/components/ui'
-import { useDashboardStore } from '@/lib/store/dashboardStore'
+import { useDashboardStore } from '@/stores/dashboardStore'
 import { useTenantId } from '@/lib/hooks/useTenant'
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())

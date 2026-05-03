@@ -262,6 +262,9 @@ def poll_ghl(tenant_id: str = DEFAULT_TENANT_ID) -> dict[str, Any]:
         "new_messages_logged": new_messages,
         "leads_matched": matched_leads,
         "orphan_conversations": orphan_messages,
+        "leads_processed": matched_leads,
+        # GHL Conversations API is free at our usage tier.
+        "cost_cents": 0,
     }
     print(f"GHL poll complete: {summary}")
     return summary

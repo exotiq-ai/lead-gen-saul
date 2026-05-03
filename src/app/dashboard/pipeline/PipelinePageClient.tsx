@@ -44,8 +44,8 @@ function activityAgeClass(dt: string | null): string {
 
 function stageAccentColor(stage: PipelineStageDetail): string {
   if (stage.color) return stage.color
-  if (stage.is_terminal) return '#6b7280'
-  return '#00D4AA'
+  if (stage.is_terminal) return 'var(--color-saul-text-tertiary)'
+  return 'var(--color-saul-cyan)'
 }
 
 function displayName(lead: PipelineTopLead): string {
@@ -121,7 +121,7 @@ function SummaryBar({ data }: { data: PipelinePageData }) {
       {kpis.map((kpi) => (
         <div
           key={kpi.label}
-          className="rounded-[8px] border border-[rgba(255,255,255,0.06)] bg-[var(--color-saul-bg-700)] p-4"
+          className="rounded-[8px] border border-[var(--color-saul-border)] bg-[var(--color-saul-bg-700)] p-4"
         >
           <p className="text-[11px] text-[var(--color-saul-text-secondary)] uppercase tracking-wider font-medium leading-none">
             {kpi.label}
@@ -147,10 +147,10 @@ function SummaryBar({ data }: { data: PipelinePageData }) {
 
 function StageStats({ stage }: { stage: PipelineStageDetail }) {
   return (
-    <div className="flex items-center gap-3 px-3 py-2 border-b border-[rgba(255,255,255,0.05)] bg-[rgba(0,0,0,0.15)]">
+    <div className="flex items-center gap-3 px-3 py-2 border-b border-[var(--color-saul-border-soft)] bg-[var(--color-saul-overlay-soft)]">
       {/* Gregory */}
       <div className="flex items-center gap-1" title="Assigned to Gregory">
-        <span className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-[rgba(0,212,170,0.12)] border border-[rgba(0,212,170,0.25)] text-[9px] font-bold text-[var(--color-saul-cyan)] leading-none select-none">
+        <span className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-[color-mix(in_srgb,var(--color-saul-cyan)_12%,transparent)] border border-[color-mix(in_srgb,var(--color-saul-cyan)_25%,transparent)] text-[9px] font-bold text-[var(--color-saul-cyan)] leading-none select-none">
           G
         </span>
         <span className="text-[11px] font-mono tabular-nums text-[var(--color-saul-text-secondary)]">
@@ -211,7 +211,7 @@ function LeadPreviewCard({
       animate="visible"
       whileHover={{ scale: 1.02 }}
       onClick={() => router.push(`/dashboard/leads/${lead.id}?tenant=${tenantParam}`)}
-      className="relative p-2.5 rounded-[6px] border border-[rgba(255,255,255,0.05)] bg-[rgba(0,0,0,0.18)] cursor-pointer transition-[border-color,box-shadow] duration-150 hover:border-[rgba(0,212,170,0.3)] hover:shadow-[0_0_0_1px_rgba(0,212,170,0.08)]"
+      className="relative p-2.5 rounded-[6px] border border-[var(--color-saul-border-soft)] bg-[var(--color-saul-overlay-soft)] cursor-pointer transition-[border-color,box-shadow] duration-150 hover:border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] hover:shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-saul-cyan)_8%,transparent)]"
     >
       {/* Company + score row */}
       <div className="flex items-start justify-between gap-2 min-w-0">
@@ -257,12 +257,12 @@ function EmptyStageColumn({
   color: string
 }) {
   return (
-    <div className="flex flex-col rounded-[8px] border-2 border-dashed border-[rgba(255,255,255,0.07)] overflow-hidden min-h-[220px]">
+    <div className="flex flex-col rounded-[8px] border-2 border-dashed border-[var(--color-saul-border)] overflow-hidden min-h-[220px]">
       {/* Dim color bar */}
       <div style={{ height: 3, background: `${color}40` }} />
 
       {/* Header */}
-      <div className="px-3 py-2.5 border-b border-dashed border-[rgba(255,255,255,0.05)]">
+      <div className="px-3 py-2.5 border-b border-dashed border-[var(--color-saul-border-soft)]">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-[13px] font-semibold text-[var(--color-saul-text-tertiary)] truncate">
             {stage.name}
@@ -273,7 +273,7 @@ function EmptyStageColumn({
 
       {/* Empty body */}
       <div className="flex-1 flex flex-col items-center justify-center gap-2.5 p-5">
-        <div className="w-9 h-9 rounded-full border-2 border-dashed border-[rgba(255,255,255,0.1)] flex items-center justify-center">
+        <div className="w-9 h-9 rounded-full border-2 border-dashed border-[var(--color-saul-border-strong)] flex items-center justify-center">
           <Plus size={16} className="text-[var(--color-saul-text-tertiary)]" />
         </div>
         <p className="text-[11px] text-[var(--color-saul-text-tertiary)] text-center leading-snug">
@@ -302,12 +302,12 @@ function StageColumn({
   }
 
   return (
-    <div className="flex flex-col rounded-[8px] border border-[rgba(255,255,255,0.06)] bg-[var(--color-saul-bg-700)] overflow-hidden">
+    <div className="flex flex-col rounded-[8px] border border-[var(--color-saul-border)] bg-[var(--color-saul-bg-700)] overflow-hidden">
       {/* Color accent bar */}
       <div style={{ height: 3, background: color, flexShrink: 0 }} />
 
       {/* Header */}
-      <div className="px-3 pt-2.5 pb-2 border-b border-[rgba(255,255,255,0.05)] flex-shrink-0">
+      <div className="px-3 pt-2.5 pb-2 border-b border-[var(--color-saul-border-soft)] flex-shrink-0">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-[13px] font-semibold text-[var(--color-saul-text-primary)] truncate">
             {stage.name}
@@ -345,7 +345,7 @@ function StageColumn({
       </div>
 
       {/* Footer */}
-      <div className="flex-shrink-0 border-t border-[rgba(255,255,255,0.05)] px-3 py-2">
+      <div className="flex-shrink-0 border-t border-[var(--color-saul-border-soft)] px-3 py-2">
         <Link
           href={`/dashboard/leads?stage_id=${stage.id}&tenant=${tenantParam}`}
           className="flex items-center gap-1 text-[11px] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-cyan)] transition-colors duration-150 group"
@@ -378,7 +378,7 @@ function DropoffConnector({
       aria-hidden="true"
       style={{ width: 40 }}
     >
-      <ArrowRight size={13} className="text-[rgba(255,255,255,0.15)]" />
+      <ArrowRight size={13} className="text-[var(--color-saul-border-stronger)]" />
       <span
         className={[
           'text-[9px] font-mono tabular-nums leading-none',
@@ -408,7 +408,7 @@ export function PipelinePageClient({ data }: PipelinePageClientProps) {
   if (!stages.length) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <span className="flex items-center justify-center w-14 h-14 rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[rgba(255,255,255,0.06)]">
+        <span className="flex items-center justify-center w-14 h-14 rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[var(--color-saul-border)]">
           <Funnel size={28} weight="regular" className="text-[var(--color-saul-cyan)]" />
         </span>
         <div className="text-center">
@@ -436,7 +436,7 @@ export function PipelinePageClient({ data }: PipelinePageClientProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] border border-[rgba(0,212,170,0.2)] bg-[rgba(0,212,170,0.06)] text-[11px] font-medium text-[var(--color-saul-cyan)]">
+          <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] border border-[color-mix(in_srgb,var(--color-saul-cyan)_20%,transparent)] bg-[color-mix(in_srgb,var(--color-saul-cyan)_6%,transparent)] text-[11px] font-medium text-[var(--color-saul-cyan)]">
             <ArrowsClockwise size={11} />
             Live
           </span>
@@ -449,7 +449,10 @@ export function PipelinePageClient({ data }: PipelinePageClientProps) {
       {/* Stage columns — horizontally scrollable */}
       <div
         className="flex flex-row items-start overflow-x-auto pb-4 gap-0"
-        style={{ scrollbarColor: 'rgba(0,212,170,0.2) transparent' }}
+        style={{
+          scrollbarColor:
+            'color-mix(in srgb, var(--color-saul-cyan) 20%, transparent) transparent',
+        }}
       >
         {stages.flatMap((stage, i) => {
           const showConnector =

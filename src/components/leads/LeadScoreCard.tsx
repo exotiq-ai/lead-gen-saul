@@ -10,8 +10,8 @@ function getScoreTier(score: number): { tier: number; label: string; bg: string;
     return {
       tier: 1,
       label: 'Tier 1',
-      bg: 'bg-[rgba(0,212,170,0.10)]',
-      border: 'border-[rgba(0,212,170,0.22)]',
+      bg: 'bg-[color-mix(in_srgb,var(--color-saul-cyan)_10%,transparent)]',
+      border: 'border-[color-mix(in_srgb,var(--color-saul-cyan)_22%,transparent)]',
       text: 'text-[var(--color-saul-cyan)]',
     }
   }
@@ -19,25 +19,25 @@ function getScoreTier(score: number): { tier: number; label: string; bg: string;
     return {
       tier: 2,
       label: 'Tier 2',
-      bg: 'bg-[rgba(59,130,246,0.10)]',
-      border: 'border-[rgba(59,130,246,0.22)]',
-      text: 'text-[#3B82F6]',
+      bg: 'bg-[color-mix(in_srgb,var(--color-saul-info)_10%,transparent)]',
+      border: 'border-[color-mix(in_srgb,var(--color-saul-info)_22%,transparent)]',
+      text: 'text-[var(--color-saul-info)]',
     }
   }
   if (score >= 40) {
     return {
       tier: 3,
       label: 'Tier 3',
-      bg: 'bg-[rgba(255,174,66,0.10)]',
-      border: 'border-[rgba(255,174,66,0.22)]',
+      bg: 'bg-[color-mix(in_srgb,var(--color-saul-warning)_10%,transparent)]',
+      border: 'border-[color-mix(in_srgb,var(--color-saul-warning)_22%,transparent)]',
       text: 'text-[var(--color-saul-warning)]',
     }
   }
   return {
     tier: 4,
     label: 'Tier 4',
-    bg: 'bg-[rgba(255,71,87,0.10)]',
-    border: 'border-[rgba(255,71,87,0.22)]',
+    bg: 'bg-[color-mix(in_srgb,var(--color-saul-danger)_10%,transparent)]',
+    border: 'border-[color-mix(in_srgb,var(--color-saul-danger)_22%,transparent)]',
     text: 'text-[var(--color-saul-danger)]',
   }
 }

@@ -13,12 +13,18 @@ Requires GOOGLE_PLACES_API_KEY in env.
 
 import os
 import re
+import sys
+from pathlib import Path
+
 import requests
 import time
 from typing import Any
 from datetime import datetime, timezone
 
-from db import get_db
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from costs import PER_CALL_COSTS_CENTS  # noqa: E402
+
+from db import get_db  # noqa: E402
 
 GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY", "")
 MEDSPA_TENANT_ID = "11111111-1111-1111-1111-111111111111"
@@ -229,11 +235,20 @@ def process_gmaps_enrichment(
 
         time.sleep(RATE_LIMIT_DELAY)
 
+    # 1 textsearch + 1 details per enriched lead. Failed lookups still hit
+    # textsearch so we count those at half rate (textsearch alone).
+    cost_cents = (
+        enriched
+        * (PER_CALL_COSTS_CENTS["google_places_textsearch"] + PER_CALL_COSTS_CENTS["google_places_details"])
+        + errors * PER_CALL_COSTS_CENTS["google_places_textsearch"]
+    )
     summary = {
         "leads_found": len(leads),
         "enriched": enriched,
         "skipped": skipped,
         "errors": errors,
+        "leads_processed": enriched,
+        "cost_cents": cost_cents,
     }
     print(f"Google Maps enrichment complete: {summary}")
     return summary

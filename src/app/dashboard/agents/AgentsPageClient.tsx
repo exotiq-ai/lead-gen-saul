@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import useSWR from 'swr'
 import { motion } from 'framer-motion'
-import { Robot, Pulse, Timer, Plugs, Cpu } from '@phosphor-icons/react'
+import { Robot, Pulse, Timer, Plugs, Cpu, Broadcast, Tray, Warning } from '@phosphor-icons/react'
 import { formatDistanceToNow } from 'date-fns'
 import { useTenantId } from '@/lib/hooks/useTenant'
+import { EmptyState, SkeletonBlock } from '@/components/ui'
 
 const SOUL_EXCERPT = `## Voice
 - Direct. No corporate filler. One sentence when one sentence is enough.
@@ -49,7 +50,12 @@ type RunRow = {
 }
 
 type ApiAgents = {
-  gateway: { status: string; last_heartbeat: string; model: string; protocol: string }
+  gateway: {
+    status: 'online' | 'stale' | 'offline' | string
+    last_heartbeat: string | null
+    model: string
+    protocol: string
+  }
   cron: { interval_minutes: number; next_run_at: string }
   agent_cards: Array<{
     agent_type: string
@@ -71,6 +77,32 @@ export function AgentsPageClient() {
     fetcher,
   )
 
+  // Stage 4c: live SSE stream of new agent_runs. The buffer holds the
+  // most recent 50 events; old ones drop off.
+  const [liveEvents, setLiveEvents] = useState<Array<RunRow & { __live: true }>>([])
+  const [streamConnected, setStreamConnected] = useState(false)
+  const sourceRef = useRef<EventSource | null>(null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const es = new EventSource(`/api/dashboard/agents/stream?tenant_id=${tenantId}`)
+    sourceRef.current = es
+    es.addEventListener('hello', () => setStreamConnected(true))
+    es.addEventListener('run', (ev: MessageEvent<string>) => {
+      try {
+        const row = JSON.parse(ev.data) as RunRow
+        setLiveEvents((cur) => [{ ...row, __live: true as const }, ...cur].slice(0, 50))
+      } catch {
+        // ignore malformed payload
+      }
+    })
+    es.addEventListener('error', () => setStreamConnected(false))
+    return () => {
+      es.close()
+      sourceRef.current = null
+    }
+  }, [tenantId])
+
   const nextRun = data?.cron?.next_run_at
     ? formatDistanceToNow(new Date(data.cron.next_run_at), { addSuffix: true })
     : '—'
@@ -91,36 +123,67 @@ export function AgentsPageClient() {
         </header>
 
         {/* Gateway bar */}
-        <motion.div
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-wrap items-center gap-3 rounded-lg border border-[rgba(0,212,170,0.2)] bg-[rgba(0,212,170,0.05)] px-4 py-3"
-        >
-          <Plugs size={22} className="text-[var(--color-saul-cyan)]" weight="duotone" />
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 text-[12px] font-mono text-emerald-300">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              {data?.gateway?.status ?? 'online'}
-            </span>
-            <span className="text-[11px] text-[var(--color-saul-text-secondary)]">
-              {data?.gateway?.protocol}
-            </span>
-          </div>
-          <div className="h-4 w-px bg-[rgba(255,255,255,0.1)] hidden sm:block" />
-          <div className="text-[12px] text-[var(--color-saul-text-secondary)]">
-            <span className="text-[var(--color-saul-text-primary)]/80">Model</span>{' '}
-            <code className="text-[var(--color-saul-cyan)] text-[11px]">{data?.gateway?.model ?? '—'}</code>
-          </div>
-          <div className="text-[12px] text-[var(--color-saul-text-secondary)]">
-            <Pulse className="inline mr-1 -mt-0.5" size={14} />
-            Last heartbeat:{' '}
-            <span className="text-[var(--color-saul-text-primary)]">
-              {data?.gateway?.last_heartbeat
-                ? formatDistanceToNow(new Date(data.gateway.last_heartbeat), { addSuffix: true })
-                : '—'}
-            </span>
-          </div>
-        </motion.div>
+        {(() => {
+          const status = data?.gateway?.status ?? 'offline'
+          const tone =
+          status === 'online'
+            ? {
+                border: 'border-[color-mix(in_srgb,var(--color-saul-cyan)_20%,transparent)]',
+                bg: 'bg-[color-mix(in_srgb,var(--color-saul-cyan)_5%,transparent)]',
+                pillBg: 'bg-emerald-400',
+                pillText: 'text-emerald-300',
+                pulse: 'animate-pulse',
+              }
+              : status === 'stale'
+                ? {
+                    border: 'border-amber-400/25',
+                    bg: 'bg-amber-400/5',
+                    pillBg: 'bg-amber-400',
+                    pillText: 'text-amber-200',
+                    pulse: '',
+                  }
+                : {
+                    border: 'border-rose-400/25',
+                    bg: 'bg-rose-400/5',
+                    pillBg: 'bg-rose-400',
+                    pillText: 'text-rose-200',
+                    pulse: '',
+                  }
+          return (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`flex flex-wrap items-center gap-3 rounded-lg border ${tone.border} ${tone.bg} px-4 py-3`}
+            >
+              <Plugs size={22} className="text-[var(--color-saul-cyan)]" weight="duotone" />
+              <div className="flex items-center gap-2">
+                <span className={`flex items-center gap-1.5 text-[12px] font-mono ${tone.pillText}`}>
+                  <span className={`w-2 h-2 rounded-full ${tone.pillBg} ${tone.pulse}`} />
+                  {status}
+                </span>
+                <span className="text-[11px] text-[var(--color-saul-text-secondary)]">
+                  {data?.gateway?.protocol}
+                </span>
+              </div>
+              <div className="h-4 w-px bg-[var(--color-saul-border-strong)] hidden sm:block" />
+              <div className="text-[12px] text-[var(--color-saul-text-secondary)]">
+                <span className="text-[var(--color-saul-text-primary)]/80">Model</span>{' '}
+                <code className="text-[var(--color-saul-cyan)] text-[11px]">
+                  {data?.gateway?.model ?? '—'}
+                </code>
+              </div>
+              <div className="text-[12px] text-[var(--color-saul-text-secondary)]">
+                <Pulse className="inline mr-1 -mt-0.5" size={14} />
+                Last heartbeat:{' '}
+                <span className="text-[var(--color-saul-text-primary)]">
+                  {data?.gateway?.last_heartbeat
+                    ? formatDistanceToNow(new Date(data.gateway.last_heartbeat), { addSuffix: true })
+                    : 'never'}
+                </span>
+              </div>
+            </motion.div>
+          )
+        })()}
 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="text-[12px] text-[var(--color-saul-text-secondary)] flex items-center gap-1">
@@ -128,7 +191,7 @@ export function AgentsPageClient() {
             <span>Heartbeat every {data?.cron?.interval_minutes ?? 15} min — next: {nextRun}</span>
           </div>
           <select
-            className="bg-[var(--color-saul-bg-800)] border border-[rgba(255,255,255,0.1)] rounded-md text-[12px] px-2 py-1 text-[var(--color-saul-text-primary)]"
+            className="bg-[var(--color-saul-bg-800)] border border-[var(--color-saul-border-strong)] rounded-md text-[12px] px-2 py-1 text-[var(--color-saul-text-primary)] hover:border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
             value={range}
             onChange={(e) => setRange(e.target.value as typeof range)}
           >
@@ -140,8 +203,14 @@ export function AgentsPageClient() {
           </select>
         </div>
 
-        {isLoading && <div className="h-32 skeleton-shimmer rounded-lg" />}
-        {error && <p className="text-rose-300 text-sm">Could not load agents</p>}
+        {isLoading && <SkeletonBlock height={128} />}
+        {error && (
+          <EmptyState
+            icon={Warning}
+            title="Could not load agents"
+            description="The agents endpoint failed. Verify Supabase connectivity and try again."
+          />
+        )}
 
         {/* 6 cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -150,7 +219,7 @@ export function AgentsPageClient() {
               key={card.agent_type}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-lg border border-[rgba(255,255,255,0.08)] bg-[var(--color-saul-bg-800)] p-4"
+              className="rounded-lg border border-[var(--color-saul-border-strong)] bg-[var(--color-saul-bg-800)] p-4"
             >
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div>
@@ -183,11 +252,21 @@ export function AgentsPageClient() {
           <h2 className="text-[14px] font-semibold text-[var(--color-saul-text-primary)] mb-2 flex items-center gap-2">
             <Cpu size={18} className="text-[var(--color-saul-cyan)]" />
             Run log
+            <span
+              className={[
+                'ml-2 inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-wide',
+                streamConnected ? 'text-emerald-300' : 'text-[var(--color-saul-text-tertiary)]',
+              ].join(' ')}
+              title={streamConnected ? 'live stream connected' : 'no live stream'}
+            >
+              <Broadcast size={11} weight={streamConnected ? 'fill' : 'regular'} />
+              {streamConnected ? 'live' : 'polling'}
+            </span>
           </h2>
-          <div className="overflow-x-auto rounded-lg border border-[rgba(255,255,255,0.08)]">
+          <div className="overflow-x-auto rounded-lg border border-[var(--color-saul-border-strong)]">
             <table className="w-full text-left text-[12px]">
               <thead>
-                <tr className="border-b border-[rgba(255,255,255,0.06)] text-[var(--color-saul-text-secondary)]">
+                <tr className="border-b border-[var(--color-saul-border)] text-[var(--color-saul-text-secondary)]">
                   <th className="p-2 font-medium">Type</th>
                   <th className="p-2 font-medium">Status</th>
                   <th className="p-2 font-medium">Leads</th>
@@ -197,33 +276,57 @@ export function AgentsPageClient() {
                 </tr>
               </thead>
               <tbody>
-                {(data?.recent_runs ?? []).map((r) => (
-                  <tr key={r.id} className="border-b border-[rgba(255,255,255,0.04)] hover:bg-[rgba(255,255,255,0.02)]">
-                    <td className="p-2 font-mono text-[var(--color-saul-cyan)]">{r.agent_type}</td>
-                    <td className="p-2">{r.status}</td>
-                    <td className="p-2">{r.leads_processed}</td>
-                    <td className="p-2">{r.tokens_used}</td>
-                    <td className="p-2">{r.duration_ms ?? '—'}</td>
-                    <td className="p-2 text-[var(--color-saul-text-secondary)]">
-                      {r.started_at ? new Date(r.started_at).toLocaleString() : '—'}
-                    </td>
-                  </tr>
-                ))}
+                {/* Live events (from SSE) render first with a subtle bg
+                    so the operator can see them flowing in. We dedup
+                    against the SWR snapshot by id since the polling
+                    stream may overlap with the periodic /agents fetch. */}
+                {(() => {
+                  const polled = data?.recent_runs ?? []
+                  const polledIds = new Set(polled.map((r) => r.id))
+                  const liveOnly = liveEvents.filter((r) => !polledIds.has(r.id))
+                  const merged: Array<RunRow & { __live?: true }> = [...liveOnly, ...polled]
+                  if (merged.length === 0) return null
+                  return merged.slice(0, 60).map((r) => (
+                    <tr
+                      key={r.id}
+                      className={[
+                        'border-b border-[var(--color-saul-border-soft)] hover:bg-[var(--color-saul-overlay-soft)]',
+                        r.__live ? 'bg-[color-mix(in_srgb,var(--color-saul-cyan)_4%,transparent)]' : '',
+                      ].join(' ')}
+                    >
+                      <td className="p-2 font-mono text-[var(--color-saul-cyan)]">
+                        {r.agent_type}
+                        {r.__live && <span className="ml-1 text-[9px] uppercase text-emerald-300">live</span>}
+                      </td>
+                      <td className="p-2">{r.status}</td>
+                      <td className="p-2">{r.leads_processed}</td>
+                      <td className="p-2">{r.tokens_used}</td>
+                      <td className="p-2">{r.duration_ms ?? '—'}</td>
+                      <td className="p-2 text-[var(--color-saul-text-secondary)]">
+                        {r.started_at ? new Date(r.started_at).toLocaleString() : '—'}
+                      </td>
+                    </tr>
+                  ))
+                })()}
               </tbody>
             </table>
-            {(!data?.recent_runs || data.recent_runs.length === 0) && !isLoading && (
-              <p className="p-6 text-center text-[var(--color-saul-text-secondary)] text-[13px]">
-                No agent runs yet. When Saul and workers execute, they appear here.
-              </p>
-            )}
+            {(!data?.recent_runs || data.recent_runs.length === 0) &&
+              liveEvents.length === 0 &&
+              !isLoading && (
+                <EmptyState
+                  icon={Tray}
+                  title="No agent runs yet"
+                  description="When Saul and workers execute, they'll appear here."
+                />
+              )}
           </div>
         </div>
       </div>
 
       {/* SOUL.md rail */}
       <aside className="w-full xl:w-[380px] shrink-0">
-        <div className="sticky top-6 rounded-lg border border-[rgba(0,212,170,0.15)] bg-[var(--color-saul-bg-900)] overflow-hidden">
-          <div className="px-3 py-2 border-b border-[rgba(0,212,170,0.1)] flex items-center justify-between bg-[rgba(0,212,170,0.06)]">
+        <div className="sticky top-6 rounded-lg border border-[color-mix(in_srgb,var(--color-saul-cyan)_15%,transparent)] bg-[var(--color-saul-bg-900)] overflow-hidden">
+          <div className="px-3 py-2 border-b border-[color-mix(in_srgb,var(--color-saul-cyan)_10%,transparent)] flex items-center justify-between bg-[color-mix(in_srgb,var(--color-saul-cyan)_6%,transparent)]">
             <span className="text-[11px] font-mono text-[var(--color-saul-cyan)]">SOUL.md</span>
             <span className="text-[10px] text-[var(--color-saul-text-secondary)]">OpenClaw personality</span>
           </div>

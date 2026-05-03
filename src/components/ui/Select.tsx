@@ -173,9 +173,9 @@ export function Select({
         onKeyDown={handleKeyDown}
         className={[
           'w-full flex items-center justify-between gap-2 h-9 px-3 rounded-[6px] text-sm transition-colors duration-150 outline-none',
-          'bg-[var(--color-saul-bg-700)] border border-[rgba(255,255,255,0.08)] text-[var(--color-saul-text-primary)]',
-          'hover:border-[rgba(255,255,255,0.14)] focus-visible:border-[var(--color-saul-cyan)] focus-visible:ring-1 focus-visible:ring-[var(--color-saul-cyan)]',
-          open ? 'border-[rgba(255,255,255,0.14)]' : '',
+          'bg-[var(--color-saul-bg-700)] border border-[var(--color-saul-border-strong)] text-[var(--color-saul-text-primary)]',
+          'hover:border-[var(--color-saul-border-stronger)] focus-visible:border-[var(--color-saul-cyan)] focus-visible:ring-1 focus-visible:ring-[var(--color-saul-cyan)]',
+          open ? 'border-[var(--color-saul-border-stronger)]' : '',
           disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
         ]
           .filter(Boolean)
@@ -207,7 +207,7 @@ export function Select({
             initial="hidden"
             animate="visible"
             exit="hidden"
-            className="absolute z-50 left-0 right-0 mt-1.5 rounded-[8px] border border-[rgba(255,255,255,0.08)] bg-[var(--color-saul-bg-700)] shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden"
+            className="absolute z-50 left-0 right-0 mt-1.5 rounded-[8px] border border-[var(--color-saul-border-strong)] bg-[var(--color-saul-bg-700)] shadow-[0_8px_32px_var(--color-saul-shadow)] overflow-hidden"
           >
             <ul
               ref={listRef}
@@ -231,10 +231,10 @@ export function Select({
                     className={[
                       'flex items-center justify-between gap-3 px-3 py-2 text-sm cursor-pointer transition-colors duration-100 select-none',
                       isSelected
-                        ? 'text-[var(--color-saul-cyan)] bg-[rgba(0,212,170,0.08)]'
+                        ? 'text-[var(--color-saul-cyan)] bg-[color-mix(in_srgb,var(--color-saul-cyan)_8%,transparent)]'
                         : 'text-[var(--color-saul-text-primary)]',
                       isFocused && !isSelected
-                        ? 'bg-[rgba(255,255,255,0.05)]'
+                        ? 'bg-[var(--color-saul-overlay-low)]'
                         : '',
                       option.disabled
                         ? 'opacity-40 cursor-not-allowed'

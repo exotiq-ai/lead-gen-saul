@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Gear, FloppyDisk, ArrowCounterClockwise, Check, Warning } from '@phosphor-icons/react'
+import { Gear, FloppyDisk, ArrowCounterClockwise, Check, Warning, Tray } from '@phosphor-icons/react'
 import useSWR from 'swr'
 import { useTenantId } from '@/lib/hooks/useTenant'
+import { EmptyState, SkeletonBlock } from '@/components/ui'
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
@@ -46,12 +47,20 @@ export function SettingsPageClient() {
   const [saving, setSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle')
 
-  useEffect(() => {
-    if (data?.icp_profile?.criteria) {
+  // Hydrate the editor from the freshest server snapshot. Stores the last
+  // payload fingerprint in state and compares during render -- the
+  // React-19-blessed pattern for "derived state that resets on prop change".
+  const incomingFingerprint = data?.icp_profile?.criteria
+    ? JSON.stringify(data.icp_profile.criteria)
+    : null
+  const [lastIncomingFingerprint, setLastIncomingFingerprint] = useState<string | null>(null)
+  if (incomingFingerprint && incomingFingerprint !== lastIncomingFingerprint) {
+    setLastIncomingFingerprint(incomingFingerprint)
+    // Only overwrite local edits if the user hasn't touched this snapshot.
+    if (!dirty && data?.icp_profile?.criteria) {
       setCriteria(data.icp_profile.criteria)
-      setDirty(false)
     }
-  }, [data])
+  }
 
   function updateWeight(key: string, value: number) {
     setCriteria((prev) => ({
@@ -98,20 +107,22 @@ export function SettingsPageClient() {
 
   if (isLoading) {
     return (
-      <div className="px-6 py-6 max-w-3xl">
-        <div className="animate-pulse space-y-4">
-          <div className="h-6 w-48 bg-[var(--color-saul-bg-600)] rounded" />
-          <div className="h-40 bg-[var(--color-saul-bg-600)] rounded-[10px]" />
-          <div className="h-60 bg-[var(--color-saul-bg-600)] rounded-[10px]" />
-        </div>
+      <div className="px-3 sm:px-6 py-6 max-w-3xl flex flex-col gap-4">
+        <SkeletonBlock height={24} width={192} />
+        <SkeletonBlock height={160} rounded="rounded-[10px]" />
+        <SkeletonBlock height={240} rounded="rounded-[10px]" />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="px-6 py-6">
-        <p className="text-red-400 text-sm">Failed to load settings</p>
+      <div className="px-3 sm:px-6 py-6 max-w-3xl">
+        <EmptyState
+          icon={Warning}
+          title="Failed to load settings"
+          description="Verify the settings API and try refreshing the page."
+        />
       </div>
     )
   }
@@ -122,7 +133,7 @@ export function SettingsPageClient() {
   const tiers = criteria.scoring_tiers ?? TIER_DEFAULTS
 
   return (
-    <div className="px-6 py-6 max-w-3xl space-y-6">
+    <div className="px-3 sm:px-6 py-6 max-w-3xl space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
@@ -130,7 +141,7 @@ export function SettingsPageClient() {
         className="flex items-center justify-between"
       >
         <div className="flex items-center gap-3">
-          <span className="flex items-center justify-center w-10 h-10 rounded-[8px] bg-[var(--color-saul-bg-600)] border border-[rgba(255,255,255,0.06)]">
+          <span className="flex items-center justify-center w-10 h-10 rounded-[8px] bg-[var(--color-saul-bg-600)] border border-[var(--color-saul-border)]">
             <Gear size={20} weight="regular" className="text-[var(--color-saul-cyan)]" />
           </span>
           <div>
@@ -147,7 +158,7 @@ export function SettingsPageClient() {
           {dirty && (
             <button
               onClick={resetToSaved}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-[rgba(255,255,255,0.08)] text-[12px] font-medium text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-[var(--color-saul-border-strong)] text-[12px] font-medium text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-soft)] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
             >
               <ArrowCounterClockwise size={13} weight="bold" />
               Reset
@@ -157,9 +168,9 @@ export function SettingsPageClient() {
             onClick={save}
             disabled={!dirty || saving}
             className={[
-              'flex items-center gap-1.5 px-4 py-1.5 rounded-[6px] text-[12px] font-semibold transition-all',
+              'flex items-center gap-1.5 px-4 py-1.5 rounded-[6px] text-[12px] font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]',
               dirty
-                ? 'bg-[var(--color-saul-cyan)] text-[var(--color-saul-bg-900)] hover:brightness-110'
+                ? 'bg-[var(--color-saul-cyan)] text-[var(--color-saul-text-on-accent)] hover:brightness-110'
                 : 'bg-[var(--color-saul-bg-600)] text-[var(--color-saul-text-secondary)] cursor-not-allowed',
             ].join(' ')}
           >
@@ -180,7 +191,7 @@ export function SettingsPageClient() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[rgba(255,255,255,0.06)] p-5"
+        className="rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[var(--color-saul-border)] p-5"
       >
         <h2 className="text-[14px] font-semibold text-[var(--color-saul-text-primary)] mb-3">
           Tenant Type
@@ -191,10 +202,10 @@ export function SettingsPageClient() {
               key={type}
               onClick={() => updateTenantType(type)}
               className={[
-                'px-4 py-2 rounded-[6px] text-[13px] font-medium border transition-all',
+                'px-4 py-2 rounded-[6px] text-[13px] font-medium border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]',
                 criteria.tenant_type === type
-                  ? 'bg-[rgba(0,212,170,0.1)] border-[rgba(0,212,170,0.3)] text-[var(--color-saul-cyan)]'
-                  : 'bg-[var(--color-saul-bg-600)] border-[rgba(255,255,255,0.06)] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)]',
+                  ? 'bg-[color-mix(in_srgb,var(--color-saul-cyan)_10%,transparent)] border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] text-[var(--color-saul-cyan)]'
+                  : 'bg-[var(--color-saul-bg-600)] border-[var(--color-saul-border)] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:border-[var(--color-saul-border-strong)] hover:bg-[var(--color-saul-overlay-soft)]',
               ].join(' ')}
             >
               {type === 'automotive' ? '🚗 Automotive' : '💉 MedSpa'}
@@ -208,7 +219,7 @@ export function SettingsPageClient() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[rgba(255,255,255,0.06)] p-5"
+        className="rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[var(--color-saul-border)] p-5"
       >
         <h2 className="text-[14px] font-semibold text-[var(--color-saul-text-primary)] mb-1">
           ICP Scoring Weights
@@ -247,7 +258,7 @@ export function SettingsPageClient() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[rgba(255,255,255,0.06)] p-5"
+        className="rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[var(--color-saul-border)] p-5"
       >
         <h2 className="text-[14px] font-semibold text-[var(--color-saul-text-primary)] mb-1">
           Scoring Tiers
@@ -260,7 +271,7 @@ export function SettingsPageClient() {
           {Object.entries(tiers).map(([key, tier]) => (
             <div
               key={key}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-[6px] bg-[var(--color-saul-bg-600)] border border-[rgba(255,255,255,0.04)]"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-[6px] bg-[var(--color-saul-bg-600)] border border-[var(--color-saul-border-soft)]"
             >
               <span className="text-[13px] font-medium text-[var(--color-saul-text-primary)] flex-1">
                 {tier.label ?? key}
@@ -271,10 +282,10 @@ export function SettingsPageClient() {
               <span className={[
                 'text-[11px] font-semibold px-2 py-0.5 rounded-full',
                 tier.assigned_to === 'gregory'
-                  ? 'bg-[rgba(0,212,170,0.1)] text-[var(--color-saul-cyan)]'
+                  ? 'bg-[color-mix(in_srgb,var(--color-saul-cyan)_10%,transparent)] text-[var(--color-saul-cyan)]'
                   : tier.assigned_to === 'team'
-                    ? 'bg-[rgba(255,255,255,0.06)] text-[var(--color-saul-text-secondary)]'
-                    : 'bg-[rgba(255,100,100,0.08)] text-red-400',
+                    ? 'bg-[var(--color-saul-overlay)] text-[var(--color-saul-text-secondary)]'
+                    : 'bg-[color-mix(in_srgb,var(--color-saul-danger)_10%,transparent)] text-[var(--color-saul-danger)]',
               ].join(' ')}>
                 {tier.assigned_to ?? 'unassigned'}
               </span>
@@ -283,16 +294,19 @@ export function SettingsPageClient() {
         </div>
       </motion.section>
 
+      {/* Pipeline Stages -- new in Stage 3b. Render as a reorderable list. */}
+      <PipelineStagesSection tenantId={tenantId} />
+
       {/* Danger Zone */}
       <motion.section
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[rgba(255,100,100,0.15)] p-5"
+        className="rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[color-mix(in_srgb,var(--color-saul-danger)_18%,transparent)] p-5"
       >
         <div className="flex items-center gap-2 mb-3">
-          <Warning size={16} weight="fill" className="text-red-400" />
-          <h2 className="text-[14px] font-semibold text-red-400">
+          <Warning size={16} weight="fill" className="text-[var(--color-saul-danger)]" />
+          <h2 className="text-[14px] font-semibold text-[var(--color-saul-danger)]">
             Danger Zone
           </h2>
         </div>
@@ -306,17 +320,198 @@ export function SettingsPageClient() {
               alert('Bulk re-score not yet implemented')
             }
           }}
-          className="px-4 py-2 rounded-[6px] border border-[rgba(255,100,100,0.25)] text-[12px] font-medium text-red-400 hover:bg-[rgba(255,100,100,0.08)] transition-all"
+          className="px-4 py-2 rounded-[6px] border border-[color-mix(in_srgb,var(--color-saul-danger)_28%,transparent)] text-[12px] font-medium text-[var(--color-saul-danger)] hover:bg-[color-mix(in_srgb,var(--color-saul-danger)_10%,transparent)] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-danger)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
         >
           Re-score All Leads
         </button>
       </motion.section>
 
       {saveStatus === 'error' && (
-        <p className="text-red-400 text-[12px] font-medium">
+        <p className="text-[var(--color-saul-danger)] text-[12px] font-medium">
           Save failed. Check console for details.
         </p>
       )}
     </div>
+  )
+}
+
+// ─── Pipeline Stages Section ──────────────────────────────────────────
+//
+// Reorder via simple up/down buttons. We avoid HTML5 drag-and-drop here
+// because it's brittle across mobile + desktop and the stage list is
+// rarely longer than 7 items.
+
+type Stage = {
+  id: string
+  name: string
+  slug: string
+  position: number
+  color: string | null
+  is_terminal: boolean
+  terminal_type: string | null
+}
+
+function PipelineStagesSection({ tenantId }: { tenantId: string }) {
+  const { data, isLoading, error, mutate } = useSWR<{ stages: Stage[] }>(
+    `/api/pipeline/stages?tenant_id=${tenantId}`,
+    fetcher,
+  )
+
+  const [order, setOrder] = useState<Stage[]>([])
+  const [saving, setSaving] = useState(false)
+  const [errMsg, setErrMsg] = useState<string | null>(null)
+
+  // Hydrate from server snapshot using the React-19-blessed
+  // setState-during-render pattern.
+  const fingerprint = data ? data.stages.map((s) => s.id).join(',') : null
+  const [lastFingerprint, setLastFingerprint] = useState<string | null>(null)
+  if (fingerprint && fingerprint !== lastFingerprint) {
+    setLastFingerprint(fingerprint)
+    if (data) setOrder(data.stages)
+  }
+
+  const dirty =
+    !!data &&
+    JSON.stringify(order.map((s) => s.id)) !==
+      JSON.stringify(data.stages.map((s) => s.id))
+
+  function move(idx: number, dir: -1 | 1) {
+    const next = [...order]
+    const target = idx + dir
+    if (target < 0 || target >= next.length) return
+    const tmp = next[idx]
+    next[idx] = next[target]
+    next[target] = tmp
+    setOrder(next)
+  }
+
+  async function save() {
+    setSaving(true)
+    setErrMsg(null)
+    try {
+      const res = await fetch('/api/pipeline/stages', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          order: order.map((s) => s.id),
+        }),
+      })
+      const j = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) throw new Error(j.error || `HTTP ${res.status}`)
+      void mutate()
+    } catch (e) {
+      setErrMsg(e instanceof Error ? e.message : 'save failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.18 }}
+      className="rounded-[10px] bg-[var(--color-saul-bg-700)] border border-[var(--color-saul-border)] p-5"
+    >
+      <div className="flex items-start justify-between gap-2 mb-1">
+        <div>
+          <h2 className="text-[14px] font-semibold text-[var(--color-saul-text-primary)]">
+            Pipeline Stages
+          </h2>
+          <p className="text-[12px] text-[var(--color-saul-text-secondary)]">
+            Order shown on the funnel chart and stage promotion dropdown.
+          </p>
+        </div>
+        <button
+          onClick={save}
+          disabled={!dirty || saving}
+          className={[
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-[12px] font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]',
+            dirty
+              ? 'bg-[var(--color-saul-cyan)] text-[var(--color-saul-text-on-accent)] hover:brightness-110'
+              : 'bg-[var(--color-saul-bg-600)] text-[var(--color-saul-text-secondary)] cursor-not-allowed',
+          ].join(' ')}
+        >
+          {saving ? 'Saving…' : 'Save order'}
+        </button>
+      </div>
+
+      {isLoading && (
+        <div className="mt-3">
+          <SkeletonBlock height={120} />
+        </div>
+      )}
+      {error && (
+        <p className="text-[12px] text-[var(--color-saul-danger)] mt-3">
+          Failed to load stages.
+        </p>
+      )}
+      {errMsg && (
+        <p className="text-[12px] text-[var(--color-saul-danger)] mt-2">
+          Save failed: {errMsg}
+        </p>
+      )}
+
+      {!isLoading && !error && order.length === 0 && (
+        <div className="mt-3">
+          <EmptyState
+            icon={Tray}
+            title="No stages defined for this tenant"
+            description={
+              <>
+                Insert rows into{' '}
+                <code className="text-[var(--color-saul-cyan)]">pipeline_stages</code>{' '}
+                and refresh.
+              </>
+            }
+          />
+        </div>
+      )}
+
+      <ul className="mt-3 space-y-1.5">
+        {order.map((stage, i) => (
+          <li
+            key={stage.id}
+            className="flex items-center gap-2 px-3 py-2 rounded-[6px] bg-[var(--color-saul-bg-600)] border border-[var(--color-saul-border-soft)]"
+          >
+            <span className="text-[11px] font-mono text-[var(--color-saul-text-tertiary)] w-6 text-center">
+              {i + 1}
+            </span>
+            <span className="text-[13px] font-medium text-[var(--color-saul-text-primary)] flex-1">
+              {stage.name}
+            </span>
+            {stage.is_terminal && (
+              <span
+                className={[
+                  'text-[10px] font-mono uppercase px-2 py-0.5 rounded-full',
+                  stage.terminal_type === 'won'
+                    ? 'bg-emerald-500/15 text-emerald-300'
+                    : 'bg-rose-500/15 text-rose-300',
+                ].join(' ')}
+              >
+                {stage.terminal_type ?? 'terminal'}
+              </span>
+            )}
+            <button
+              onClick={() => move(i, -1)}
+              disabled={i === 0 || saving}
+              className="px-2 py-0.5 text-[12px] font-mono rounded border border-[var(--color-saul-border-strong)] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-soft)] disabled:opacity-30 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
+              aria-label="Move up"
+            >
+              ↑
+            </button>
+            <button
+              onClick={() => move(i, 1)}
+              disabled={i === order.length - 1 || saving}
+              className="px-2 py-0.5 text-[12px] font-mono rounded border border-[var(--color-saul-border-strong)] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-soft)] disabled:opacity-30 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
+              aria-label="Move down"
+            >
+              ↓
+            </button>
+          </li>
+        ))}
+      </ul>
+    </motion.section>
   )
 }

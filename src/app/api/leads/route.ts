@@ -114,8 +114,55 @@ export async function GET(req: NextRequest) {
     if (error) throw error
 
     const total = count ?? 0
+    const totalPages = Math.max(1, Math.ceil(total / limit))
+
+    // Aggregates for the leads page stats row. These are scoped to the
+    // current tenant but ignore the active filters on purpose -- the stats
+    // row is a global tenant snapshot, not a filtered view.
+    const monthStart = new Date()
+    monthStart.setUTCDate(1)
+    monthStart.setUTCHours(0, 0, 0, 0)
+    const monthStartIso = monthStart.toISOString()
+
+    const [
+      { count: redFlagCount },
+      { count: gregoryCount },
+      { count: convertedThisMonth },
+    ] = await Promise.all([
+      supabase
+        .from('leads')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .not('red_flags', 'eq', '[]')
+        .not('red_flags', 'is', null),
+      supabase
+        .from('leads')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .eq('assigned_to', 'gregory'),
+      supabase
+        .from('leads')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .eq('status', 'converted')
+        .gte('updated_at', monthStartIso),
+    ])
 
     return NextResponse.json({
+      data: data ?? [],
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages,
+        offset,
+        has_more: offset + limit < total,
+        red_flag_count: redFlagCount ?? 0,
+        gregory_count: gregoryCount ?? 0,
+        converted_this_month: convertedThisMonth ?? 0,
+      },
+      // Legacy fields kept for transitional compatibility; new clients
+      // should read `data` and `meta` instead.
       leads: data ?? [],
       total,
       page,
@@ -136,6 +183,8 @@ interface ImportLead {
   last_name?: string
   email?: string
   phone?: string
+  // city/state arrive from CSV but the leads table only has
+  // company_location -- we concatenate them into that column.
   city?: string
   state?: string
   source?: string
@@ -162,23 +211,28 @@ export async function POST(req: NextRequest) {
 
   const rows = leads
     .filter((l) => l.company_name?.trim())
-    .map((l) => ({
-      tenant_id,
-      company_name: l.company_name.trim(),
-      first_name: l.first_name?.trim() || null,
-      last_name: l.last_name?.trim() || null,
-      email: l.email?.trim() || null,
-      phone: l.phone?.trim() || null,
-      city: l.city?.trim() || null,
-      state: l.state?.trim() || null,
-      source: l.source?.trim() || 'api',
-      status: 'new' as const,
-      assigned_to: null,
-      score: null,
-      red_flags: [],
-      tags: [],
-      metadata: {},
-    }))
+    .map((l) => {
+      const city = l.city?.trim()
+      const state = l.state?.trim()
+      const company_location = [city, state].filter(Boolean).join(', ') || null
+      return {
+        tenant_id,
+        company_name: l.company_name.trim(),
+        first_name: l.first_name?.trim() || null,
+        last_name: l.last_name?.trim() || null,
+        email: l.email?.trim() || null,
+        phone: l.phone?.trim() || null,
+        // city/state collapse into company_location -- the leads table
+        // (per migration 001) has no city/state/tags/metadata columns.
+        company_location,
+        source: l.source?.trim() || 'api',
+        status: 'new' as const,
+        assigned_to: null,
+        score: 0,
+        red_flags: [],
+        score_breakdown: {},
+      }
+    })
 
   if (rows.length === 0) {
     return NextResponse.json({ error: 'No valid leads (company_name required)' }, { status: 400 })
