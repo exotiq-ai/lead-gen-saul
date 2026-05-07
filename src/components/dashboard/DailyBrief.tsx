@@ -58,6 +58,21 @@ interface BriefData {
   today_stats: TodayStats
   outliers: Outlier[]
   recent_activity: Activity[]
+  ai_insights: AiInsight[]
+}
+
+interface AiInsight {
+  id: string
+  type: string
+  priority: number
+  title: string
+  body: string
+  suggested_action: string | null
+  action_type: string | null
+  action_payload: Record<string, unknown> | null
+  lead_id: string | null
+  confidence: number | null
+  created_at: string
 }
 
 const ACTIVITY_ICONS: Record<string, React.ElementType> = {
@@ -170,6 +185,32 @@ export function DailyBrief({ isOpen, onClose }: DailyBriefProps) {
                 </div>
               ) : (
                 <div className="flex flex-col gap-5 p-5">
+                  {/* AI Daily Narrative — top of brief */}
+                  {(data?.ai_insights ?? []).filter(i => i.type === 'daily_narrative').slice(0, 1).map((insight) => (
+                    <div
+                      key={insight.id}
+                      className="px-4 py-3 rounded-[8px] bg-[color-mix(in_srgb,var(--color-saul-cyan)_6%,transparent)] border border-[color-mix(in_srgb,var(--color-saul-cyan)_15%,transparent)]"
+                    >
+                      <p className="text-[13px] text-[var(--color-saul-text-primary)] leading-relaxed">
+                        {insight.body}
+                      </p>
+                    </div>
+                  ))}
+
+                  {/* AI Action Cards — proactive intelligence */}
+                  {(data?.ai_insights ?? []).filter(i => i.type !== 'daily_narrative').length > 0 && (
+                    <Section title="AI Insights">
+                      <div className="flex flex-col gap-2">
+                        {(data?.ai_insights ?? [])
+                          .filter(i => i.type !== 'daily_narrative')
+                          .slice(0, 6)
+                          .map((insight) => (
+                            <InsightCard key={insight.id} insight={insight} />
+                          ))}
+                      </div>
+                    </Section>
+                  )}
+
                   {/* Priority Actions */}
                   <Section title="Priority Actions">
                     <div className="flex flex-col gap-2">
@@ -320,6 +361,50 @@ function StatCell({ icon: Icon, label, value }: { icon: React.ElementType; label
           {label}
         </span>
       </div>
+    </div>
+  )
+}
+
+const INSIGHT_TYPE_STYLES: Record<string, { border: string; icon: React.ElementType; iconColor: string }> = {
+  reply_analysis: { border: 'border-emerald-500/20', icon: ChatCircle, iconColor: 'text-emerald-400' },
+  dead_lead: { border: 'border-[var(--color-saul-warning)]/20', icon: Hourglass, iconColor: 'text-[var(--color-saul-warning)]' },
+  new_lead_assess: { border: 'border-[var(--color-saul-cyan)]/20', icon: Lightning, iconColor: 'text-[var(--color-saul-cyan)]' },
+  draft_quality: { border: 'border-violet-500/20', icon: PaperPlaneTilt, iconColor: 'text-violet-400' },
+  opportunity: { border: 'border-[var(--color-saul-cyan)]/20', icon: TrendUp, iconColor: 'text-[var(--color-saul-cyan)]' },
+  risk_alert: { border: 'border-[var(--color-saul-caution,var(--color-saul-danger))]/20', icon: Warning, iconColor: 'text-[var(--color-saul-caution,var(--color-saul-danger))]' },
+}
+
+function InsightCard({ insight }: { insight: AiInsight }) {
+  const style = INSIGHT_TYPE_STYLES[insight.type] ?? { border: 'border-[var(--color-saul-border)]', icon: Star, iconColor: 'text-[var(--color-saul-text-secondary)]' }
+  const Icon = style.icon
+
+  return (
+    <div className={`flex flex-col gap-2 py-3 px-3.5 rounded-[8px] bg-[var(--color-saul-overlay-soft)] border ${style.border}`}>
+      <div className="flex items-start gap-2.5">
+        <span className={`mt-0.5 shrink-0 ${style.iconColor}`}>
+          <Icon size={14} weight="fill" />
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-[12px] font-semibold text-[var(--color-saul-text-primary)] leading-tight">
+            {insight.title}
+          </p>
+          <p className="text-[11px] text-[var(--color-saul-text-secondary)] leading-snug mt-1">
+            {insight.body}
+          </p>
+        </div>
+        {insight.confidence != null && (
+          <span className="shrink-0 text-[10px] font-mono text-[var(--color-saul-text-tertiary)] tabular-nums">
+            {insight.confidence}%
+          </span>
+        )}
+      </div>
+      {insight.suggested_action && (
+        <div className="flex items-center gap-2 ml-6">
+          <span className="text-[11px] font-medium text-[var(--color-saul-cyan)] leading-tight">
+            → {insight.suggested_action}
+          </span>
+        </div>
+      )}
     </div>
   )
 }

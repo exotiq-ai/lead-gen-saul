@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
       repliesRes,
       scoreJumpsRes,
       staleRes,
+      insightsRes,
     ] = await Promise.all([
       // Recent activity (same as /api/dashboard/activity)
       supabase
@@ -124,6 +125,16 @@ export async function GET(req: NextRequest) {
         .lt('last_activity_at', new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString())
         .order('last_activity_at', { ascending: true })
         .limit(5),
+
+      // AI Insights — active insights from the agent
+      supabase
+        .from('agent_insights')
+        .select('id, insight_type, priority, title, body, suggested_action, action_type, action_payload, lead_id, confidence, created_at')
+        .eq('tenant_id', tenantId)
+        .eq('status', 'active')
+        .order('priority', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(15),
     ])
 
     // Build priority actions
@@ -185,11 +196,27 @@ export async function GET(req: NextRequest) {
       }
     })
 
+    // AI Insights — structured cards from the agent
+    const aiInsights = (insightsRes.data ?? []).map((row) => ({
+      id: row.id,
+      type: row.insight_type,
+      priority: row.priority,
+      title: row.title,
+      body: row.body,
+      suggested_action: row.suggested_action,
+      action_type: row.action_type,
+      action_payload: row.action_payload,
+      lead_id: row.lead_id,
+      confidence: row.confidence,
+      created_at: row.created_at,
+    }))
+
     return NextResponse.json({
       priority_actions: priorityActions,
       today_stats: todayStats,
       outliers,
       recent_activity: recentActivity,
+      ai_insights: aiInsights,
     })
   } catch (err) {
     console.error('[brief]', err)
