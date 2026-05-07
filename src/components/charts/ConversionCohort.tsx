@@ -155,7 +155,7 @@ export function ConversionCohort({ data: propData, demoMode = false }: Conversio
                 className="text-xs font-semibold text-right"
                 style={{
                   fontFamily: 'var(--font-mono)',
-                  color: delta >= 0 ? palette.success : palette.danger,
+                  color: delta >= 0 ? palette.success : palette.caution,
                 }}
               >
                 {delta >= 0 ? '+' : ''}{formatPercent(delta)}

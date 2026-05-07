@@ -39,7 +39,7 @@ function getBarColor(rate: number, palette: ChartPalette): string {
   if (rate >= 15) return palette.success
   if (rate >= 10) return palette.info
   if (rate >= 5) return palette.warning
-  return palette.danger
+  return palette.caution
 }
 
 interface SourceTooltipProps {
@@ -121,7 +121,7 @@ export function SourceAttribution({ data: propData, demoMode = false }: SourceAt
     { label: '≥15% conv', color: palette.success },
     { label: '10–15%', color: palette.info },
     { label: '5–10%', color: palette.warning },
-    { label: '<5%', color: palette.danger },
+    { label: '<5%', color: palette.caution },
   ]
 
   return (

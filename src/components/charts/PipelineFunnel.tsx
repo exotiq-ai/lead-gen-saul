@@ -32,14 +32,14 @@ function getScoreBadgeColor(score: number, palette: ChartPalette): string {
   if (score >= 80) return `${palette.success}33`
   if (score >= 60) return `${palette.info}33`
   if (score >= 40) return `${palette.warning}33`
-  return `${palette.danger}33`
+  return `${palette.caution}33`
 }
 
 function getScoreTextColor(score: number, palette: ChartPalette): string {
   if (score >= 80) return palette.success
   if (score >= 60) return palette.info
   if (score >= 40) return palette.warning
-  return palette.danger
+  return palette.caution
 }
 
 export function PipelineFunnel({

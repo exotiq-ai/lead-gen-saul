@@ -32,7 +32,7 @@ function getScoreConfig(score: number): { label: string; classes: string } {
   if (score >= 80) return { label: score.toString(), classes: TONAL.cyan }
   if (score >= 60) return { label: score.toString(), classes: TONAL.info }
   if (score >= 40) return { label: score.toString(), classes: TONAL.warning }
-  return { label: score.toString(), classes: TONAL.danger }
+  return { label: score.toString(), classes: 'bg-[rgba(139,149,168,0.12)] text-[var(--color-saul-text-secondary)] border-[rgba(139,149,168,0.25)]' }
 }
 
 const variantClasses: Record<Exclude<BadgeVariant, 'score'>, string> = {
