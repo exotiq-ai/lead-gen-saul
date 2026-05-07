@@ -1,7 +1,6 @@
 import { Suspense, type ReactNode } from 'react'
 import { Sidebar } from '@/components/dashboard/Sidebar'
 import { TopBar } from '@/components/dashboard/TopBar'
-import { ActivityFeed } from '@/components/dashboard/ActivityFeed'
 import { DashboardClientLayout } from './layout-client'
 import { TenantGuard } from '@/components/dashboard/TenantGuard'
 
@@ -18,7 +17,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </Suspense>
 
       {/* Center column: topbar + main content */}
-      <div className="flex flex-col flex-1 min-w-0 lg:ml-[240px] xl:mr-[280px]">
+      <div className="flex flex-col flex-1 min-w-0 lg:ml-[240px]">
         <Suspense fallback={null}>
           <TopBar />
         </Suspense>
@@ -30,13 +29,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </main>
       </div>
-
-      {/* Right rail: activity feed — xl+ only */}
-      <aside className="hidden xl:flex flex-col fixed right-0 top-[60px] bottom-0 w-[280px]">
-        <Suspense fallback={null}>
-          <ActivityFeed />
-        </Suspense>
-      </aside>
     </div>
   )
 }
