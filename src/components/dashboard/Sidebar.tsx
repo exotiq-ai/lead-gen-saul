@@ -15,6 +15,7 @@ import {
   CurrencyDollar,
   Gear,
   DownloadSimple,
+  TrendUp,
 } from '@phosphor-icons/react'
 import { TenantSelector } from './TenantSelector'
 import { useSidebarStore } from '@/stores/sidebarStore'
@@ -35,6 +36,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Outreach', href: '/dashboard/outreach', icon: PaperPlaneTilt },
   { label: 'Agents', href: '/dashboard/agents', icon: Robot },
   { label: 'Economics', href: '/dashboard/economics', icon: CurrencyDollar },
+  { label: 'ROI', href: '/dashboard/roi', icon: TrendUp },
   { label: 'Exports', href: '/dashboard/exports', icon: DownloadSimple },
   { label: 'Settings', href: '/dashboard/settings', icon: Gear },
 ]

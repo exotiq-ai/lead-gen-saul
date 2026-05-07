@@ -14,13 +14,13 @@ import {
 import { SkeletonKPI } from '@/components/ui'
 import { useDashboardStore } from '@/stores/dashboardStore'
 import { useTenantId } from '@/lib/hooks/useTenant'
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json())
+import { useDemoFetcher } from '@/lib/demo/useDemoFetcher'
 
 export function DashboardClient() {
   const TENANT = useTenantId()
   const router = useRouter()
   const { timeRange, setTimeRange } = useDashboardStore()
+  const fetcher = useDemoFetcher() as (url: string) => Promise<any> // eslint-disable-line @typescript-eslint/no-explicit-any
 
   const { data: kpisData, isLoading: kpisLoading, error: kpisError } =
     useSWR(`/api/dashboard/kpis?tenant_id=${TENANT}`, fetcher)

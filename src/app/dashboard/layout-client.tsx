@@ -3,6 +3,7 @@
 import { type ReactNode, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { ThemeProvider } from '@/components/dashboard/ThemeProvider'
+import { DemoProvider } from '@/lib/demo/DemoProvider'
 
 const TENANTS: Record<string, { id: string; name: string; icon: string }> = {
   exotiq: {
@@ -46,6 +47,7 @@ export function DashboardClientLayout({ children }: DashboardClientLayoutProps) 
   }, [tenant.id])
 
   return (
+    <DemoProvider>
     <div className="relative">
       <ThemeProvider />
       {/* Tenant switcher — sits below topbar, above content, no overlap */}
@@ -85,6 +87,7 @@ export function DashboardClientLayout({ children }: DashboardClientLayoutProps) 
       </div>
       {children}
     </div>
+    </DemoProvider>
   )
 }
 
