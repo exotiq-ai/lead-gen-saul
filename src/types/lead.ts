@@ -34,6 +34,8 @@ export interface RedFlag {
   flagged_at: string
 }
 
+export type LeadGrade = 'A' | 'B' | 'C' | 'D'
+
 export interface ScoreBreakdown {
   fleet_size: number
   fleet_tier: number
@@ -42,7 +44,7 @@ export interface ScoreBreakdown {
   operational_signals: number
   owner_named: number
   assigned_to: number
-  exotiq_tier: number
+  lead_grade: LeadGrade
   total: number
 }
 

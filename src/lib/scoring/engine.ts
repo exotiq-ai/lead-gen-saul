@@ -5,17 +5,21 @@ import { calculateIcpFitFromBreakdown, calculateMedSpaIcpFit, applyIcpProfileWei
 const MEDSPA_TENANT_ID = '11111111-1111-1111-1111-111111111111'
 import { detectRedFlags } from './redflags'
 
-function mapScoreToExotiqTier(total: number): 1 | 2 | 3 | 4 | 5 {
-  if (total >= 80) return 5
-  if (total >= 60) return 4
-  if (total >= 40) return 3
-  if (total >= 20) return 2
-  return 1
+export type LeadGrade = 'A' | 'B' | 'C' | 'D'
+
+// A 80+: Gregory personal. B 55–79: auto-draft outreach (aligned with
+// OUTREACH_SCORE_THRESHOLD=55). C 30–54: nurture, below outreach threshold.
+// D 0–29: disqualified / low fit.
+export function mapScoreToLeadGrade(total: number): LeadGrade {
+  if (total >= 80) return 'A'
+  if (total >= 55) return 'B'
+  if (total >= 30) return 'C'
+  return 'D'
 }
 
-function tierToAssigned(tier: 1 | 2 | 3 | 4 | 5): 'gregory' | 'team' | null {
-  if (tier === 5) return 'gregory'
-  if (tier === 1) return null
+function gradeToAssigned(grade: LeadGrade): 'gregory' | 'team' | null {
+  if (grade === 'A') return 'gregory'
+  if (grade === 'D') return null
   return 'team'
 }
 
@@ -78,8 +82,8 @@ export async function calculateScore(leadId: string, tenantId: string) {
     Math.max(0, Math.round(blendedIcp * 0.7 + engagement * 0.3)),
   )
 
-  const exotiq_tier = mapScoreToExotiqTier(total)
-  const assigned = tierToAssigned(exotiq_tier)
+  const lead_grade = mapScoreToLeadGrade(total)
+  const assigned = gradeToAssigned(lead_grade)
 
   const flags = detectRedFlags({
     company_industry: lead.company_industry as string | null,
@@ -93,7 +97,7 @@ export async function calculateScore(leadId: string, tenantId: string) {
   const newBreakdown = {
     ...breakdown,
     ...components,
-    exotiq_tier,
+    lead_grade,
     icp_fit: blendedIcp,
     engagement_score_raw: engagement,
     composite: total,
@@ -139,7 +143,7 @@ export async function calculateScore(leadId: string, tenantId: string) {
     score: total,
     icp_fit_score: blendedIcp,
     engagement_score: engagement,
-    exotiq_tier,
+    lead_grade,
     assigned_to: assigned,
   }
 }

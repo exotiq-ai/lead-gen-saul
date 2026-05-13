@@ -234,13 +234,20 @@ interface ScoreBreakdownRaw {
   market_city: string
   operational_signals: string[]
   owner_named: boolean
-  exotiq_tier: number
+  lead_grade: 'A' | 'B' | 'C' | 'D'
   // Point contributions
   fleet_size_pts: number
   vehicle_quality_pts: number
   market_tier_pts: number
   operational_signals_pts: number
   owner_named_pts: number
+}
+
+function gradeFromScore(s: number): 'A' | 'B' | 'C' | 'D' {
+  if (s >= 80) return 'A'
+  if (s >= 55) return 'B'
+  if (s >= 30) return 'C'
+  return 'D'
 }
 
 function buildScoreBreakdown(
@@ -270,11 +277,10 @@ function buildScoreBreakdown(
 
   const rawScore = fleetPts + qualityPts + marketPts + signalPts + ownerPts
 
-  // Exotiq tier from raw score
-  const exotiqTier = rawScore >= 80 ? 5 : rawScore >= 60 ? 4 : rawScore >= 40 ? 3 : rawScore >= 20 ? 2 : 1
+  const clampedScore = Math.min(100, rawScore)
 
   return {
-    score: Math.min(100, rawScore),
+    score: clampedScore,
     breakdown: {
       fleet_size: fleetSize,
       fleet_tier: fleetTier,
@@ -283,7 +289,7 @@ function buildScoreBreakdown(
       market_city: city,
       operational_signals: operationalSignals,
       owner_named: ownerNamed,
-      exotiq_tier: exotiqTier,
+      lead_grade: gradeFromScore(clampedScore),
       fleet_size_pts: fleetPts,
       vehicle_quality_pts: qualityPts,
       market_tier_pts: marketPts,
@@ -368,7 +374,7 @@ function buildWhaleLead(i: number): SeedLead {
     source: pickWeighted(SOURCES),
     source_detail: null,
     score: Math.max(80, Math.min(100, score)),
-    score_breakdown: { ...breakdown, exotiq_tier: 5 },
+    score_breakdown: { ...breakdown, lead_grade: 'A' as const },
     icp_fit_score: randInt(85, 100),
     engagement_score: randInt(70, 95),
     red_flags: [],
@@ -415,7 +421,7 @@ function buildStrongLead(i: number): SeedLead {
     source: pickWeighted(SOURCES),
     source_detail: null,
     score: Math.max(60, Math.min(79, score + randInt(0, 10))),
-    score_breakdown: { ...breakdown, exotiq_tier: 4 },
+    score_breakdown: { ...breakdown, lead_grade: 'B' as const },
     icp_fit_score: randInt(65, 85),
     engagement_score: randInt(50, 80),
     red_flags: [],
@@ -463,7 +469,7 @@ function buildSolidLead(i: number): SeedLead {
     source: pickWeighted(SOURCES),
     source_detail: null,
     score: Math.max(40, Math.min(59, score + randInt(-5, 10))),
-    score_breakdown: { ...breakdown, exotiq_tier: 3 },
+    score_breakdown: { ...breakdown, lead_grade: 'C' as const },
     icp_fit_score: randInt(45, 65),
     engagement_score: randInt(30, 55),
     red_flags: [],
@@ -507,7 +513,7 @@ function buildLaterLead(i: number): SeedLead {
     source: pickWeighted(SOURCES),
     source_detail: null,
     score: Math.max(20, Math.min(39, score + randInt(-10, 5))),
-    score_breakdown: { ...breakdown, exotiq_tier: 2 },
+    score_breakdown: { ...breakdown, lead_grade: 'D' as const },
     icp_fit_score: randInt(25, 45),
     engagement_score: randInt(10, 30),
     red_flags: [],
@@ -549,7 +555,7 @@ function buildDisqualifiedLead(i: number, redFlagCode: string, redFlagReason: st
     source: pickWeighted(SOURCES),
     source_detail: null,
     score: Math.max(0, Math.min(19, score - randInt(10, 30))),
-    score_breakdown: { ...breakdown, exotiq_tier: 1 },
+    score_breakdown: { ...breakdown, lead_grade: 'D' as const },
     icp_fit_score: randInt(0, 20),
     engagement_score: 0,
     red_flags: [{
@@ -954,7 +960,10 @@ export async function seed() {
   const allActivities: SeedActivity[] = []
 
   allLeads.forEach(lead => {
-    const tier = lead.score_breakdown.exotiq_tier as 1 | 2 | 3 | 4 | 5
+    // buildActivities still expects a 1-5 tier for fake-activity volume.
+    // Derive it from score so we don't have to touch the activity builder.
+    const s = lead.score ?? 0
+    const tier: 1 | 2 | 3 | 4 | 5 = s >= 80 ? 5 : s >= 60 ? 4 : s >= 40 ? 3 : s >= 20 ? 2 : 1
     const acts = buildActivities(lead, tier)
     allActivities.push(...acts)
   })
