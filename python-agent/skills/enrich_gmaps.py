@@ -106,7 +106,7 @@ def process_gmaps_enrichment(
 
     # Find new leads for this tenant
     resp = db.table("leads")\
-        .select("id, company_name, city, state, metadata")\
+        .select("id, company_name, company_location")\
         .eq("tenant_id", tenant_id)\
         .eq("status", "new")\
         .limit(batch_size)\
@@ -131,8 +131,10 @@ def process_gmaps_enrichment(
             continue
 
         company = lead.get("company_name") or ""
-        city = lead.get("city") or ""
-        state = lead.get("state") or ""
+        # company_location is "City, ST" format — split for Google Places search
+        location_parts = (lead.get("company_location") or "").split(",", 1)
+        city = location_parts[0].strip() if location_parts else ""
+        state = location_parts[1].strip() if len(location_parts) > 1 else ""
 
         if not company:
             skipped += 1

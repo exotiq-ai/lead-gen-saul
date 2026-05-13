@@ -190,7 +190,7 @@ def draft_outreach(
 
     # Leads that are scored and above threshold
     resp = db.table("leads")\
-        .select("id, first_name, last_name, company_name, score, metadata")\
+        .select("id, first_name, last_name, company_name, score, company_location, company_industry")\
         .eq("tenant_id", tenant_id)\
         .eq("status", "scored")\
         .gte("score", OUTREACH_SCORE_THRESHOLD)\
