@@ -4,15 +4,30 @@ Lead Discovery Skill.
 Searches the web for exotic car rental operators in target markets,
 filters out major corporations, and inserts new leads into Supabase.
 Deduplicates against existing leads by company name.
+
+Cadence: under cron-style invocation the orchestrator can't rely on an
+in-process counter, so we check ``agent_runs`` for the last successful
+sourcing run per tenant. Discovery is skipped when the last successful
+run is younger than DISCOVERY_MIN_INTERVAL_SECONDS.
+
+Multi-tenant: this skill only knows how to discover exotic-car-rental
+operators. The MedSpa tenant has a different ICP, so discovery is
+short-circuited for that tenant until a dedicated discover_gmaps.py
+is built.
 """
 
 import re
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any
 
 from db import get_db
-from config import DISCOVERY_MAX_PER_RUN, RATE_LIMIT_DELAY
+from config import (
+    DISCOVERY_MAX_PER_RUN,
+    DISCOVERY_MIN_INTERVAL_SECONDS,
+    MEDSPA_TENANT_ID,
+    RATE_LIMIT_DELAY,
+)
 
 EXCLUSION_LIST = {"hertz", "enterprise", "avis", "budget", "sixt", "thrifty", "dollar", "turo"}
 DOMAIN_RE = re.compile(r"https?://(?:www\.)?([^/]+)")
@@ -67,16 +82,68 @@ def _search_web(query: str) -> list:
         return []
 
 
+def _last_discovery_age_seconds(tenant_id: str) -> float:
+    """Return seconds since the last successful sourcing run for this tenant.
+
+    Returns a large number (effectively +inf) if no prior successful run
+    exists, so the caller treats it as 'overdue'."""
+    try:
+        db = get_db()
+        resp = db.table("agent_runs")\
+            .select("completed_at")\
+            .eq("tenant_id", tenant_id)\
+            .eq("agent_type", "sourcing")\
+            .eq("status", "completed")\
+            .order("completed_at", desc=True)\
+            .limit(1)\
+            .execute()
+        rows = resp.data or []
+        if not rows or not rows[0].get("completed_at"):
+            return float("inf")
+        last = datetime.fromisoformat(rows[0]["completed_at"].replace("Z", "+00:00"))
+        return (datetime.now(timezone.utc) - last).total_seconds()
+    except Exception as e:
+        print(f"  ! discovery cadence check failed: {e}")
+        return float("inf")  # fail open — better to run than silently skip
+
+
 def discover_leads(
     tenant_id: str = DEFAULT_TENANT_ID,
     markets: list = None,
     max_leads: int = DISCOVERY_MAX_PER_RUN,
+    force: bool = False,
 ) -> dict[str, Any]:
     """
     Discover new leads in target markets and insert them into the database.
 
     Returns a summary dict with counts.
     """
+    # MedSpa uses a different ICP; this skill's queries don't apply.
+    if tenant_id == MEDSPA_TENANT_ID:
+        summary = {
+            "skipped": True,
+            "reason": "medspa_tenant_uses_csv_import_until_discover_gmaps_exists",
+            "discovered": 0,
+            "leads_processed": 0,
+            "cost_cents": 0,
+        }
+        print(f"Discovery skipped (MedSpa tenant): {summary}")
+        return summary
+
+    # DB-based cadence gate: avoid hammering search APIs on every cron tick.
+    if not force:
+        age = _last_discovery_age_seconds(tenant_id)
+        if age < DISCOVERY_MIN_INTERVAL_SECONDS:
+            summary = {
+                "skipped": True,
+                "reason": f"last_run_{int(age)}s_ago_min_{DISCOVERY_MIN_INTERVAL_SECONDS}s",
+                "discovered": 0,
+                "leads_processed": 0,
+                "cost_cents": 0,
+            }
+            print(f"Discovery skipped (cadence): {summary}")
+            return summary
+
     db = get_db()
     existing = _get_existing_companies(tenant_id)
     target_markets = markets or TARGET_MARKETS

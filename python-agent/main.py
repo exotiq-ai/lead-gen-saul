@@ -14,44 +14,51 @@ Design principles:
   Gregory or Ariella clicks Approve in the dashboard.
   Nothing goes out automatically.
 
-This is Phase 1 of the autonomous pipeline.
-Phase 2 (auto-send after template trust established) comes later.
+Invocation modes:
+  python main.py           # default: run one cycle and exit (for cron)
+  python main.py --once    # explicit one-shot
+  python main.py --loop    # legacy in-process 15-min schedule for local dev
+
+Discovery cadence is governed by the DB (last successful sourcing run
+per tenant) rather than an in-process counter so cron invocations don't
+re-run discovery on every tick.
 """
 
-import logging
-import time
+import argparse
 import json
+import logging
 import sys
+import time
 from datetime import datetime, timezone
-from pathlib import Path
 
 import schedule
 
 from db import get_db
-from config import SUPABASE_URL
+from config import (
+    APP_BASE_URL,
+    DEFAULT_TENANT_ID,
+    MEDSPA_TENANT_ID,
+    SUPABASE_URL,
+    check_required_config,
+)
 from skills.discover import discover_leads
+from skills.draft import draft_outreach
 from skills.enrich import process_enrichment_queue
 from skills.enrich_gmaps import process_gmaps_enrichment
-from skills.score import process_scoring_queue
-from skills.draft import draft_outreach
 from skills.ghl_poll import poll_ghl
 from skills.insights import generate_insights
+from skills.score import process_scoring_queue
 
-# Logging setup: structured JSON lines for easy ingestion
 logging.basicConfig(
     level=logging.INFO,
     format="%(message)s",
     stream=sys.stdout,
 )
 
-DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001"
-MEDSPA_TENANT_ID = "11111111-1111-1111-1111-111111111111"
 ALL_TENANTS = [DEFAULT_TENANT_ID, MEDSPA_TENANT_ID]
-RUN_DISCOVERY_EVERY_N_CYCLES = 4  # Discover new leads every 4 cycles (~1 hour)
-_cycle_count = 0
 
 
-def _log(event: str, data: dict = None):
+def _log(event: str, data: dict | None = None):
     entry = {
         "ts": datetime.now(timezone.utc).isoformat(),
         "event": event,
@@ -63,10 +70,8 @@ def _log(event: str, data: dict = None):
 def log_agent_run(tenant_id: str, agent_type: str, status: str, data: dict, duration_ms: int):
     """Write an agent_runs record to Supabase for the dashboard.
 
-    Stage 3c: extract cost_cents and tokens_used from the skill summary
-    if present so /dashboard/economics shows real numbers instead of all
-    zeros. Skills emit these via the cost_cents/tokens_used keys (see
-    python-agent/costs.py for rates)."""
+    Extracts cost_cents and tokens_used from the skill summary when
+    present so /dashboard/economics shows real numbers."""
     try:
         cost_cents = int(data.get("cost_cents") or 0) if isinstance(data, dict) else 0
         tokens_used = int(data.get("tokens_used") or 0) if isinstance(data, dict) else 0
@@ -88,135 +93,121 @@ def log_agent_run(tenant_id: str, agent_type: str, status: str, data: dict, dura
         _log("agent_run_log_error", {"error": str(e)})
 
 
+def _run_step(tenant_id: str, step_name: str, agent_type: str, fn):
+    """Run one pipeline step with uniform logging + agent_runs persistence."""
+    _log("step_start", {"step": step_name, "tenant_id": tenant_id})
+    t = time.time()
+    try:
+        result = fn()
+        log_agent_run(tenant_id, agent_type, "completed", result or {}, int((time.time() - t) * 1000))
+        _log("step_complete", {"step": step_name, **(result or {})})
+    except Exception as e:
+        err = {"error": str(e)}
+        log_agent_run(tenant_id, agent_type, "failed", err, int((time.time() - t) * 1000))
+        _log("step_error", {"step": step_name, **err})
+
+
 def run_pipeline(tenant_id: str = DEFAULT_TENANT_ID):
     """
-    Execute the full pipeline cycle.
-    Each step is wrapped in a try/except so one failure
-    doesn't abort the rest of the pipeline.
+    Execute the full pipeline cycle for a single tenant.
+
+    Discovery cadence is gated inside discover.py via the DB, so we
+    always call every step. The skill decides whether to actually do
+    work or skip on cooldown.
     """
-    global _cycle_count
-    _cycle_count += 1
     cycle_start = time.time()
+    _log("pipeline_start", {"tenant_id": tenant_id})
 
-    _log("pipeline_start", {"cycle": _cycle_count, "tenant_id": tenant_id})
+    _run_step(tenant_id, "discover", "sourcing", lambda: discover_leads(tenant_id=tenant_id))
 
-    # -----------------------------------------------------------------------
-    # Step 1: Discovery (runs every N cycles to avoid hammering search APIs)
-    # -----------------------------------------------------------------------
-    if _cycle_count % RUN_DISCOVERY_EVERY_N_CYCLES == 1:
-        _log("step_start", {"step": "discover"})
-        t = time.time()
-        try:
-            discovery_result = discover_leads(tenant_id=tenant_id)
-            log_agent_run(tenant_id, "sourcing", "completed", discovery_result, int((time.time() - t) * 1000))
-            _log("step_complete", {"step": "discover", **discovery_result})
-        except Exception as e:
-            _log("step_error", {"step": "discover", "error": str(e)})
-            log_agent_run(tenant_id, "sourcing", "failed", {"error": str(e)}, int((time.time() - t) * 1000))
+    if tenant_id == MEDSPA_TENANT_ID:
+        _run_step(tenant_id, "enrich", "enrichment", lambda: process_gmaps_enrichment(tenant_id=tenant_id))
     else:
-        _log("step_skipped", {"step": "discover", "reason": f"cycle {_cycle_count} mod {RUN_DISCOVERY_EVERY_N_CYCLES} != 1"})
+        _run_step(tenant_id, "enrich", "enrichment", lambda: process_enrichment_queue(tenant_id=tenant_id))
 
-    # -----------------------------------------------------------------------
-    # Step 2: Enrichment -- queue new leads into Apollo (or Google Maps for MedSpa)
-    # -----------------------------------------------------------------------
-    _log("step_start", {"step": "enrich"})
-    t = time.time()
-    try:
-        if tenant_id == MEDSPA_TENANT_ID:
-            enrich_result = process_gmaps_enrichment(tenant_id=tenant_id)
-        else:
-            enrich_result = process_enrichment_queue(tenant_id=tenant_id)
-        log_agent_run(tenant_id, "enrichment", "completed", enrich_result, int((time.time() - t) * 1000))
-        _log("step_complete", {"step": "enrich", **enrich_result})
-    except Exception as e:
-        _log("step_error", {"step": "enrich", "error": str(e)})
-        log_agent_run(tenant_id, "enrichment", "failed", {"error": str(e)}, int((time.time() - t) * 1000))
+    _run_step(tenant_id, "score", "scoring", lambda: process_scoring_queue(tenant_id=tenant_id))
+    _run_step(tenant_id, "ghl_poll", "ghl_poll", lambda: poll_ghl(tenant_id=tenant_id))
+    _run_step(tenant_id, "draft", "outreach", lambda: draft_outreach(tenant_id=tenant_id))
+    _run_step(tenant_id, "insights", "insights", lambda: generate_insights(tenant_id=tenant_id))
 
-    # -----------------------------------------------------------------------
-    # Step 3: Scoring -- score leads that completed enrichment
-    # -----------------------------------------------------------------------
-    _log("step_start", {"step": "score"})
-    t = time.time()
-    try:
-        score_result = process_scoring_queue(tenant_id=tenant_id)
-        log_agent_run(tenant_id, "scoring", "completed", score_result, int((time.time() - t) * 1000))
-        _log("step_complete", {"step": "score", **score_result})
-    except Exception as e:
-        _log("step_error", {"step": "score", "error": str(e)})
-        log_agent_run(tenant_id, "scoring", "failed", {"error": str(e)}, int((time.time() - t) * 1000))
-
-    # -----------------------------------------------------------------------
-    # Step 3.5: GHL polling -- pick up replies and new activity from GHL
-    # -----------------------------------------------------------------------
-    _log("step_start", {"step": "ghl_poll"})
-    t = time.time()
-    try:
-        ghl_result = poll_ghl(tenant_id=tenant_id)
-        log_agent_run(tenant_id, "ghl_poll", "completed", ghl_result, int((time.time() - t) * 1000))
-        _log("step_complete", {"step": "ghl_poll", **ghl_result})
-    except Exception as e:
-        _log("step_error", {"step": "ghl_poll", "error": str(e)})
-        log_agent_run(tenant_id, "ghl_poll", "failed", {"error": str(e)}, int((time.time() - t) * 1000))
-
-    # -----------------------------------------------------------------------
-    # Step 4: Draft outreach for qualified leads
-    # -----------------------------------------------------------------------
-    _log("step_start", {"step": "draft"})
-    t = time.time()
-    try:
-        draft_result = draft_outreach(tenant_id=tenant_id)
-        log_agent_run(tenant_id, "outreach", "completed", draft_result, int((time.time() - t) * 1000))
-        _log("step_complete", {"step": "draft", **draft_result})
-    except Exception as e:
-        _log("step_error", {"step": "draft", "error": str(e)})
-        log_agent_run(tenant_id, "outreach", "failed", {"error": str(e)}, int((time.time() - t) * 1000))
-
-    # -----------------------------------------------------------------------
-    # Step 5: AI Insights — proactive intelligence for the Daily Brief
-    # Runs after GHL poll + scoring so it has fresh context.
-    # Generates: reply analysis, dead lead diagnosis, new lead assessment,
-    # draft quality scoring, and daily narrative.
-    # -----------------------------------------------------------------------
-    _log("step_start", {"step": "insights"})
-    t = time.time()
-    try:
-        insights_result = generate_insights(tenant_id=tenant_id)
-        log_agent_run(tenant_id, "insights", "completed", insights_result, int((time.time() - t) * 1000))
-        _log("step_complete", {"step": "insights", **insights_result})
-    except Exception as e:
-        _log("step_error", {"step": "insights", "error": str(e)})
-        log_agent_run(tenant_id, "insights", "failed", {"error": str(e)}, int((time.time() - t) * 1000))
-
-    # -----------------------------------------------------------------------
-    # Done
-    # -----------------------------------------------------------------------
     total_ms = int((time.time() - cycle_start) * 1000)
-    _log("pipeline_complete", {
-        "cycle": _cycle_count,
-        "duration_ms": total_ms,
-        "next_run_in": "15m",
-    })
+    _log("pipeline_complete", {"tenant_id": tenant_id, "duration_ms": total_ms})
+
+
+def run_all_tenants():
+    for tid in ALL_TENANTS:
+        try:
+            run_pipeline(tenant_id=tid)
+        except Exception as e:
+            _log("pipeline_tenant_error", {"tenant_id": tid, "error": str(e)})
+
+
+def _startup_health_check(strict: bool) -> bool:
+    """Validate env and reachability before doing work.
+
+    Returns True if healthy, False otherwise. In ``strict`` mode (cron / prod)
+    we abort on failure; in non-strict mode (local --loop) we warn and continue.
+    """
+    missing = check_required_config(strict=strict)
+    if missing:
+        _log("startup_health_fail", {"missing_or_invalid": missing})
+        return False
+
+    # Supabase reachability — cheap count query.
+    try:
+        db = get_db()
+        db.table("tenants").select("id", count="exact", head=True).limit(1).execute()
+    except Exception as e:
+        _log("startup_health_fail", {"check": "supabase", "error": str(e)})
+        return False
+
+    # Next.js reachability — APP_BASE_URL must answer. We use the dashboard
+    # kpis endpoint as a cheap GET. Don't fail the whole startup on a
+    # transient 5xx; only on hard connection failures.
+    try:
+        import requests
+        r = requests.get(f"{APP_BASE_URL}/api/dashboard/kpis?tenant_id={DEFAULT_TENANT_ID}", timeout=10)
+        if r.status_code >= 500:
+            _log("startup_health_warn", {"check": "nextjs", "status": r.status_code})
+    except Exception as e:
+        _log("startup_health_warn", {"check": "nextjs", "error": str(e)})
+        # Soft-warn rather than abort: enrich/score will surface failures
+        # explicitly via agent_runs.
+
+    _log("startup_health_ok", {"app_base_url": APP_BASE_URL})
+    return True
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Saul agent orchestrator")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--once", action="store_true", help="Run one cycle for all tenants and exit (default)")
+    mode.add_argument("--loop", action="store_true", help="Legacy: run an in-process 15-minute schedule (local dev)")
+    args = parser.parse_args()
+
+    use_loop = args.loop and not args.once
+
     _log("agent_service_start", {
         "supabase_url": SUPABASE_URL,
-        "schedule": "every 15 minutes",
+        "app_base_url": APP_BASE_URL,
+        "mode": "loop" if use_loop else "once",
         "tenants": ALL_TENANTS,
     })
 
-    def run_all_tenants():
-        for tid in ALL_TENANTS:
-            run_pipeline(tenant_id=tid)
+    healthy = _startup_health_check(strict=not use_loop)
+    if not healthy and not use_loop:
+        _log("agent_service_abort", {"reason": "startup_health_failed"})
+        sys.exit(1)
 
-    # Run immediately on startup, then every 15 minutes
-    run_all_tenants()
-
-    schedule.every(15).minutes.do(run_all_tenants)
-
-    while True:
-        schedule.run_pending()
-        time.sleep(30)
+    if use_loop:
+        run_all_tenants()
+        schedule.every(15).minutes.do(run_all_tenants)
+        while True:
+            schedule.run_pending()
+            time.sleep(30)
+    else:
+        run_all_tenants()
+        _log("agent_service_exit", {"mode": "once"})
 
 
 if __name__ == "__main__":
