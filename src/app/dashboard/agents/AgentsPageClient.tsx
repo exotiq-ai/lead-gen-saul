@@ -14,7 +14,7 @@ const SOUL_EXCERPT = `## Voice
 - You flag junk (dealerships, brokers, sub-5 fleet) without drama — then move on.
 
 ## Operating mode
-- OpenClaw Gateway: you own the session lane; tools are your hands; Supabase is the world state.
+- Railway Cron: pipeline runs every 15 minutes; Supabase is the world state.
 - Sub-agents for parallel work; you merge their outputs into one truth in the DB.
 
 ## Hard rules
@@ -22,12 +22,12 @@ const SOUL_EXCERPT = `## Voice
 - Every lead change → log to lead_activities; re-score when engagement changes.`
 
 const AGENT_LABEL: Record<string, string> = {
-  orchestrator: 'Saul — Orchestrator',
-  sourcing: 'Sourcing',
+  sourcing: 'Discovery',
   enrichment: 'Enrichment',
   scoring: 'Scoring',
-  outreach: 'Outreach',
-  qualifier: 'Qualifier',
+  ghl_poll: 'GHL Polling',
+  outreach: 'Outreach Drafts',
+  insights: 'AI Insights',
 }
 
 const fetcher = (url: string) => fetch(url).then((r) => {
@@ -114,11 +114,11 @@ export function AgentsPageClient() {
           <div className="flex items-center gap-2 mb-1">
             <Robot className="text-[var(--color-saul-cyan)]" size={32} weight="duotone" />
             <h1 className="text-2xl font-bold text-[var(--color-saul-text-primary)] font-mono tracking-tight">
-              OpenClaw — Saul layer
+              Saul Agent Pipeline
             </h1>
           </div>
           <p className="text-[14px] text-[var(--color-saul-text-secondary)] max-w-2xl">
-            Gateway status, sub-agent health, and run log. Mirrors the OpenClaw agent loop: lifecycle → tool stream → persistence in Supabase.
+            Pipeline status, skill health, and run log from Railway cron. Shows discover → enrich → score → GHL poll → draft → insights cycle.
           </p>
         </header>
 
@@ -328,7 +328,7 @@ export function AgentsPageClient() {
         <div className="sticky top-6 rounded-lg border border-[color-mix(in_srgb,var(--color-saul-cyan)_15%,transparent)] bg-[var(--color-saul-bg-900)] overflow-hidden">
           <div className="px-3 py-2 border-b border-[color-mix(in_srgb,var(--color-saul-cyan)_10%,transparent)] flex items-center justify-between bg-[color-mix(in_srgb,var(--color-saul-cyan)_6%,transparent)]">
             <span className="text-[11px] font-mono text-[var(--color-saul-cyan)]">SOUL.md</span>
-            <span className="text-[10px] text-[var(--color-saul-text-secondary)]">OpenClaw personality</span>
+            <span className="text-[10px] text-[var(--color-saul-text-secondary)]">Agent personality</span>
           </div>
           <pre className="p-4 text-[11px] leading-relaxed text-[var(--color-saul-text-primary)]/90 font-mono whitespace-pre-wrap max-h-[70vh] overflow-y-auto">
             {SOUL_EXCERPT}

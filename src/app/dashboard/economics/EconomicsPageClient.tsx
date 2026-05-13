@@ -111,7 +111,7 @@ const AGENT_LABELS: Record<string, string> = {
 
 // ─── Budget Gauge ─────────────────────────────────────────────────────────────
 
-function BudgetGauge({ pct, palette }: { pct: number; palette: ChartPalette }) {
+function BudgetGauge({ pct, budget_cents, palette }: { pct: number; budget_cents: number; palette: ChartPalette }) {
   const cx = 100
   const cy = 105
   const r  = 72
@@ -180,7 +180,7 @@ function BudgetGauge({ pct, palette }: { pct: number; palette: ChartPalette }) {
         fontSize="10"
         fontFamily="'Plus Jakarta Sans', sans-serif"
       >
-        of $5,000 budget
+        of ${Math.round((budget_cents || 500000) / 100).toLocaleString()} budget
       </text>
 
       {/* Color status dot */}
@@ -192,7 +192,7 @@ function BudgetGauge({ pct, palette }: { pct: number; palette: ChartPalette }) {
 // ─── Weekly Spend Bars ────────────────────────────────────────────────────────
 
 function WeeklySpendBars({ token_daily, monthly_spend_cents, palette }: { token_daily: TokenDay[]; monthly_spend_cents: number; palette: ChartPalette }) {
-  const now = new Date('2026-04-23')
+  const now = new Date()
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
 
   const weeks: { label: string; cents: number }[] = [
@@ -395,11 +395,11 @@ export function EconomicsPageClient({ data, error }: Props) {
       {/* ── Section 1: KPI Row ───────────────────────────────────────────── */}
       <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
         {([
-          { title: 'Total Spend',       value: (data?.total_spend_cents ?? 84700) / 100,       trend: -4.2,  trendLabel: 'vs last month', accentColor: palette.primary },
-          { title: 'Monthly Spend',     value: (data?.monthly_spend_cents ?? 31200) / 100,     trend: -8.1,  trendLabel: 'vs last month', accentColor: palette.primary },
-          { title: 'Cost / Lead',       value: (data?.cost_per_lead_cents ?? 169) / 100,       trend: -12.4, trendLabel: 'improving',     accentColor: palette.primary },
-          { title: 'Cost / Qualified',  value: (data?.cost_per_qualified_cents ?? 1412) / 100, trend: -6.7,  trendLabel: 'improving',     accentColor: palette.warning },
-          { title: 'Cost / Conversion', value: (data?.cost_per_conversion_cents ?? 2732) / 100, trend: -3.9, trendLabel: 'improving',    accentColor: palette.violet },
+          { title: 'Total Spend',       value: (data?.total_spend_cents ?? 0) / 100,       accentColor: palette.primary },
+          { title: 'Monthly Spend',     value: (data?.monthly_spend_cents ?? 0) / 100,     accentColor: palette.primary },
+          { title: 'Cost / Lead',       value: (data?.cost_per_lead_cents ?? 0) / 100,       accentColor: palette.primary },
+          { title: 'Cost / Qualified',  value: (data?.cost_per_qualified_cents ?? 0) / 100, accentColor: palette.warning },
+          { title: 'Cost / Conversion', value: (data?.cost_per_conversion_cents ?? 0) / 100, accentColor: palette.violet },
         ] as const).map((card, i) => (
           <motion.div
             key={card.title}
@@ -411,8 +411,6 @@ export function EconomicsPageClient({ data, error }: Props) {
               title={card.title}
               value={card.value}
               format="currency"
-              trend={card.trend}
-              trendLabel={card.trendLabel}
               accentColor={card.accentColor}
             />
           </motion.div>
@@ -435,14 +433,14 @@ export function EconomicsPageClient({ data, error }: Props) {
             className="text-[10px] font-medium px-1.5 py-0.5 rounded"
             style={{ background: 'var(--color-saul-overlay-low)', color: 'var(--color-saul-text-tertiary)', fontFamily: 'var(--font-mono)' }}
           >
-            Monthly · $5,000 cap
+            Monthly · ${Math.round((data?.monthly_budget_cents ?? 500000) / 100).toLocaleString()} cap
           </span>
         </div>
 
         <div className="flex items-start gap-8">
           {/* Gauge */}
           <div className="flex flex-col items-center gap-2 shrink-0">
-            <BudgetGauge pct={data?.budget_used_pct ?? 6.24} palette={palette} />
+            <BudgetGauge pct={data?.budget_used_pct ?? 0} budget_cents={data?.monthly_budget_cents ?? 500000} palette={palette} />
             <div className="flex items-center gap-3 text-center">
               <div className="flex flex-col items-center gap-0.5">
                 <span style={{ fontSize: 10, color: palette.textTertiary, fontFamily: 'var(--font-mono)' }}>Used</span>
@@ -533,7 +531,7 @@ export function EconomicsPageClient({ data, error }: Props) {
                 <span style={{ color: (data?.budget_used_pct ?? 6) < 60 ? palette.primary : palette.warning }}>
                   {(data?.budget_used_pct ?? 6.24).toFixed(1)}% used
                 </span>
-                <span>$5,000</span>
+                <span>${Math.round((data?.monthly_budget_cents ?? 500000) / 100).toLocaleString()}</span>
               </div>
             </div>
 

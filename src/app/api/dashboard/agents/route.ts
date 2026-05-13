@@ -6,12 +6,12 @@ import { agentsDashboardQuerySchema } from '@/lib/validation/schemas'
 export const runtime = 'nodejs'
 
 const AGENT_TYPES = [
-  'orchestrator',
   'sourcing',
   'enrichment',
   'scoring',
+  'ghl_poll',
   'outreach',
-  'qualifier',
+  'insights',
 ] as const
 
 const MS = {
@@ -92,11 +92,9 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     gateway: {
       status: gatewayStatus,
-      protocol: 'OpenClaw WebSocket (Gateway)',
-      // null when we genuinely have no signal -- callers should render
-      // a dash, not a faked "now".
+      protocol: 'Railway Cron (15-min cycle)',
       last_heartbeat: lastHeartbeat,
-      model: process.env.SAUL_MODEL_NAME || 'claude-sonnet-4',
+      model: process.env.INSIGHTS_MODEL || 'gpt-4o-mini',
     },
     cron: {
       interval_minutes: 15,

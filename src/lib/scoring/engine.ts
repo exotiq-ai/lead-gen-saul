@@ -39,6 +39,7 @@ export async function calculateScore(leadId: string, tenantId: string) {
       company_name,
       email,
       last_activity_at,
+      created_at,
       red_flags
     `,
     )
@@ -86,6 +87,7 @@ export async function calculateScore(leadId: string, tenantId: string) {
     company_name: lead.company_name as string | null,
     email: lead.email as string | null,
     last_activity_at: lead.last_activity_at as string | null,
+    created_at: lead.created_at as string | null,
     red_flags: lead.red_flags,
     score_breakdown: lead.score_breakdown,
   })
