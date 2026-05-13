@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Saul LeadGen — How It All Works</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #0A0E17; color: #F0F2F5; padding: 40px 20px; line-height: 1.6; }
+  .container { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 28px; margin-bottom: 8px; color: #00D4AA; }
+  .subtitle { font-size: 14px; color: #8B95A8; margin-bottom: 40px; }
+  h2 { font-size: 20px; margin: 40px 0 16px; color: #F0F2F5; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px; }
+  h3 { font-size: 16px; margin: 24px 0 12px; color: #00D4AA; }
+  p { color: #8B95A8; margin-bottom: 12px; font-size: 14px; }
+  .highlight { color: #F0F2F5; }
+
+  /* Architecture diagram */
+  .diagram { background: #151B2E; border-radius: 12px; padding: 32px; margin: 24px 0; border: 1px solid rgba(255,255,255,0.06); }
+  .diagram-row { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 16px 0; flex-wrap: wrap; }
+  .box { padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; text-align: center; min-width: 130px; }
+  .box-green { background: rgba(0,212,170,0.12); border: 1px solid rgba(0,212,170,0.3); color: #00D4AA; }
+  .box-blue { background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.3); color: #3B82F6; }
+  .box-purple { background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.3); color: #A855F7; }
+  .box-amber { background: rgba(255,174,66,0.12); border: 1px solid rgba(255,174,66,0.3); color: #FFAE42; }
+  .box-slate { background: rgba(139,149,168,0.08); border: 1px solid rgba(139,149,168,0.2); color: #8B95A8; }
+  .arrow { color: #4A5568; font-size: 20px; }
+  .arrow-down { text-align: center; color: #4A5568; font-size: 20px; margin: 8px 0; }
+
+  /* Pipeline steps */
+  .pipeline { display: flex; flex-direction: column; gap: 2px; margin: 16px 0; }
+  .step { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: rgba(255,255,255,0.02); border-radius: 6px; }
+  .step-num { width: 24px; height: 24px; border-radius: 50%; background: rgba(0,212,170,0.15); color: #00D4AA; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .step-text { font-size: 13px; color: #F0F2F5; }
+  .step-desc { font-size: 12px; color: #8B95A8; }
+
+  /* Cards */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin: 16px 0; }
+  .card { background: #151B2E; border-radius: 10px; padding: 20px; border: 1px solid rgba(255,255,255,0.06); }
+  .card-title { font-size: 14px; font-weight: 600; color: #F0F2F5; margin-bottom: 8px; }
+  .card-body { font-size: 12px; color: #8B95A8; }
+  .card-tag { display: inline-block; font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px; margin-top: 8px; }
+  .tag-auto { background: rgba(0,212,170,0.12); color: #00D4AA; }
+  .tag-human { background: rgba(255,174,66,0.12); color: #FFAE42; }
+  .tag-done { background: rgba(59,130,246,0.12); color: #3B82F6; }
+
+  /* Status table */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+  th { text-align: left; padding: 10px 12px; color: #8B95A8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+  .status-done { color: #00D4AA; }
+  .status-auto { color: #3B82F6; }
+  .status-you { color: #FFAE42; }
+
+  .divider { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 32px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Saul LeadGen — System Overview</h1>
+<p class="subtitle">How everything connects. Updated May 13, 2026.</p>
+
+<!-- THE BIG PICTURE -->
+<h2>The Big Picture</h2>
+<p class="highlight">Three pieces work together. You only interact with one of them (the Dashboard).</p>
+
+<div class="diagram">
+  <div class="diagram-row">
+    <div class="box box-blue">Netlify<br><small>Dashboard (what you see)</small></div>
+    <span class="arrow">←→</span>
+    <div class="box box-green">Supabase<br><small>Database (all the data)</small></div>
+    <span class="arrow">←→</span>
+    <div class="box box-purple">Railway<br><small>Agent (does the work)</small></div>
+  </div>
+  <div class="arrow-down">↕</div>
+  <div class="diagram-row">
+    <div class="box box-slate">GoHighLevel<br><small>Messages & CRM</small></div>
+    <div class="box box-slate">Apollo<br><small>Lead enrichment</small></div>
+    <div class="box box-slate">OpenAI<br><small>AI insights</small></div>
+  </div>
+</div>
+
+<div class="card-grid">
+  <div class="card">
+    <div class="card-title">Dashboard (Netlify)</div>
+    <div class="card-body">What you and Gregory see. Shows leads, scores, pipeline, outreach queue, Daily Brief with AI insights. Lives at leadsbysaul.netlify.app</div>
+    <span class="card-tag tag-done">Already running</span>
+  </div>
+  <div class="card">
+    <div class="card-title">Database (Supabase)</div>
+    <div class="card-body">Stores everything — leads, scores, activities, outreach drafts, agent run history, AI insights. Both the dashboard and agent read/write here.</div>
+    <span class="card-tag tag-done">Already running</span>
+  </div>
+  <div class="card">
+    <div class="card-title">Agent (Railway)</div>
+    <div class="card-body">The Python brain. Runs every 15 minutes. Discovers leads, enriches them, scores them, drafts outreach, polls GHL for replies, generates AI insights.</div>
+    <span class="card-tag tag-auto">Just set up today</span>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- WHAT THE AGENT DOES -->
+<h2>What the Agent Does Every 15 Minutes</h2>
+<p class="highlight">Each run takes about 30-90 seconds, then Railway goes back to sleep.</p>
+
+<div class="pipeline">
+  <div class="step">
+    <div class="step-num">1</div>
+    <div>
+      <div class="step-text">Discover</div>
+      <div class="step-desc">Searches the web for new exotic car rental operators. Adds them to the database.</div>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div>
+      <div class="step-text">Enrich</div>
+      <div class="step-desc">Looks up company details via Apollo (Exotiq) or Google Places (MedSpa). Fleet size, website, etc.</div>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div>
+      <div class="step-text">Score</div>
+      <div class="step-desc">Calculates an ICP fit score (0-100) based on fleet size, market, online presence, engagement.</div>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">4</div>
+    <div>
+      <div class="step-text">GHL Poll</div>
+      <div class="step-desc">Checks GoHighLevel for new messages. If a lead replied, logs it and marks them "engaged."</div>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">5</div>
+    <div>
+      <div class="step-text">Draft</div>
+      <div class="step-desc">For high-scoring leads, writes a personalized outreach message. Puts it in the approval queue.</div>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">6</div>
+    <div>
+      <div class="step-text">AI Insights</div>
+      <div class="step-desc">Analyzes replies, diagnoses cold leads, assesses new discoveries, reviews draft quality, writes the daily summary.</div>
+    </div>
+  </div>
+</div>
+
+<p><span class="highlight">Nothing sends automatically.</span> The agent drafts messages and puts them in a queue. Gregory clicks "Approve" in the dashboard before anything goes out.</p>
+
+<hr class="divider">
+
+<!-- WHAT RUNS WHERE -->
+<h2>What Runs Where</h2>
+
+<table>
+  <tr><th>System</th><th>Where</th><th>Cost</th><th>Status</th></tr>
+  <tr><td>Dashboard + API</td><td>Netlify (auto-deploys from GitHub)</td><td>Free tier</td><td class="status-done">Running</td></tr>
+  <tr><td>Database</td><td>Supabase</td><td>Free tier</td><td class="status-done">Running</td></tr>
+  <tr><td>Python Agent</td><td>Railway (cron every 15 min)</td><td>~$5/mo</td><td class="status-auto">Just deployed</td></tr>
+  <tr><td>AI Insights</td><td>OpenAI API (called by Railway agent)</td><td>~$6/mo</td><td class="status-auto">Active</td></tr>
+  <tr><td>Enrichment</td><td>Apollo API (called by Railway agent)</td><td>~$70/mo max</td><td class="status-done">Active</td></tr>
+  <tr><td>Messages</td><td>GoHighLevel</td><td>Your existing plan</td><td class="status-you">Key updated today</td></tr>
+</table>
+
+<hr class="divider">
+
+<!-- DO YOU NEED CLAUDE CODE? -->
+<h2>Do You Still Need to Build Things?</h2>
+<p class="highlight">Short answer: No. The system is self-running. Here's what's automated vs what needs you.</p>
+
+<div class="card-grid">
+  <div class="card">
+    <div class="card-title">Fully Automated (no touching)</div>
+    <div class="card-body">
+      • Lead discovery every hour<br>
+      • Enrichment for new leads<br>
+      • Scoring pipeline<br>
+      • GHL polling for replies<br>
+      • Outreach draft generation<br>
+      • AI insights for Daily Brief<br>
+      • Dashboard updates in real-time
+    </div>
+    <span class="card-tag tag-auto">Runs by itself</span>
+  </div>
+  <div class="card">
+    <div class="card-title">Needs Gregory (human in the loop)</div>
+    <div class="card-body">
+      • Approve/reject outreach drafts<br>
+      • Click "Mark Sent" to push to GHL<br>
+      • Review Daily Brief insights<br>
+      • Act on AI recommendations<br>
+      • Check ROI dashboard
+    </div>
+    <span class="card-tag tag-human">Human approval</span>
+  </div>
+  <div class="card">
+    <div class="card-title">Needs You (one-time setup)</div>
+    <div class="card-body">
+      • ✅ Railway deployed<br>
+      • ✅ Env vars set<br>
+      • ⬜ Set cron schedule in Railway<br>
+      • ⬜ Run score backfill once<br>
+      • ⬜ Flip GHL dry-run off (when ready)
+    </div>
+    <span class="card-tag tag-human">Almost done</span>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- CLAUDE CODE GOING FORWARD -->
+<h2>Claude Code vs Railway — Going Forward</h2>
+
+<h3>You do NOT need Claude Code to keep the system running.</h3>
+<p>Railway handles the scheduling and execution. The Python agent runs itself. AI insights use the OpenAI API directly (no Claude Code SDK needed).</p>
+
+<h3>When you'd use Claude Code (or me) again:</h3>
+<p class="highlight">Only when you want to change or add features:</p>
+<ul style="margin: 12px 0 12px 20px; color: #8B95A8; font-size: 13px;">
+  <li style="margin-bottom: 6px;">New outreach templates or scoring logic</li>
+  <li style="margin-bottom: 6px;">Add a new tenant (e.g., a third vertical)</li>
+  <li style="margin-bottom: 6px;">Build new dashboard pages or features</li>
+  <li style="margin-bottom: 6px;">Fix bugs or adjust thresholds</li>
+  <li style="margin-bottom: 6px;">Mobile optimization phase</li>
+  <li style="margin-bottom: 6px;">Add action buttons to Daily Brief insight cards</li>
+</ul>
+<p>Think of it like this: <span class="highlight">Railway is the engine that runs 24/7. Claude Code is the mechanic you call when you want upgrades.</span></p>
+
+<hr class="divider">
+
+<!-- DATA FLOW -->
+<h2>Data Flow — What Happens to a Lead</h2>
+
+<div class="diagram">
+  <div class="diagram-row">
+    <div class="box box-purple">Agent discovers lead</div>
+    <span class="arrow">→</span>
+    <div class="box box-blue">Apollo enriches it</div>
+    <span class="arrow">→</span>
+    <div class="box box-green">Engine scores it</div>
+  </div>
+  <div class="arrow-down">↓</div>
+  <div class="diagram-row">
+    <div class="box box-green">Score ≥ 55?</div>
+    <span class="arrow">→</span>
+    <div class="box box-purple">Agent drafts DM</div>
+    <span class="arrow">→</span>
+    <div class="box box-amber">Gregory approves</div>
+  </div>
+  <div class="arrow-down">↓</div>
+  <div class="diagram-row">
+    <div class="box box-amber">Sent via GHL</div>
+    <span class="arrow">→</span>
+    <div class="box box-green">Lead replies</div>
+    <span class="arrow">→</span>
+    <div class="box box-purple">AI analyzes reply</div>
+  </div>
+  <div class="arrow-down">↓</div>
+  <div class="diagram-row">
+    <div class="box box-green">Daily Brief shows: "Nashville Dream Drives replied — interested"</div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<h2>Remaining Checklist</h2>
+<table>
+  <tr><th>Task</th><th>Who</th><th>Status</th></tr>
+  <tr><td>Deploy dashboard to Netlify</td><td>Auto (GitHub → Netlify)</td><td class="status-done">✅ Done</td></tr>
+  <tr><td>Set up Railway with Python agent</td><td>You</td><td class="status-done">✅ Done</td></tr>
+  <tr><td>Set env vars in Railway</td><td>You</td><td class="status-done">✅ Done</td></tr>
+  <tr><td>Fix column bugs in agent</td><td>Me</td><td class="status-done">✅ Done (just pushed)</td></tr>
+  <tr><td>Set Railway cron schedule (*/15 * * * *)</td><td>You</td><td class="status-you">⬜ Next</td></tr>
+  <tr><td>Run score backfill</td><td>You</td><td class="status-you">⬜ When ready</td></tr>
+  <tr><td>Flip GHL_OUTBOUND_DRY_RUN=false</td><td>You</td><td class="status-you">⬜ When ready</td></tr>
+  <tr><td>Cancel OpenClaw</td><td>You</td><td class="status-you">⬜ After Railway confirmed stable</td></tr>
+</table>
+
+<p style="margin-top: 32px; text-align: center; color: #4A5568; font-size: 12px;">Generated by the Saul LeadGen build session — May 13, 2026</p>
+
+</div>
+</body>
+</html>
