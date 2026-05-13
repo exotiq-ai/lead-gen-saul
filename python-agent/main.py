@@ -220,4 +220,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description="Saul Agent Pipeline")
+    parser.add_argument("--once", action="store_true", help="Run one cycle and exit (for cron/Railway)")
+    args = parser.parse_args()
+
+    if args.once:
+        for tid in ALL_TENANTS:
+            run_pipeline(tenant_id=tid)
+    else:
+        main()
