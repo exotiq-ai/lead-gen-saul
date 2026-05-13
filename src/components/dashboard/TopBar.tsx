@@ -1,12 +1,16 @@
 'use client'
 
+import { useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Warning, List, Sun, Moon } from '@phosphor-icons/react'
+import { Warning, List, Sun, Moon, Export, Sparkle } from '@phosphor-icons/react'
 import useSWR from 'swr'
 import { useDashboardStore } from '@/stores/dashboardStore'
 import { useSidebarStore } from '@/stores/sidebarStore'
 import { useTenantId, useTenantSlug } from '@/lib/hooks/useTenant'
+import { useDemo } from '@/lib/demo/DemoProvider'
+import { exportElementAsPng } from '@/lib/utils/exportPng'
+import { DailyBrief } from './DailyBrief'
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
@@ -20,6 +24,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard/outreach/templates': 'Outreach Templates',
   '/dashboard/agents': 'Agents',
   '/dashboard/economics': 'Economics',
+  '/dashboard/roi': 'ROI',
   '/dashboard/exports': 'Exports',
   '/dashboard/settings': 'Settings',
 }
@@ -54,6 +59,9 @@ export function TopBar({ title }: TopBarProps) {
   const setTimeRange = useDashboardStore((s) => s.setTimeRange)
   const theme = useDashboardStore((s) => s.theme)
   const toggleTheme = useDashboardStore((s) => s.toggleTheme)
+  const isDemo = useDemo()
+  const [isExporting, setIsExporting] = useState(false)
+  const [briefOpen, setBriefOpen] = useState(false)
 
   const { data: redFlagData } = useSWR(
     `/api/dashboard/red-flags?tenant_id=${tenantId}`,
@@ -70,6 +78,19 @@ export function TopBar({ title }: TopBarProps) {
     params.set('red_flags_only', 'true')
     if (!params.has('tenant')) params.set('tenant', tenantSlug)
     router.push(`/dashboard/leads?${params.toString()}`)
+  }
+
+  async function handlePageExport() {
+    const main = document.querySelector('main')
+    if (!main || isExporting) return
+    setIsExporting(true)
+    try {
+      const pageName = (PAGE_TITLES[pathname] ?? 'dashboard').toLowerCase().replace(/\s+/g, '-')
+      const date = new Date().toISOString().slice(0, 10)
+      await exportElementAsPng(main as HTMLElement, `saul-${pageName}-${date}.png`)
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   return (
@@ -90,6 +111,13 @@ export function TopBar({ title }: TopBarProps) {
         <h1 className="text-[15px] font-semibold text-[var(--color-saul-text-primary)] tracking-[-0.01em]">
           {pageTitle}
         </h1>
+
+        {/* Demo mode badge */}
+        {isDemo && (
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest bg-[color-mix(in_srgb,var(--color-saul-cyan)_12%,transparent)] border border-[color-mix(in_srgb,var(--color-saul-cyan)_25%,transparent)] text-[var(--color-saul-cyan)]">
+            Demo
+          </span>
+        )}
       </div>
 
       {/* Right controls */}
@@ -129,21 +157,48 @@ export function TopBar({ title }: TopBarProps) {
           </div>
         )}
 
+        {/* Page export */}
+        <button
+          onClick={handlePageExport}
+          disabled={isExporting}
+          className="flex items-center justify-center w-8 h-8 rounded-[6px] bg-[var(--color-saul-bg-600)] border border-[var(--color-saul-border-soft)] hover:border-[var(--color-saul-border)] hover:bg-[var(--color-saul-overlay-soft)] transition-all duration-150 text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] disabled:opacity-50 cursor-pointer"
+          title="Export page as PNG"
+          aria-label="Export page as PNG"
+        >
+          <Export size={16} weight="duotone" className={isExporting ? 'animate-pulse' : ''} />
+        </button>
+
+        {/* Daily Brief drawer trigger */}
+        <button
+          onClick={() => setBriefOpen((v) => !v)}
+          className={[
+            'flex items-center justify-center w-8 h-8 rounded-[6px] border transition-all duration-150 cursor-pointer',
+            briefOpen
+              ? 'bg-[var(--color-saul-cyan)]/12 border-[var(--color-saul-cyan)]/30 text-[var(--color-saul-cyan)]'
+              : 'bg-[var(--color-saul-bg-600)] border-[var(--color-saul-border-soft)] hover:border-[var(--color-saul-border)] hover:bg-[var(--color-saul-overlay-soft)] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)]',
+          ].join(' ')}
+          title="Open daily brief"
+          aria-label="Open daily brief"
+          aria-pressed={briefOpen}
+        >
+          <Sparkle size={16} weight="duotone" />
+        </button>
+
         {/* Red flag alert — clicks navigate to filtered Leads view */}
         <button
           onClick={navigateToRedFlags}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] bg-[var(--color-saul-danger)]/8 border border-[var(--color-saul-danger)]/15 hover:border-[var(--color-saul-danger)]/40 hover:bg-[var(--color-saul-danger)]/12 transition-all duration-200 cursor-pointer"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] bg-[var(--color-saul-warning)]/8 border border-[var(--color-saul-warning)]/15 hover:border-[var(--color-saul-warning)]/40 hover:bg-[var(--color-saul-warning)]/12 transition-all duration-200 cursor-pointer"
           title={`${redFlagCount} leads have red flags — click to filter`}
           aria-label={`${redFlagCount} red flag leads — click to view`}
         >
-          <Warning size={14} weight="fill" className="text-[var(--color-saul-danger)]" />
+          <Warning size={14} weight="fill" className="text-[var(--color-saul-warning)]" />
           <span className="relative">
-            <span className="text-[12px] font-bold text-[var(--color-saul-danger)] tabular-nums">
+            <span className="text-[12px] font-bold text-[var(--color-saul-warning)] tabular-nums">
               {redFlagCount}
             </span>
             {redFlagCount > 0 && (
               <motion.span
-                className="absolute -inset-1 rounded-full bg-[var(--color-saul-danger)] opacity-0"
+                className="absolute -inset-1 rounded-full bg-[var(--color-saul-warning)] opacity-0"
                 animate={{ opacity: [0, 0.3, 0], scale: [0.8, 1.4, 1.8] }}
                 transition={{ duration: 2, repeat: Infinity, repeatDelay: 3, ease: 'easeOut' }}
                 aria-hidden="true"
@@ -177,6 +232,8 @@ export function TopBar({ title }: TopBarProps) {
           </span>
         </div>
       </div>
+
+      <DailyBrief isOpen={briefOpen} onClose={() => setBriefOpen(false)} />
     </header>
   )
 }

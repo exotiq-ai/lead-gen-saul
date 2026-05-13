@@ -45,7 +45,7 @@ function bucketConfig(palette: ChartPalette): Record<AgingBucket, BucketConfig> 
     active:  { color: palette.success, label: 'Active',  sublabel: '0–7d' },
     cooling: { color: palette.warning, label: 'Cooling', sublabel: '8–30d' },
     stale:   { color: palette.orange,  label: 'Stale',   sublabel: '31–60d' },
-    dead:    { color: palette.danger,  label: 'Dead',    sublabel: '60d+' },
+    dead:    { color: palette.caution, label: 'Dead',    sublabel: '60d+' },
   }
 }
 

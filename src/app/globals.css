@@ -29,6 +29,7 @@
   --color-saul-success: #00D4AA;
   --color-saul-warning: #FFAE42;
   --color-saul-danger: #FF4757;
+  --color-saul-caution: #E8766D;
   --color-saul-info: #3B82F6;
   --color-saul-violet: #A855F7;
   --color-saul-orange: #F97316;
@@ -70,7 +71,7 @@
   --color-saul-chart-2: #3B82F6;
   --color-saul-chart-3: #FFAE42;
   --color-saul-chart-4: #A855F7;
-  --color-saul-chart-5: #FF4757;
+  --color-saul-chart-5: #E8766D;
   --color-saul-chart-6: #06B6D4;
   --color-saul-chart-7: #F97316;
   --color-saul-chart-8: #EC4899;
@@ -112,6 +113,7 @@
   --color-saul-success: #00B894;
   --color-saul-warning: #D97706;
   --color-saul-danger: #DC2626;
+  --color-saul-caution: #C0392B;
   --color-saul-info: #2563EB;
   --color-saul-violet: #7C3AED;
   --color-saul-orange: #EA580C;
@@ -152,7 +154,7 @@
   --color-saul-chart-2: #2563EB;
   --color-saul-chart-3: #D97706;
   --color-saul-chart-4: #7C3AED;
-  --color-saul-chart-5: #DC2626;
+  --color-saul-chart-5: #C0392B;
   --color-saul-chart-6: #0891B2;
   --color-saul-chart-7: #EA580C;
   --color-saul-chart-8: #DB2777;

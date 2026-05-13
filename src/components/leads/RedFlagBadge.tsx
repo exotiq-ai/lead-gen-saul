@@ -22,9 +22,9 @@ export function RedFlagBadge({ flags }: RedFlagBadgeProps) {
           <Warning
             size={14}
             weight="fill"
-            className="text-[var(--color-saul-danger)] shrink-0"
+            className="text-[var(--color-saul-caution)] shrink-0"
           />
-          <span className="text-[10px] font-medium text-[var(--color-saul-danger)] leading-none truncate max-w-[80px]">
+          <span className="text-[10px] font-medium text-[var(--color-saul-caution)] leading-none truncate max-w-[80px]">
             {formatFlagCode(flags[0].code)}
           </span>
         </span>
@@ -36,7 +36,7 @@ export function RedFlagBadge({ flags }: RedFlagBadgeProps) {
     <span className="flex flex-col gap-1">
       {flags.map((f) => (
         <span key={f.code} className="flex items-start gap-1.5">
-          <Warning size={11} weight="fill" className="text-[var(--color-saul-danger)] mt-0.5 shrink-0" />
+          <Warning size={11} weight="fill" className="text-[var(--color-saul-caution)] mt-0.5 shrink-0" />
           <span className="text-[11px] leading-tight">{f.reason}</span>
         </span>
       ))}
@@ -49,14 +49,14 @@ export function RedFlagBadge({ flags }: RedFlagBadgeProps) {
         <Warning
           size={14}
           weight="fill"
-          className="text-[var(--color-saul-danger)] shrink-0"
+          className="text-[var(--color-saul-caution)] shrink-0"
         />
         <span
           className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold leading-none"
           style={{
-            background: 'rgba(255,71,87,0.18)',
-            color: 'var(--color-saul-danger)',
-            border: '1px solid rgba(255,71,87,0.3)',
+            background: 'rgba(232,118,109,0.18)',
+            color: 'var(--color-saul-caution)',
+            border: '1px solid rgba(232,118,109,0.3)',
           }}
         >
           {flags.length}

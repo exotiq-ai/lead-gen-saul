@@ -44,11 +44,11 @@ interface BinData {
   fill: string
 }
 
-/** Bin colors flow danger → warning → success across deciles. */
+/** Bin colors flow caution → warning → success across deciles. */
 function buildBinColors(palette: ChartPalette): string[] {
   return [
-    palette.danger,           // 0-10
-    palette.danger,           // 11-20  (slight fade in light, kept consistent)
+    palette.caution,          // 0-10
+    palette.caution,          // 11-20
     palette.orange,           // 21-30
     palette.warning,          // 31-40
     palette.warning,          // 41-50

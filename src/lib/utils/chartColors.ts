@@ -17,6 +17,7 @@ export interface ChartPalette {
   success: string
   warning: string
   danger: string
+  caution: string
   info: string
   violet: string
   orange: string
@@ -46,6 +47,7 @@ const DARK_PALETTE: ChartPalette = {
   success: '#00D4AA',
   warning: '#FFAE42',
   danger: '#FF4757',
+  caution: '#E8766D',
   info: '#3B82F6',
   violet: '#A855F7',
   orange: '#F97316',
@@ -55,7 +57,7 @@ const DARK_PALETTE: ChartPalette = {
     '#3B82F6',
     '#FFAE42',
     '#A855F7',
-    '#FF4757',
+    '#E8766D',
     '#06B6D4',
     '#F97316',
     '#EC4899',
@@ -80,6 +82,7 @@ const LIGHT_PALETTE: ChartPalette = {
   success: '#00B894',
   warning: '#D97706',
   danger: '#DC2626',
+  caution: '#C0392B',
   info: '#2563EB',
   violet: '#7C3AED',
   orange: '#EA580C',
@@ -89,7 +92,7 @@ const LIGHT_PALETTE: ChartPalette = {
     '#2563EB',
     '#D97706',
     '#7C3AED',
-    '#DC2626',
+    '#C0392B',
     '#0891B2',
     '#EA580C',
     '#DB2777',

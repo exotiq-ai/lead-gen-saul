@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { ChartBar, Warning } from '@phosphor-icons/react'
+import { useRef, useState } from 'react'
+import { ChartBar, DownloadSimple, Warning } from '@phosphor-icons/react'
 import { SkeletonChart } from '@/components/ui'
+import { exportElementAsPng } from '@/lib/utils/exportPng'
 
 type TimeRange = '7d' | '30d' | '90d' | 'all'
 
@@ -37,14 +38,27 @@ export function ChartContainer({
   emptyMessage = 'No data available for this period yet.',
 }: ChartContainerProps) {
   const [activeRange, setActiveRange] = useState<TimeRange>('30d')
+  const [isExporting, setIsExporting] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   function handleRangeChange(range: TimeRange) {
     setActiveRange(range)
     onTimeRangeChange?.(range)
   }
 
+  async function handleExport() {
+    if (!containerRef.current || isExporting) return
+    setIsExporting(true)
+    try {
+      await exportElementAsPng(containerRef.current, `saul-chart-${title.toLowerCase().replace(/\s+/g, '-')}.png`)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   return (
     <div
+      ref={containerRef}
       className="rounded-xl p-6 flex flex-col gap-4"
       style={{
         background: 'var(--color-saul-bg-700)',
@@ -67,30 +81,56 @@ export function ChartContainer({
           )}
         </div>
 
-        {timeRangeSelector && !isLoading && !error && (
-          <div
-            className="flex items-center gap-0.5 rounded-lg p-0.5 shrink-0"
-            style={{ background: 'var(--color-saul-bg-600)' }}
-          >
-            {TIME_RANGES.map((r) => (
-              <button
-                key={r.value}
-                onClick={() => handleRangeChange(r.value)}
-                className="px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-150 cursor-pointer"
-                style={{
-                  background: activeRange === r.value ? 'var(--color-saul-cyan)' : 'transparent',
-                  color:
-                    activeRange === r.value
-                      ? 'var(--color-saul-text-on-accent)'
-                      : 'var(--color-saul-text-secondary)',
-                  fontFamily: 'var(--font-mono)',
-                }}
-              >
-                {r.label}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {timeRangeSelector && !isLoading && !error && (
+            <div
+              className="flex items-center gap-0.5 rounded-lg p-0.5"
+              style={{ background: 'var(--color-saul-bg-600)' }}
+            >
+              {TIME_RANGES.map((r) => (
+                <button
+                  key={r.value}
+                  onClick={() => handleRangeChange(r.value)}
+                  className="px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-150 cursor-pointer"
+                  style={{
+                    background: activeRange === r.value ? 'var(--color-saul-cyan)' : 'transparent',
+                    color:
+                      activeRange === r.value
+                        ? 'var(--color-saul-text-on-accent)'
+                        : 'var(--color-saul-text-secondary)',
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {!isLoading && !error && (
+            <button
+              onClick={handleExport}
+              disabled={isExporting}
+              className="flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150 cursor-pointer disabled:opacity-50"
+              style={{
+                color: 'var(--color-saul-text-secondary)',
+                background: 'transparent',
+              }}
+              title="Export chart as PNG"
+              aria-label="Export chart as PNG"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--color-saul-text-primary)'
+                e.currentTarget.style.background = 'var(--color-saul-bg-600)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--color-saul-text-secondary)'
+                e.currentTarget.style.background = 'transparent'
+              }}
+            >
+              <DownloadSimple size={15} weight="bold" className={isExporting ? 'animate-pulse' : ''} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Body */}

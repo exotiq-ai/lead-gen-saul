@@ -154,7 +154,7 @@ export function KPICard({
               'flex items-center gap-0.5 text-[12px] font-semibold',
               trendPositive
                 ? 'text-[var(--color-saul-success)]'
-                : 'text-[var(--color-saul-danger)]',
+                : 'text-[var(--color-saul-caution)]',
             ].join(' ')}
           >
             <TrendIcon size={11} weight="bold" aria-hidden="true" />

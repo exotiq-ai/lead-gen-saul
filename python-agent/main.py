@@ -35,6 +35,7 @@ from skills.enrich_gmaps import process_gmaps_enrichment
 from skills.score import process_scoring_queue
 from skills.draft import draft_outreach
 from skills.ghl_poll import poll_ghl
+from skills.insights import generate_insights
 
 # Logging setup: structured JSON lines for easy ingestion
 logging.basicConfig(
@@ -169,6 +170,22 @@ def run_pipeline(tenant_id: str = DEFAULT_TENANT_ID):
     except Exception as e:
         _log("step_error", {"step": "draft", "error": str(e)})
         log_agent_run(tenant_id, "outreach", "failed", {"error": str(e)}, int((time.time() - t) * 1000))
+
+    # -----------------------------------------------------------------------
+    # Step 5: AI Insights — proactive intelligence for the Daily Brief
+    # Runs after GHL poll + scoring so it has fresh context.
+    # Generates: reply analysis, dead lead diagnosis, new lead assessment,
+    # draft quality scoring, and daily narrative.
+    # -----------------------------------------------------------------------
+    _log("step_start", {"step": "insights"})
+    t = time.time()
+    try:
+        insights_result = generate_insights(tenant_id=tenant_id)
+        log_agent_run(tenant_id, "insights", "completed", insights_result, int((time.time() - t) * 1000))
+        _log("step_complete", {"step": "insights", **insights_result})
+    except Exception as e:
+        _log("step_error", {"step": "insights", "error": str(e)})
+        log_agent_run(tenant_id, "insights", "failed", {"error": str(e)}, int((time.time() - t) * 1000))
 
     # -----------------------------------------------------------------------
     # Done
