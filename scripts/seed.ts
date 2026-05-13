@@ -3,8 +3,13 @@
  * Generates 500 realistic leads for the Exotiq tenant (exotic car rental operators).
  *
  * Usage:
- *   npm run seed
+ *   SEED_CONFIRM=yes npm run seed
  * (loads .env.local via dotenv; or set SUPABASE_URL / NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)
+ *
+ * Safety gate: the script refuses to run unless SEED_CONFIRM=yes is set.
+ * This is intentional — running it against production once already
+ * polluted the live Supabase with 500 fake leads + 786 activities, and
+ * the cleanup took a separate cleanup pass. See DEMO_DATA_CLEANUP.md.
  */
 
 import { resolve } from 'path'
@@ -13,6 +18,24 @@ import { createClient } from '@supabase/supabase-js'
 
 config({ path: resolve(process.cwd(), '.env.local') })
 config({ path: resolve(process.cwd(), '.env') })
+
+if (process.env.SEED_CONFIRM !== 'yes') {
+  console.error(
+    [
+      '',
+      'seed.ts refused to run.',
+      '',
+      'This script inserts 500 synthetic leads into the configured Supabase project.',
+      'To run it intentionally — e.g. against a fresh dev DB — set SEED_CONFIRM=yes:',
+      '',
+      '    SEED_CONFIRM=yes npm run seed',
+      '',
+      'Make sure .env.local points at the right project before doing that.',
+      '',
+    ].join('\n'),
+  )
+  process.exit(1)
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS & FIXTURES
