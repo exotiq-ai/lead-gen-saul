@@ -141,14 +141,15 @@ def _insight_exists_recently(tenant_id: str, insight_type: str, lead_id: Optiona
     db = get_db()
     since = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
     query = db.table("agent_insights")\
-        .select("id", count="exact", head=True)\
+        .select("id")\
         .eq("tenant_id", tenant_id)\
         .eq("insight_type", insight_type)\
-        .gte("created_at", since)
+        .gte("created_at", since)\
+        .limit(1)
     if lead_id:
         query = query.eq("lead_id", lead_id)
     resp = query.execute()
-    return (resp.count or 0) > 0
+    return len(resp.data or []) > 0
 
 
 def _write_insight(
@@ -551,21 +552,22 @@ def _generate_daily_narrative(tenant_id: str) -> int:
     db = get_db()
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
 
-    # Gather today's stats
+    # Gather today's stats (use select("id") + len() since supabase-py 2.x
+    # doesn't support count="exact" as a kwarg on select)
     stats_queries = [
-        db.table("leads").select("*", count="exact", head=True).eq("tenant_id", tenant_id).gte("created_at", today_start),
-        db.table("lead_activities").select("*", count="exact", head=True).eq("tenant_id", tenant_id).eq("activity_type", "dm_sent").gte("created_at", today_start),
-        db.table("lead_activities").select("*", count="exact", head=True).eq("tenant_id", tenant_id).in_("activity_type", ["dm_replied", "call_answered"]).gte("created_at", today_start),
-        db.table("outreach_queue").select("*", count="exact", head=True).eq("tenant_id", tenant_id).eq("status", "pending"),
-        db.table("leads").select("*", count="exact", head=True).eq("tenant_id", tenant_id).not_("status", "in", "(lost,disqualified)"),
+        db.table("leads").select("id").eq("tenant_id", tenant_id).gte("created_at", today_start),
+        db.table("lead_activities").select("id").eq("tenant_id", tenant_id).eq("activity_type", "dm_sent").gte("created_at", today_start),
+        db.table("lead_activities").select("id").eq("tenant_id", tenant_id).in_("activity_type", ["dm_replied", "call_answered"]).gte("created_at", today_start),
+        db.table("outreach_queue").select("id").eq("tenant_id", tenant_id).eq("status", "pending"),
+        db.table("leads").select("id").eq("tenant_id", tenant_id).not_("status", "in", "(lost,disqualified)"),
     ]
 
     results = [q.execute() for q in stats_queries]
-    new_leads = results[0].count or 0
-    outreach_sent = results[1].count or 0
-    replies = results[2].count or 0
-    pending_approval = results[3].count or 0
-    total_active = results[4].count or 0
+    new_leads = len(results[0].data or [])
+    outreach_sent = len(results[1].data or [])
+    replies = len(results[2].data or [])
+    pending_approval = len(results[3].data or [])
+    total_active = len(results[4].data or [])
 
     system = """You are Saul, writing a 2-3 sentence daily pipeline brief for Gregory (CEO of Exotiq).
 Be concise, specific, and action-oriented. Mention the most important number and one actionable next step.

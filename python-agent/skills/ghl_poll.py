@@ -87,10 +87,17 @@ def _fetch_conversations_since(since: datetime, tenant_id: str = DEFAULT_TENANT_
 
         # Filter to only those with activity after `since`
         since_ms = int(since.timestamp() * 1000)
-        return [
-            c for c in conversations
-            if c.get("lastMessageDate", 0) >= since_ms
-        ]
+        filtered = []
+        for c in conversations:
+            msg_date = c.get("lastMessageDate", 0)
+            # GHL may return this as string or int depending on API version
+            try:
+                msg_date_int = int(msg_date) if msg_date else 0
+            except (ValueError, TypeError):
+                msg_date_int = 0
+            if msg_date_int >= since_ms:
+                filtered.append(c)
+        return filtered
     except Exception as e:
         print(f"  ! Conversations fetch error: {e}")
         return []
@@ -244,7 +251,11 @@ def poll_ghl(tenant_id: str = DEFAULT_TENANT_ID) -> dict[str, Any]:
                 continue
 
             # Only process messages after our last poll
-            msg_date_ms = msg.get("dateAdded", 0)
+            raw_date = msg.get("dateAdded", 0)
+            try:
+                msg_date_ms = int(raw_date) if raw_date else 0
+            except (ValueError, TypeError):
+                msg_date_ms = 0
             if msg_date_ms < int(since.timestamp() * 1000):
                 continue
 
