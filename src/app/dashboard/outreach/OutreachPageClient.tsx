@@ -25,7 +25,7 @@ const fetcher = (url: string) =>
 
 export function OutreachPageClient() {
   const tenantId = useTenantId()
-  const [tab, setTab] = useState<(typeof TABS)[number]['id']>('pending')
+  const [tab, setTab] = useState<(typeof TABS)[number]['id']>('approved')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkBusy, setBulkBusy] = useState(false)
 
@@ -134,7 +134,7 @@ export function OutreachPageClient() {
           </Link>
         </div>
         <p className="text-[14px] text-[var(--color-saul-text-secondary)] max-w-2xl">
-          Review messages drafted by Saul before they go out via GHL. Approve, edit, or reject — human-in-the-loop for every client.
+          Approved drafts are ready for Gregory review, edits, copy/paste, and controlled send/logging. Pending is mostly empty for Exotiq because generated drafts now auto-approve but never auto-send.
         </p>
         <div className="mt-4 flex items-center gap-2 text-[12px] text-[var(--color-saul-text-secondary)]">
           <ChatCircle size={16} />

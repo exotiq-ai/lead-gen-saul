@@ -30,9 +30,32 @@ export async function PATCH(
     case 'reject':
       patch = { ...patch, status: 'rejected' }
       break
-    case 'edit':
-      patch = { ...patch, message_draft, status: 'pending' }
+    case 'edit': {
+      // Preserve the current workflow state when editing. This matters for
+      // Exotiq's auto-approved queue: Gregory still needs to edit approved
+      // copy without accidentally moving it back to Pending.
+      const { data: current, error: statusErr } = await supabase
+        .from('outreach_queue')
+        .select('status')
+        .eq('id', id)
+        .eq('tenant_id', tenantId)
+        .maybeSingle()
+      if (statusErr) {
+        return NextResponse.json({ error: statusErr.message }, { status: 500 })
+      }
+      if (!current) {
+        return NextResponse.json({ error: 'Queue item not found' }, { status: 404 })
+      }
+      const currentStatus = (current as { status?: string }).status
+      const preservedStatus = currentStatus === 'approved' ? 'approved' : 'pending'
+      patch = {
+        ...patch,
+        message_draft,
+        status: preservedStatus,
+        ...(preservedStatus === 'approved' ? { approved_at: now } : {}),
+      }
       break
+    }
     case 'mark_sent': {
       // Look up the queue item + lead so we can route the actual GHL send.
       const { data: queueItem, error: lookupErr } = await supabase

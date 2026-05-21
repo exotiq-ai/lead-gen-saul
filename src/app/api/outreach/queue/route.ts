@@ -27,7 +27,19 @@ export async function GET(req: NextRequest) {
     .select(
       `
       *,
-      leads ( company_name, score, first_name, last_name, company_location, assigned_to )
+      leads (
+        company_name,
+        score,
+        first_name,
+        last_name,
+        email,
+        phone,
+        linkedin_url,
+        company_domain,
+        company_location,
+        assigned_to,
+        score_breakdown
+      )
     `,
     )
     .eq('tenant_id', tenantId)

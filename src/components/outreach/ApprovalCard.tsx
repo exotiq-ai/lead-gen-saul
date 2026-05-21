@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { Check, PencilSimple, Prohibit, PaperPlaneTilt } from '@phosphor-icons/react'
+import { Check, PencilSimple, Prohibit, PaperPlaneTilt, Copy } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 
@@ -23,8 +23,13 @@ export type QueueItem = {
     score: number | null
     first_name: string | null
     last_name: string | null
+    email: string | null
+    phone: string | null
+    linkedin_url: string | null
+    company_domain: string | null
     company_location: string | null
     assigned_to: string | null
+    score_breakdown: Record<string, unknown> | null
   } | null
 }
 
@@ -38,6 +43,33 @@ const CHANNEL_LABEL: Record<string, string> = {
 
 function channelLabel(ch: string) {
   return CHANNEL_LABEL[ch] ?? ch
+}
+
+function normalizeInstagramUrl(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null
+  const trimmed = raw.trim()
+  if (!trimmed) return null
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  const handle = trimmed.replace(/^@/, '').replace(/^instagram\.com\//i, '').replace(/\/$/, '')
+  if (!handle) return null
+  return `https://www.instagram.com/${handle}/`
+}
+
+function displayInstagramHandle(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null
+  const trimmed = raw.trim()
+  if (!trimmed) return null
+  if (/instagram\.com/i.test(trimmed)) {
+    const match = trimmed.match(/instagram\.com\/([^/?#]+)/i)
+    return match?.[1] ? `@${match[1]}` : trimmed
+  }
+  return trimmed.startsWith('@') ? trimmed : `@${trimmed}`
+}
+
+function normalizeDomainUrl(raw: string | null | undefined): string | null {
+  const trimmed = raw?.trim()
+  if (!trimmed) return null
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
 }
 
 export function ApprovalCard({
@@ -63,6 +95,24 @@ export function ApprovalCard({
     [lead?.first_name, lead?.last_name].filter(Boolean).join(' ') ||
     lead?.company_name ||
     'Lead'
+
+  const igHandleRaw =
+    lead?.score_breakdown?.company_ig_handle ??
+    lead?.score_breakdown?.ig_handle ??
+    lead?.score_breakdown?.instagram_handle ??
+    lead?.score_breakdown?.instagram_url
+  const igUrl = normalizeInstagramUrl(igHandleRaw)
+  const igLabel = displayInstagramHandle(igHandleRaw)
+  const websiteUrl = normalizeDomainUrl(lead?.company_domain)
+
+  async function copyDraft() {
+    try {
+      await navigator.clipboard.writeText(draft || item.message_draft)
+    } catch (e) {
+      console.error(e)
+      alert('Could not copy draft to clipboard')
+    }
+  }
 
   async function patch(
     action: 'approve' | 'reject' | 'edit' | 'mark_sent',
@@ -129,6 +179,44 @@ export function ApprovalCard({
               {lead.company_location}
             </p>
           )}
+          <div className="flex flex-wrap items-center gap-2 mt-1.5 text-[12px]">
+            {igUrl && igLabel && (
+              <a
+                href={igUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[var(--color-saul-cyan)] hover:underline"
+              >
+                IG {igLabel}
+              </a>
+            )}
+            {websiteUrl && (
+              <a
+                href={websiteUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-cyan)] hover:underline"
+              >
+                Website
+              </a>
+            )}
+            {lead?.email && (
+              <a
+                href={`mailto:${lead.email}`}
+                className="text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-cyan)] hover:underline"
+              >
+                Email
+              </a>
+            )}
+            {lead?.phone && (
+              <a
+                href={`tel:${lead.phone}`}
+                className="text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-cyan)] hover:underline"
+              >
+                Phone
+              </a>
+            )}
+          </div>
           </div>
         </div>
         <div className="flex items-center gap-1.5 flex-wrap justify-end">
@@ -165,15 +253,17 @@ export function ApprovalCard({
       )}
 
       <div className="flex flex-wrap items-center gap-2 mt-4">
-        {item.status === 'pending' && !editing && (
+        {(item.status === 'pending' || item.status === 'approved') && !editing && (
           <>
-            <Button size="sm" onClick={() => {
-              if (!window.confirm(`Approve this outreach to ${title}? It will be queued for send.`)) return
-              void patch('approve')
-            }} disabled={loading} className="gap-1.5">
-              <Check size={16} weight="bold" />
-              Approve
-            </Button>
+            {item.status === 'pending' && (
+              <Button size="sm" onClick={() => {
+                if (!window.confirm(`Approve this outreach to ${title}? It will be queued for send.`)) return
+                void patch('approve')
+              }} disabled={loading} className="gap-1.5">
+                <Check size={16} weight="bold" />
+                Approve
+              </Button>
+            )}
             <Button
               size="sm"
               variant="ghost"
@@ -182,21 +272,33 @@ export function ApprovalCard({
               className="gap-1.5"
             >
               <PencilSimple size={16} weight="bold" />
-              Edit
+              Edit copy
             </Button>
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => {
-                if (!window.confirm(`Reject this outreach to ${title}? This cannot be undone.`)) return
-                void patch('reject')
-              }}
+              onClick={() => void copyDraft()}
               disabled={loading}
-              className="gap-1.5 text-rose-300"
+              className="gap-1.5"
             >
-              <Prohibit size={16} weight="bold" />
-              Reject
+              <Copy size={16} weight="bold" />
+              Copy
             </Button>
+            {item.status === 'pending' && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  if (!window.confirm(`Reject this outreach to ${title}? This cannot be undone.`)) return
+                  void patch('reject')
+                }}
+                disabled={loading}
+                className="gap-1.5 text-rose-300"
+              >
+                <Prohibit size={16} weight="bold" />
+                Reject
+              </Button>
+            )}
           </>
         )}
         {editing && (
