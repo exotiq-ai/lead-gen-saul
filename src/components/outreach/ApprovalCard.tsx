@@ -49,8 +49,12 @@ function normalizeInstagramUrl(raw: unknown): string | null {
   if (typeof raw !== 'string') return null
   const trimmed = raw.trim()
   if (!trimmed) return null
-  if (/^https?:\/\//i.test(trimmed)) return trimmed
-  const handle = trimmed.replace(/^@/, '').replace(/^instagram\.com\//i, '').replace(/\/$/, '')
+
+  const urlMatch = trimmed.match(/https?:\/\/(?:www\.)?instagram\.com\/([^\s/?#]+)/i)
+  if (urlMatch?.[1]) return `https://www.instagram.com/${urlMatch[1].replace(/\/$/, '')}/`
+
+  const handleMatch = trimmed.match(/@([A-Za-z0-9._]+)/) ?? trimmed.match(/^([A-Za-z0-9._]+)$/)
+  const handle = handleMatch?.[1]?.replace(/\/$/, '')
   if (!handle) return null
   return `https://www.instagram.com/${handle}/`
 }
@@ -59,17 +63,25 @@ function displayInstagramHandle(raw: unknown): string | null {
   if (typeof raw !== 'string') return null
   const trimmed = raw.trim()
   if (!trimmed) return null
-  if (/instagram\.com/i.test(trimmed)) {
-    const match = trimmed.match(/instagram\.com\/([^/?#]+)/i)
-    return match?.[1] ? `@${match[1]}` : trimmed
-  }
-  return trimmed.startsWith('@') ? trimmed : `@${trimmed}`
+
+  const urlMatch = trimmed.match(/instagram\.com\/([^\s/?#]+)/i)
+  const handleMatch = trimmed.match(/@([A-Za-z0-9._]+)/) ?? trimmed.match(/^([A-Za-z0-9._]+)$/)
+  const handle = urlMatch?.[1] ?? handleMatch?.[1]
+  return handle ? `@${handle.replace(/\/$/, '')}` : null
 }
 
 function normalizeDomainUrl(raw: string | null | undefined): string | null {
   const trimmed = raw?.trim()
   if (!trimmed) return null
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+}
+
+function normalizePhoneHref(raw: string | null | undefined): string | null {
+  const trimmed = raw?.trim()
+  if (!trimmed) return null
+  const digits = trimmed.replace(/\D/g, '')
+  if (digits.length < 7) return null
+  return `tel:${trimmed}`
 }
 
 export function ApprovalCard({
@@ -104,6 +116,7 @@ export function ApprovalCard({
   const igUrl = normalizeInstagramUrl(igHandleRaw)
   const igLabel = displayInstagramHandle(igHandleRaw)
   const websiteUrl = normalizeDomainUrl(lead?.company_domain)
+  const phoneHref = normalizePhoneHref(lead?.phone)
 
   async function copyDraft() {
     try {
@@ -208,9 +221,9 @@ export function ApprovalCard({
                 Email
               </a>
             )}
-            {lead?.phone && (
+            {phoneHref && (
               <a
-                href={`tel:${lead.phone}`}
+                href={phoneHref}
                 className="text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-cyan)] hover:underline"
               >
                 Phone
