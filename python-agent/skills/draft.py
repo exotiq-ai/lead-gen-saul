@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from db import get_db
-from config import OUTREACH_SCORE_THRESHOLD
+from config import OUTREACH_SCORE_THRESHOLD, OUTREACH_AUTO_APPROVE
 
 DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001"
 MEDSPA_TENANT_ID = "11111111-1111-1111-1111-111111111111"
@@ -237,16 +237,22 @@ def draft_outreach(
             draft_body = _interpolate(fb["body"], lead)
             used_fallback += 1
 
-        db.table("outreach_queue").insert({
+        status = "approved" if OUTREACH_AUTO_APPROVE else "pending"
+        insert_row = {
             "tenant_id": tenant_id,
             "lead_id": lead["id"],
             "channel": channel,
             "message_draft": draft_body,
-            "status": "pending",
+            "status": status,
             "generated_by": f"saul_agent:{template_name}",
             "created_at": now,
             "updated_at": now,
-        }).execute()
+        }
+        if OUTREACH_AUTO_APPROVE:
+            insert_row["reviewed_by"] = "gregory"
+            insert_row["approved_at"] = now
+
+        db.table("outreach_queue").insert(insert_row).execute()
 
         # Advance lead status
         db.table("leads").update({

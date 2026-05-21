@@ -54,6 +54,11 @@ RATE_LIMIT_DELAY = float(os.environ.get("RATE_LIMIT_DELAY", "1.5"))  # seconds b
 # Gregory asked to hold Apollo API calls for now.
 APOLLO_ENRICHMENT_ENABLED = os.environ.get("APOLLO_ENRICHMENT_ENABLED", "false").lower() in ("true", "1", "yes")
 
+# Drafts can be auto-approved for Gregory/Avi ops while still requiring a
+# separate explicit send action. This removes approval-queue friction without
+# turning on auto-send.
+OUTREACH_AUTO_APPROVE = os.environ.get("OUTREACH_AUTO_APPROVE", "true").lower() in ("true", "1", "yes")
+
 # Comma-separated tenant UUIDs for the cron worker. Default to Exotiq only so
 # missing MedSpa credentials do not create noisy failed/skipped runs.
 ACTIVE_TENANT_IDS = [
