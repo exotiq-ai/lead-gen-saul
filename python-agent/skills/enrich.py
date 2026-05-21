@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from costs import PER_CALL_COSTS_CENTS  # noqa: E402
 
 from db import get_db  # noqa: E402
-from config import APP_BASE_URL, ENRICHMENT_BATCH_SIZE, RATE_LIMIT_DELAY  # noqa: E402
+from config import APP_BASE_URL, ENRICHMENT_BATCH_SIZE, RATE_LIMIT_DELAY, APOLLO_ENRICHMENT_ENABLED  # noqa: E402
 
 DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001"
 
@@ -35,6 +35,19 @@ def process_enrichment_queue(
     Find all new leads and trigger enrichment for each.
     Also processes any pending enrichment records to completion.
     """
+    if not APOLLO_ENRICHMENT_ENABLED:
+        summary = {
+            "status": "skipped",
+            "reason": "APOLLO_ENRICHMENT_ENABLED=false",
+            "new_leads_found": 0,
+            "triggered": 0,
+            "errors": 0,
+            "leads_processed": 0,
+            "cost_cents": 0,
+        }
+        print(f"Enrichment skipped: {summary}")
+        return summary
+
     db = get_db()
 
     # Step 1: Find new leads that haven't been queued yet

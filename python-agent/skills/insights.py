@@ -559,7 +559,9 @@ def _generate_daily_narrative(tenant_id: str) -> int:
         db.table("lead_activities").select("id").eq("tenant_id", tenant_id).eq("activity_type", "dm_sent").gte("created_at", today_start),
         db.table("lead_activities").select("id").eq("tenant_id", tenant_id).in_("activity_type", ["dm_replied", "call_answered"]).gte("created_at", today_start),
         db.table("outreach_queue").select("id").eq("tenant_id", tenant_id).eq("status", "pending"),
-        db.table("leads").select("id").eq("tenant_id", tenant_id).not_("status", "in", "(lost,disqualified)"),
+        # supabase-py v2 exposes `.not_` as a filter builder property, not a callable.
+        # Use PostgREST's `not.in` syntax via `.not_.in_(...)` to count active leads.
+        db.table("leads").select("id").eq("tenant_id", tenant_id).not_.in_("status", "(lost,disqualified)"),
     ]
 
     results = [q.execute() for q in stats_queries]

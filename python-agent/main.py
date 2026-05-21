@@ -28,7 +28,7 @@ from pathlib import Path
 import schedule
 
 from db import get_db
-from config import SUPABASE_URL
+from config import SUPABASE_URL, ACTIVE_TENANT_IDS  # noqa: E402
 from skills.discover import discover_leads
 from skills.enrich import process_enrichment_queue
 from skills.enrich_gmaps import process_gmaps_enrichment
@@ -46,7 +46,7 @@ logging.basicConfig(
 
 DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001"
 MEDSPA_TENANT_ID = "11111111-1111-1111-1111-111111111111"
-ALL_TENANTS = [DEFAULT_TENANT_ID, MEDSPA_TENANT_ID]
+ALL_TENANTS = ACTIVE_TENANT_IDS
 RUN_DISCOVERY_EVERY_N_CYCLES = 4  # Discover new leads every 4 cycles (~1 hour)
 _cycle_count = 0
 

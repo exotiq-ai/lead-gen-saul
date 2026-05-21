@@ -44,8 +44,20 @@ GHL_TENANT_CONFIG = {
 }
 
 # Agent defaults
-ENRICHMENT_BATCH_SIZE = 20
-SCORING_BATCH_SIZE = 50
-OUTREACH_SCORE_THRESHOLD = 55
-DISCOVERY_MAX_PER_RUN = 30
-RATE_LIMIT_DELAY = 1.5  # seconds between API calls
+ENRICHMENT_BATCH_SIZE = int(os.environ.get("ENRICHMENT_BATCH_SIZE", "20"))
+SCORING_BATCH_SIZE = int(os.environ.get("SCORING_BATCH_SIZE", "50"))
+OUTREACH_SCORE_THRESHOLD = int(os.environ.get("OUTREACH_SCORE_THRESHOLD", "55"))
+DISCOVERY_MAX_PER_RUN = int(os.environ.get("DISCOVERY_MAX_PER_RUN", "30"))
+RATE_LIMIT_DELAY = float(os.environ.get("RATE_LIMIT_DELAY", "1.5"))  # seconds between API calls
+
+# Safety switches. Apollo is opt-in because Exotiq data coverage is sparse and
+# Gregory asked to hold Apollo API calls for now.
+APOLLO_ENRICHMENT_ENABLED = os.environ.get("APOLLO_ENRICHMENT_ENABLED", "false").lower() in ("true", "1", "yes")
+
+# Comma-separated tenant UUIDs for the cron worker. Default to Exotiq only so
+# missing MedSpa credentials do not create noisy failed/skipped runs.
+ACTIVE_TENANT_IDS = [
+    t.strip()
+    for t in os.environ.get("ACTIVE_TENANT_IDS", DEFAULT_TENANT_ID).split(",")
+    if t.strip()
+]
