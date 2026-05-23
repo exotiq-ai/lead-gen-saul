@@ -59,6 +59,15 @@ new_fields=[
     ('Marketplace Fit Tier','TEXT','Founding operator marketplace fit tier'),
     ('Insurance Readiness Notes','LARGE_TEXT','Insurance/infrastructure notes for call prep'),
     ('Approved Copy Source','TEXT','Canonical source for approved copy, usually Supabase outreach_queue.message_draft'),
+    ('Callable Phone','TEXT','Normalized phone number the caller should use'),
+    ('Phone Confidence','TEXT','HIGH, MEDIUM, LOW, or MISSING'),
+    ('Phone Source','TEXT','Where the callable phone came from or why it needs verification'),
+    ('Call Opener','LARGE_TEXT','Suggested first 20-30 seconds for the operator call'),
+    ('Call Questions','LARGE_TEXT','Discovery questions for direct bookings, availability, pricing, verification, deposits'),
+    ('Call Proof Points','LARGE_TEXT','Specific fleet, IG, market, review, or rationale points to reference'),
+    ('Call Voicemail','LARGE_TEXT','Short voicemail if no answer'),
+    ('Next Best Sales Action','TEXT','Highest-value next action for the human caller'),
+    ('Operator Call Script','LARGE_TEXT','Full call sheet mirrored from Exotiq dashboard'),
 ]
 for name,dtype,placeholder in new_fields:
     if name in by_name:

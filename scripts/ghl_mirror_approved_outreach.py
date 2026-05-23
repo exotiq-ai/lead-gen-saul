@@ -100,6 +100,89 @@ def do_not_say(score_breakdown: dict[str, Any]) -> str:
     return " ".join(base)
 
 
+def extract_phone_from_text(value: Any) -> str | None:
+    if not value:
+        return None
+    m = PHONE_RE.search(str(value))
+    return clean_phone(m.group(0)) if m else None
+
+
+def proof_points(lead: dict[str, Any], sb: dict[str, Any]) -> list[str]:
+    points: list[str] = []
+    fleet = sb.get("fleet_size") or sb.get("fleet_raw")
+    if fleet:
+        points.append(f"Fleet evidence: about {fleet} vehicles")
+    ig = first_ig_handle(sb)
+    followers = sb.get("company_ig_followers")
+    if ig:
+        points.append(f"Instagram: {ig}" + (f", {followers} followers" if followers else ""))
+    rating = sb.get("company_google_rating")
+    reviews = sb.get("company_google_reviews")
+    if rating or reviews:
+        points.append("Google: " + ", ".join([str(x) for x in [f"{rating} rating" if rating else None, f"{reviews} reviews" if reviews else None] if x]))
+    rationale = sb.get("scoring_rationale")
+    if rationale:
+        text = str(rationale)
+        points.append(text[:177] + "..." if len(text) > 180 else text)
+    return list(dict.fromkeys(points))[:5]
+
+
+def build_call_prep(item: dict[str, Any]) -> dict[str, str | None]:
+    lead = item.get("leads") or {}
+    sb = lead.get("score_breakdown") or {}
+    company = lead.get("company_name") or "the fleet"
+    owner = " ".join([str(x) for x in [lead.get("first_name"), lead.get("last_name")] if x]).strip()
+    opener_name = owner.split()[0] if owner else company
+    direct_phone = clean_phone(lead.get("phone"))
+    rationale_phone = extract_phone_from_text(sb.get("scoring_rationale"))
+    phone = direct_phone or rationale_phone
+    phone_confidence = "HIGH" if direct_phone else "MEDIUM" if rationale_phone else "LOW" if lead.get("phone") else "MISSING"
+    phone_source = "Lead phone field" if direct_phone else "Recovered from scoring rationale" if rationale_phone else "Phone field looked invalid, verify before calling" if lead.get("phone") else "No phone yet"
+    points = proof_points(lead, sb)
+    specific = f" I saw {points[0].replace('Fleet evidence: ', '')}." if points else ""
+    opener = f"Hey {opener_name}, this is Gregory Ringler. I run Exotiq, we build fleet management tools for exotic rental operators. I will be quick.{specific} I am calling to compare notes on how you are handling direct bookings, fleet availability, pricing, deposits, and insurance workflows. Is it worth five minutes?"
+    questions = [
+        "Where do most bookings come from today, direct, Instagram, Google, referrals, Turo, or partners?",
+        "How do you track availability, deposits, agreements, driver verification, and handoffs across the fleet?",
+        "How often do you adjust pricing around weekends, events, and high-demand cars?",
+        "Which bottleneck would you fix first if it saved time or increased direct bookings this month?",
+        "If the fit is real, would it be worth grabbing 15 minutes to look at the operator command center?",
+    ]
+    score = int(lead.get("score") or 0)
+    try:
+        fleet = int(sb.get("fleet_size") or sb.get("fleet_raw") or 0)
+    except Exception:
+        fleet = 0
+    if score >= 100 or fleet >= 25:
+        next_action = "Gregory-only priority call. Phone first, then manual IG/email if no answer."
+    elif phone:
+        next_action = "Call first, log outcome in GHL, then send approved follow-up copy."
+    else:
+        next_action = "Find/verify phone, then use IG, email, or website form as alternate channel."
+    voicemail = f"Hey {opener_name}, Gregory Ringler with Exotiq. We build tools for exotic rental operators to tighten up direct bookings, fleet availability, pricing, and follow-up. I had a quick operator-specific question for {company}. You can call or text me back, or I can send the context over."
+    dns = do_not_say(sb)
+    script = "\n".join([
+        f"CALL PRIORITY: {next_action}",
+        f"PHONE: {phone or 'Missing, verify before call'} ({phone_confidence}, {phone_source})",
+        f"OPENER: {opener}",
+        f"QUESTIONS: {' | '.join(questions)}",
+        f"PROOF POINTS: {' | '.join(points) if points else 'No verified proof points, keep call discovery-led.'}",
+        f"VOICEMAIL: {voicemail}",
+        f"DO NOT SAY: {dns}",
+    ])
+    return {
+        "callable_phone": phone,
+        "phone_confidence": phone_confidence,
+        "phone_source": phone_source,
+        "call_opener": opener,
+        "call_questions": " | ".join(questions),
+        "call_proof_points": " | ".join(points),
+        "call_voicemail": voicemail,
+        "next_best_sales_action": next_action,
+        "operator_call_script": script,
+    }
+
+
 def field_value_map(item: dict[str, Any]) -> dict[str, Any]:
     lead = item.get("leads") or {}
     sb = lead.get("score_breakdown") or {}
@@ -107,6 +190,7 @@ def field_value_map(item: dict[str, Any]) -> dict[str, Any]:
     fleet_size = sb.get("fleet_size") or sb.get("fleet_raw")
     ig = first_ig_handle(sb)
     source = "Supabase outreach_queue.message_draft, mirrored to GHL for execution"
+    call = build_call_prep(item)
     return {
         "contact.openclaw_lead_id": lead.get("id") or item.get("lead_id"),
         "contact.lead_score": score,
@@ -131,6 +215,15 @@ def field_value_map(item: dict[str, Any]) -> dict[str, Any]:
         "contact.marketplace_fit_tier": fit_tier(score, fleet_size),
         "contact.insurance_readiness_notes": "Discuss insurance-readiness only as coming infrastructure, not a live guarantee.",
         "contact.approved_copy_source": source,
+        "contact.callable_phone": call["callable_phone"],
+        "contact.phone_confidence": call["phone_confidence"],
+        "contact.phone_source": call["phone_source"],
+        "contact.call_opener": call["call_opener"],
+        "contact.call_questions": call["call_questions"],
+        "contact.call_proof_points": call["call_proof_points"],
+        "contact.call_voicemail": call["call_voicemail"],
+        "contact.next_best_sales_action": call["next_best_sales_action"],
+        "contact.operator_call_script": call["operator_call_script"],
     }
 
 

@@ -4,11 +4,13 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft } from '@phosphor-icons/react'
+import { ArrowLeft, Phone, ClipboardText } from '@phosphor-icons/react'
 
 import { LeadHeader } from '@/components/leads/detail/LeadHeader'
 import { ScoreBreakdownPanel } from '@/components/leads/detail/ScoreBreakdownPanel'
 import { SkeletonBlock } from '@/components/ui'
+import { Badge } from '@/components/ui/Badge'
+import { buildCallPrep } from '@/lib/exotiq/callPrep'
 import type { Lead, LeadActivity } from '@/types/lead'
 import type { EnrichmentRecord } from '@/types/enrichment'
 import type { ScoringHistoryRecord } from './page'
@@ -56,6 +58,26 @@ export function LeadDetailClient({
   const [activeTab, setActiveTab] = useState<Tab>('activity')
 
   const isAssignedToGregory = lead.assigned_to === 'gregory'
+  const callPrep = buildCallPrep({
+    company_name: lead.company_name,
+    first_name: lead.first_name,
+    last_name: lead.last_name,
+    phone: lead.phone,
+    email: lead.email,
+    company_domain: (lead as unknown as Record<string, unknown>).company_domain as string | null | undefined,
+    company_location: (lead as unknown as Record<string, unknown>).company_location as string | null | undefined,
+    score: lead.score,
+    score_breakdown: lead.score_breakdown as unknown as Record<string, unknown> | null,
+  })
+
+  async function copyCallScript() {
+    try {
+      await navigator.clipboard.writeText(callPrep.ghlCallScript)
+    } catch (e) {
+      console.error(e)
+      alert('Could not copy call script to clipboard')
+    }
+  }
 
   return (
     <div className="flex flex-col gap-0 min-h-screen" style={{ color: 'var(--color-saul-text-primary)' }}>
@@ -84,6 +106,56 @@ export function LeadDetailClient({
             stageName={stageName}
             isAssignedToGregory={isAssignedToGregory}
           />
+
+          <section className="rounded-[8px] border p-4" style={{ background: 'var(--color-saul-bg-700)', borderColor: 'color-mix(in_srgb,var(--color-saul-cyan)_25%,transparent)' }}>
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--color-saul-cyan)]">
+                <Phone size={16} weight="bold" />
+                Operator call sheet
+              </span>
+              <Badge className="text-[10px]">Phone {callPrep.phoneConfidence}</Badge>
+              <span className="text-[12px] text-[var(--color-saul-text-secondary)]">{callPrep.phoneSource}</span>
+              {callPrep.phoneHref && (
+                <a
+                  href={callPrep.phoneHref}
+                  className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold text-[var(--color-saul-cyan)] border border-[color-mix(in_srgb,var(--color-saul-cyan)_35%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-saul-cyan)_12%,transparent)]"
+                >
+                  <Phone size={14} weight="bold" />
+                  {callPrep.callablePhone}
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => void copyCallScript()}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] text-[var(--color-saul-text-secondary)] border border-[var(--color-saul-border)] hover:text-[var(--color-saul-cyan)] hover:bg-[var(--color-saul-overlay-soft)]"
+              >
+                <ClipboardText size={14} weight="bold" />
+                Copy script
+              </button>
+            </div>
+            <p className="text-[13px] leading-relaxed whitespace-pre-wrap text-[var(--color-saul-text-primary)]/90">{callPrep.opener}</p>
+            <div className="mt-3 grid gap-3 lg:grid-cols-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-saul-text-tertiary)] mb-1">Call questions</p>
+                <ul className="space-y-1 text-[12px] text-[var(--color-saul-text-secondary)] list-disc pl-4">
+                  {callPrep.qualifyingQuestions.map((q) => <li key={q}>{q}</li>)}
+                </ul>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-saul-text-tertiary)] mb-1">Proof points</p>
+                <ul className="space-y-1 text-[12px] text-[var(--color-saul-text-secondary)] list-disc pl-4">
+                  {(callPrep.proofPoints.length ? callPrep.proofPoints : ['No verified proof points yet, keep discovery-led.']).map((p) => <li key={p}>{p}</li>)}
+                </ul>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-saul-text-tertiary)] mb-1">Do not say</p>
+                <ul className="space-y-1 text-[12px] text-[var(--color-saul-text-secondary)] list-disc pl-4">
+                  {callPrep.doNotSay.map((p) => <li key={p}>{p}</li>)}
+                </ul>
+                <p className="mt-2 text-[12px] font-medium text-[var(--color-saul-text-primary)]">Next: {callPrep.nextBestAction}</p>
+              </div>
+            </div>
+          </section>
 
           {/* Tabs */}
           <div

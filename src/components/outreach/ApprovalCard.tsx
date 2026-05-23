@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { Check, PencilSimple, Prohibit, PaperPlaneTilt, Copy } from '@phosphor-icons/react'
+import { Check, PencilSimple, Prohibit, PaperPlaneTilt, Copy, Phone, ClipboardText } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { buildCallPrep } from '@/lib/exotiq/callPrep'
 
 export type QueueItem = {
   id: string
@@ -76,14 +77,6 @@ function normalizeDomainUrl(raw: string | null | undefined): string | null {
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
 }
 
-function normalizePhoneHref(raw: string | null | undefined): string | null {
-  const trimmed = raw?.trim()
-  if (!trimmed) return null
-  const digits = trimmed.replace(/\D/g, '')
-  if (digits.length < 7) return null
-  return `tel:${trimmed}`
-}
-
 export function ApprovalCard({
   item,
   tenantId,
@@ -116,7 +109,18 @@ export function ApprovalCard({
   const igUrl = normalizeInstagramUrl(igHandleRaw)
   const igLabel = displayInstagramHandle(igHandleRaw)
   const websiteUrl = normalizeDomainUrl(lead?.company_domain)
-  const phoneHref = normalizePhoneHref(lead?.phone)
+  const callPrep = buildCallPrep({
+    company_name: lead?.company_name,
+    first_name: lead?.first_name,
+    last_name: lead?.last_name,
+    phone: lead?.phone,
+    email: lead?.email,
+    company_domain: lead?.company_domain,
+    company_location: lead?.company_location,
+    score: lead?.score,
+    score_breakdown: lead?.score_breakdown,
+  })
+  const phoneHref = callPrep.phoneHref
 
   async function copyDraft() {
     try {
@@ -124,6 +128,15 @@ export function ApprovalCard({
     } catch (e) {
       console.error(e)
       alert('Could not copy draft to clipboard')
+    }
+  }
+
+  async function copyCallScript() {
+    try {
+      await navigator.clipboard.writeText(callPrep.ghlCallScript)
+    } catch (e) {
+      console.error(e)
+      alert('Could not copy call script to clipboard')
     }
   }
 
@@ -250,6 +263,54 @@ export function ApprovalCard({
           >
             {item.status}
           </Badge>
+        </div>
+      </div>
+
+      <div className="mb-4 rounded-md border border-[color-mix(in_srgb,var(--color-saul-cyan)_24%,transparent)] bg-[color-mix(in_srgb,var(--color-saul-cyan)_6%,transparent)] p-3">
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--color-saul-cyan)]">
+            <Phone size={14} weight="bold" />
+            Call prep
+          </span>
+          <Badge className="text-[10px]">Phone {callPrep.phoneConfidence}</Badge>
+          <span className="text-[12px] text-[var(--color-saul-text-secondary)]">{callPrep.phoneSource}</span>
+          {phoneHref && (
+            <a
+              href={phoneHref}
+              className="ml-auto inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] font-semibold text-[var(--color-saul-cyan)] border border-[color-mix(in_srgb,var(--color-saul-cyan)_35%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-saul-cyan)_12%,transparent)]"
+            >
+              <Phone size={13} weight="bold" />
+              {callPrep.callablePhone}
+            </a>
+          )}
+        </div>
+        <p className="text-[12px] text-[var(--color-saul-text-primary)]/90 leading-relaxed whitespace-pre-wrap">
+          {callPrep.opener}
+        </p>
+        <div className="mt-2 grid gap-2 md:grid-cols-2">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-saul-text-tertiary)] mb-1">Questions</p>
+            <ul className="space-y-1 text-[12px] text-[var(--color-saul-text-secondary)] list-disc pl-4">
+              {callPrep.qualifyingQuestions.slice(0, 3).map((q) => <li key={q}>{q}</li>)}
+            </ul>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-saul-text-tertiary)] mb-1">Proof points</p>
+            <ul className="space-y-1 text-[12px] text-[var(--color-saul-text-secondary)] list-disc pl-4">
+              {(callPrep.proofPoints.length ? callPrep.proofPoints.slice(0, 3) : ['No verified proof points yet, keep discovery-led.']).map((p) => <li key={p}>{p}</li>)}
+            </ul>
+          </div>
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className="text-[12px] font-medium text-[var(--color-saul-text-primary)]">Next: {callPrep.nextBestAction}</span>
+          <button
+            type="button"
+            onClick={() => void copyCallScript()}
+            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[12px] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-cyan)] hover:bg-[var(--color-saul-overlay-soft)]"
+          >
+            <ClipboardText size={13} weight="bold" />
+            Copy call script
+          </button>
         </div>
       </div>
 
