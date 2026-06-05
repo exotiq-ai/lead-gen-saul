@@ -3,11 +3,13 @@
 import { useState, useMemo } from 'react'
 import useSWR from 'swr'
 import Link from 'next/link'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { PaperPlaneTilt, ChatCircle, NotePencil, Check, Prohibit, Tray, Warning } from '@phosphor-icons/react'
+import { MagnifyingGlass, PaperPlaneTilt, ChatCircle, NotePencil, Check, Prohibit, Tray, Warning, X } from '@phosphor-icons/react'
 import { ApprovalCard, type QueueItem } from '@/components/outreach/ApprovalCard'
 import { EmptyState, SkeletonBlock } from '@/components/ui'
 import { useTenantId } from '@/lib/hooks/useTenant'
+import { filterOutreachItems } from '@/lib/outreach/filter'
 
 const TABS = [
   { id: 'pending' as const, label: 'Pending' },
@@ -25,22 +27,31 @@ const fetcher = (url: string) =>
 
 export function OutreachPageClient() {
   const tenantId = useTenantId()
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const leadFilter = searchParams.get('lead_id')
   const [tab, setTab] = useState<(typeof TABS)[number]['id']>('approved')
+  const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkBusy, setBulkBusy] = useState(false)
 
   const { data, error, isLoading, mutate } = useSWR(
-    `/api/outreach/queue?tenant_id=${tenantId}&status=${tab}&limit=200`,
+    `/api/outreach/queue?tenant_id=${tenantId}&status=${tab}&limit=500`,
     fetcher,
     { revalidateOnFocus: true, refreshInterval: 15_000 },
   )
 
   const items = data?.items ?? []
+  const visibleItems = useMemo(() => {
+    const scoped = leadFilter ? items.filter((item) => item.lead_id === leadFilter) : items
+    return filterOutreachItems(scoped, query)
+  }, [items, leadFilter, query])
   const pendingCount = data?.pending_count ?? 0
 
   const pendingIdsInView = useMemo(
-    () => items.filter((i) => i.status === 'pending').map((i) => i.id),
-    [items],
+    () => visibleItems.filter((i) => i.status === 'pending').map((i) => i.id),
+    [visibleItems],
   )
 
   // Reset selection when the view changes (tab switch / data refresh removes
@@ -75,6 +86,13 @@ export function OutreachPageClient() {
   }
   function clearSelection() {
     setSelected(new Set())
+  }
+
+  function clearLeadFilter() {
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete('lead_id')
+    const qs = params.toString()
+    router.push(qs ? `${pathname}?${qs}` : pathname)
   }
 
   async function bulk(action: 'approve' | 'reject') {
@@ -165,6 +183,49 @@ export function OutreachPageClient() {
         ))}
       </div>
 
+      <div className="flex flex-col gap-3 mb-4">
+        <div className="relative">
+          <label htmlFor="outreach-search" className="sr-only">Search outreach cards</label>
+          <MagnifyingGlass
+            size={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-saul-text-muted)] pointer-events-none"
+          />
+          <input
+            id="outreach-search"
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search outreach by company, owner, email, phone, IG, website, market, or copy…"
+            className="w-full h-10 pl-9 pr-9 text-[13px] bg-[var(--color-saul-bg-700)] border border-[var(--color-saul-border)] rounded-[8px] text-[var(--color-saul-text-primary)] placeholder:text-[var(--color-saul-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-saul-cyan)]/40 focus:border-[var(--color-saul-cyan)]/50"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-saul-text-muted)] hover:text-[var(--color-saul-text-primary)]"
+              aria-label="Clear outreach search"
+            >
+              <X size={14} weight="bold" />
+            </button>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-[12px] text-[var(--color-saul-text-secondary)]">
+          <span>
+            Showing <strong className="text-[var(--color-saul-cyan)]">{visibleItems.length}</strong> of {items.length} cards
+          </span>
+          {leadFilter && (
+            <button
+              type="button"
+              onClick={clearLeadFilter}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-[var(--color-saul-border)] text-[var(--color-saul-cyan)] hover:bg-[var(--color-saul-overlay-soft)]"
+            >
+              Lead-specific view
+              <X size={12} weight="bold" />
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Bulk actions bar -- shown when there are selectable items in view */}
       {pendingIdsInView.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 mb-4 p-2 rounded-md border border-[var(--color-saul-border)] bg-[var(--color-saul-bg-800)]">
@@ -222,16 +283,16 @@ export function OutreachPageClient() {
         />
       )}
 
-      {!isLoading && !error && items.length === 0 && (
+      {!isLoading && !error && visibleItems.length === 0 && (
         <EmptyState
           icon={Tray}
-          title="No items in this view"
-          description="Switch tabs above to see drafts in other states, or wait for Saul to drop new pending messages here."
+          title={items.length === 0 ? 'No items in this view' : 'No outreach cards match your search'}
+          description={items.length === 0 ? 'Switch tabs above to see drafts in other states, or wait for Saul to drop new pending messages here.' : 'Try company, owner, email, phone, website, IG handle, market, or text from the draft.'}
         />
       )}
 
       <div className="flex flex-col gap-4">
-        {items.map((item) => (
+        {visibleItems.map((item) => (
           <ApprovalCard
             key={item.id}
             item={item}

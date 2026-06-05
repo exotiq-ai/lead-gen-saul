@@ -67,7 +67,15 @@ export default async function LeadDetailPage({ params }: PageProps) {
     .eq('lead_id', id)
     .order('created_at', { ascending: false })
 
-  // 5. Scoring history
+  // 5. Outreach queue items for this lead
+  const { data: outreachItems } = await supabase
+    .from('outreach_queue')
+    .select('id, channel, message_draft, status, generated_by, created_at, updated_at')
+    .eq('lead_id', id)
+    .order('updated_at', { ascending: false })
+    .limit(5)
+
+  // 6. Scoring history
   const { data: scoringHistory } = await supabase
     .from('scoring_history')
     .select('*')
@@ -81,6 +89,7 @@ export default async function LeadDetailPage({ params }: PageProps) {
       enrichments={(enrichments ?? []) as EnrichmentRecord[]}
       stageName={stageName}
       scoringHistory={(scoringHistory ?? []) as ScoringHistoryRecord[]}
+      outreachItems={(outreachItems ?? []) as Parameters<typeof LeadDetailClient>[0]['outreachItems']}
     />
   )
 }

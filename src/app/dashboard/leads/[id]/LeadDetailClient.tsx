@@ -2,15 +2,17 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Phone, ClipboardText, NotePencil } from '@phosphor-icons/react'
+import { ArrowLeft, Phone, ClipboardText, NotePencil, PaperPlaneTilt, EnvelopeSimple, Globe, InstagramLogo } from '@phosphor-icons/react'
 
 import { LeadHeader } from '@/components/leads/detail/LeadHeader'
 import { ScoreBreakdownPanel } from '@/components/leads/detail/ScoreBreakdownPanel'
 import { SkeletonBlock } from '@/components/ui'
 import { Badge } from '@/components/ui/Badge'
 import { buildCallPrep } from '@/lib/exotiq/callPrep'
+import { buildContactLinks } from '@/lib/leads/contactLinks'
 import type { Lead, LeadActivity } from '@/types/lead'
 import type { EnrichmentRecord } from '@/types/enrichment'
 import type { ScoringHistoryRecord } from './page'
@@ -35,12 +37,23 @@ const EnrichmentTimeline = dynamic(
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+interface LeadOutreachItem {
+  id: string
+  channel: string
+  message_draft: string
+  status: string
+  generated_by: string | null
+  created_at: string
+  updated_at?: string | null
+}
+
 interface LeadDetailClientProps {
   lead: Lead
   activities: LeadActivity[]
   enrichments: EnrichmentRecord[]
   stageName: string | null
   scoringHistory: ScoringHistoryRecord[]
+  outreachItems: LeadOutreachItem[]
 }
 
 type Tab = 'activity' | 'enrichment' | 'scoring'
@@ -53,6 +66,7 @@ export function LeadDetailClient({
   enrichments,
   stageName,
   scoringHistory,
+  outreachItems,
 }: LeadDetailClientProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<Tab>('activity')
@@ -63,14 +77,22 @@ export function LeadDetailClient({
   const [lastNoteSync, setLastNoteSync] = useState<string | null>(null)
 
   const isAssignedToGregory = lead.assigned_to === 'gregory'
+  const companyDomain = (lead as unknown as Record<string, unknown>).company_domain as string | null | undefined
+  const companyLocation = (lead as unknown as Record<string, unknown>).company_location as string | null | undefined
+  const contactLinks = buildContactLinks({
+    email: lead.email,
+    phone: lead.phone,
+    company_domain: companyDomain,
+    score_breakdown: lead.score_breakdown as unknown as Record<string, unknown> | null,
+  })
   const callPrep = buildCallPrep({
     company_name: lead.company_name,
     first_name: lead.first_name,
     last_name: lead.last_name,
     phone: lead.phone,
     email: lead.email,
-    company_domain: (lead as unknown as Record<string, unknown>).company_domain as string | null | undefined,
-    company_location: (lead as unknown as Record<string, unknown>).company_location as string | null | undefined,
+    company_domain: companyDomain,
+    company_location: companyLocation,
     score: lead.score,
     score_breakdown: lead.score_breakdown as unknown as Record<string, unknown> | null,
   })
@@ -144,6 +166,74 @@ export function LeadDetailClient({
             stageName={stageName}
             isAssignedToGregory={isAssignedToGregory}
           />
+
+          <section className="rounded-[8px] border p-4" style={{ background: 'var(--color-saul-bg-700)', borderColor: 'var(--color-saul-border)' }}>
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="text-[13px] font-semibold text-[var(--color-saul-text-primary)]">Customer links</span>
+              <Link
+                href={`/dashboard/outreach?lead_id=${lead.id}`}
+                className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold text-[var(--color-saul-cyan)] border border-[color-mix(in_srgb,var(--color-saul-cyan)_35%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-saul-cyan)_12%,transparent)]"
+              >
+                <PaperPlaneTilt size={14} weight="bold" />
+                View outreach cards
+              </Link>
+            </div>
+            <div className="flex flex-wrap gap-2 text-[12px]">
+              {contactLinks.instagram && (
+                <a href={contactLinks.instagram.href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-[var(--color-saul-border)] text-[var(--color-saul-cyan)] hover:bg-[var(--color-saul-overlay-soft)]">
+                  <InstagramLogo size={14} weight="bold" />
+                  {contactLinks.instagram.value}
+                </a>
+              )}
+              {contactLinks.email && (
+                <a href={contactLinks.email.href} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-[var(--color-saul-border)] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-cyan)] hover:bg-[var(--color-saul-overlay-soft)]">
+                  <EnvelopeSimple size={14} weight="bold" />
+                  {contactLinks.email.value}
+                </a>
+              )}
+              {contactLinks.phone && (
+                <a href={contactLinks.phone.href} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-[var(--color-saul-border)] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-cyan)] hover:bg-[var(--color-saul-overlay-soft)]">
+                  <Phone size={14} weight="bold" />
+                  {contactLinks.phone.value}
+                </a>
+              )}
+              {contactLinks.website && (
+                <a href={contactLinks.website.href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-[var(--color-saul-border)] text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-cyan)] hover:bg-[var(--color-saul-overlay-soft)]">
+                  <Globe size={14} weight="bold" />
+                  Website
+                </a>
+              )}
+              {!contactLinks.instagram && !contactLinks.email && !contactLinks.phone && !contactLinks.website && (
+                <span className="text-[12px] text-[var(--color-saul-text-secondary)]">No contact links available yet.</span>
+              )}
+            </div>
+          </section>
+
+          {outreachItems.length > 0 && (
+            <section className="rounded-[8px] border p-4" style={{ background: 'var(--color-saul-bg-700)', borderColor: 'var(--color-saul-border)' }}>
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--color-saul-text-primary)]">
+                  <PaperPlaneTilt size={16} weight="bold" />
+                  Outreach copy
+                </span>
+                <span className="text-[12px] text-[var(--color-saul-text-secondary)]">Latest DM/email copy attached to this lead.</span>
+              </div>
+              <div className="grid gap-3">
+                {outreachItems.slice(0, 3).map((item) => (
+                  <div key={item.id} className="rounded-md border border-[var(--color-saul-border)] bg-[var(--color-saul-bg-600)] p-3">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <Badge className="text-[10px]">{item.channel}</Badge>
+                      <Badge className="text-[10px]">{item.status}</Badge>
+                      <Link href={`/dashboard/outreach?lead_id=${lead.id}`} className="ml-auto text-[12px] text-[var(--color-saul-cyan)] hover:underline">
+                        Open in outreach
+                      </Link>
+                    </div>
+                    <p className="text-[12px] leading-relaxed whitespace-pre-wrap text-[var(--color-saul-text-primary)]/90 line-clamp-6">{item.message_draft}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           <section className="rounded-[8px] border p-4" style={{ background: 'var(--color-saul-bg-700)', borderColor: 'color-mix(in_srgb,var(--color-saul-cyan)_25%,transparent)' }}>
             <div className="flex flex-wrap items-center gap-2 mb-3">

@@ -329,6 +329,12 @@ export function ApprovalCard({
       <div className="flex flex-wrap items-center gap-2 mt-4">
         {(item.status === 'pending' || item.status === 'approved') && !editing && (
           <>
+            <Link
+              href={`/dashboard/leads/${item.lead_id}`}
+              className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md text-[12px] font-semibold text-[var(--color-saul-cyan)] border border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-saul-cyan)_12%,transparent)]"
+            >
+              Lead record
+            </Link>
             {item.status === 'pending' && (
               <Button size="sm" onClick={() => {
                 if (!window.confirm(`Approve this outreach to ${title}? It will be queued for send.`)) return

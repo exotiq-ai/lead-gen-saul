@@ -76,6 +76,9 @@ export interface Lead {
   email: string | null
   phone: string | null
   company_name: string | null
+  company_domain: string | null
+  company_location: string | null
+  company_industry: string | null
   city: string | null
   state: string | null
   country: string | null
