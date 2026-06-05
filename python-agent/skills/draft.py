@@ -12,9 +12,9 @@ Nothing goes out without a human click. This is Phase 1 -- manual
 approval mode. Phase 2 will add auto-send after trust is established.
 
 Template selection logic:
-- Score 80+: large-fleet/operator-control note
-- Score 60-79: fast-market direct-booking workflow
-- Score 55-59: regional/operator ops-gap note
+- Score 80+: premium booking-handoff note
+- Score 60-79: fast-market paid-booking-gap note
+- Score 55-59: regional clean-booking-details note
 """
 
 from datetime import datetime, timezone
@@ -29,35 +29,35 @@ MEDSPA_TENANT_ID = "11111111-1111-1111-1111-111111111111"
 # Exotiq (automotive) templates
 TEMPLATES = {
     "tier1_proof": {
-        "name": "IG DM -- Large Fleet Operator Control (Score 80+)",
-        "channel": "instagram_dm",
-        "body": """Hey {first_name}, Gregory here. I run Exotiq.
-
-At your scale, the hard part usually is not looking legitimate. It is keeping availability, pricing, deposits, renter checks, and handoffs tight across the team without weakening the customer experience.
-
-That is the workflow Exotiq is built around for exotic operators: the command center now, with the Drive Exotiq marketplace path coming later this year.
-
-Worth a quick look if I show you where I think this fits for {company_name}?""",
-    },
-    "peer_intro": {
-        "name": "IG DM -- Fast Market Booking Workflow (Score 60-79)",
-        "channel": "instagram_dm",
-        "body": """Hey {first_name}, Gregory here from Exotiq.
-
-Exotic demand in your market moves fast. My guess is the money gets made or lost in the gap between someone asking what is available this weekend and a paid, verified booking with deposit handled.
-
-Exotiq is built around that operator workflow, fast follow-up, live availability, pricing, renter checks, and a cleaner handoff after the lead comes in.
-
-Open to comparing notes for 15 minutes this week?""",
-    },
-    "visual_fleet": {
-        "name": "IG DM -- Regional Operator Ops Gap (Score 55-59)",
+        "name": "IG DM -- Premium Booking Handoff (Score 80+)",
         "channel": "instagram_dm",
         "body": """Hey {first_name}, Gregory Ringler here. I run Exotiq.
 
-For operators growing past the early stage, the issue usually is not whether people want the cars. It is whether pricing, availability, deposits, agreements, and follow-up stay clean without the owner chasing every booking.
+At your scale, the hard part usually is not getting attention. It is keeping quote, availability, renter check, deposit, and handoff tight without making the customer experience feel ordinary.
 
-Exotiq is built around that stage of the business, one operator workflow for the pieces that normally live in texts, spreadsheets, and disconnected tools.
+That is where Exotiq fits. It gives exotic operators one cleaner workflow around the booking instead of scattered texts and manual follow-up.
+
+Worth a quick look this week?""",
+    },
+    "peer_intro": {
+        "name": "IG DM -- Fast Market Paid Booking Gap (Score 60-79)",
+        "channel": "instagram_dm",
+        "body": """Hey {first_name}, Gregory Ringler here. I run Exotiq.
+
+Renters in your market move fast, but a premium operator can’t treat every inquiry like a generic quote. The opportunity is tightening the few minutes after someone asks what is available: the right car, right rate, renter check, deposit, and pickup details before they shop around.
+
+Exotiq gives exotic operators one cleaner workflow around the booking instead of scattered texts and manual follow-up.
+
+Worth a quick look this week?""",
+    },
+    "visual_fleet": {
+        "name": "IG DM -- Regional Clean Booking Details (Score 55-59)",
+        "channel": "instagram_dm",
+        "body": """Hey {first_name}, Gregory Ringler here. I run Exotiq.
+
+For operators growing past the early stage, a missed handoff can cost more than a missed lead. The gap is usually between someone asking what is available and a paid, verified booking with the details handled cleanly.
+
+That is what Exotiq is built around: fewer scattered steps between inquiry, verification, deposit, and handoff.
 
 Worth comparing notes for 15 minutes?""",
     },

@@ -10,28 +10,28 @@ db = create_client(url, key)
 
 steps = [
     {
-        "variant": "large_fleet_operator_control",
-        "label": "IG DM -- Large Fleet Operator Control",
+        "variant": "premium_booking_handoff",
+        "label": "IG DM -- Premium Booking Handoff",
         "channel": "instagram_dm",
         "score_min": 80,
         "score_max": 100,
-        "body": "Hey {first_name}, Gregory here. I run Exotiq.\n\nAt your scale, the hard part usually is not looking legitimate. It is keeping availability, pricing, deposits, renter checks, and handoffs tight across the team without weakening the customer experience.\n\nThat is the workflow Exotiq is built around for exotic operators: the command center now, with the Drive Exotiq marketplace path coming later this year.\n\nWorth a quick look if I show you where I think this fits for {company_name}?",
+        "body": "Hey {first_name}, Gregory Ringler here. I run Exotiq.\n\nAt your scale, the hard part usually is not getting attention. It is keeping quote, availability, renter check, deposit, and handoff tight without making the customer experience feel ordinary.\n\nThat is where Exotiq fits. It gives exotic operators one cleaner workflow around the booking instead of scattered texts and manual follow-up.\n\nWorth a quick look this week?",
     },
     {
-        "variant": "fast_market_booking_workflow",
-        "label": "IG DM -- Fast Market Booking Workflow",
+        "variant": "fast_market_paid_booking_gap",
+        "label": "IG DM -- Fast Market Paid Booking Gap",
         "channel": "instagram_dm",
         "score_min": 60,
         "score_max": 79,
-        "body": "Hey {first_name}, Gregory here from Exotiq.\n\nExotic demand in your market moves fast. My guess is the money gets made or lost in the gap between someone asking what is available this weekend and a paid, verified booking with deposit handled.\n\nExotiq is built around that operator workflow, fast follow-up, live availability, pricing, renter checks, and a cleaner handoff after the lead comes in.\n\nOpen to comparing notes for 15 minutes this week?",
+        "body": "Hey {first_name}, Gregory Ringler here. I run Exotiq.\n\nRenters in your market move fast, but a premium operator can’t treat every inquiry like a generic quote. The opportunity is tightening the few minutes after someone asks what is available: the right car, right rate, renter check, deposit, and pickup details before they shop around.\n\nExotiq gives exotic operators one cleaner workflow around the booking instead of scattered texts and manual follow-up.\n\nWorth a quick look this week?",
     },
     {
-        "variant": "regional_operator_ops_gap",
-        "label": "IG DM -- Regional Operator Ops Gap",
+        "variant": "regional_clean_booking_details",
+        "label": "IG DM -- Regional Clean Booking Details",
         "channel": "instagram_dm",
         "score_min": 40,
         "score_max": 59,
-        "body": "Hey {first_name}, Gregory Ringler here. I run Exotiq.\n\nFor operators growing past the early stage, the issue usually is not whether people want the cars. It is whether pricing, availability, deposits, agreements, and follow-up stay clean without the owner chasing every booking.\n\nExotiq is built around that stage of the business, one operator workflow for the pieces that normally live in texts, spreadsheets, and disconnected tools.\n\nWorth comparing notes for 15 minutes?",
+        "body": "Hey {first_name}, Gregory Ringler here. I run Exotiq.\n\nFor operators growing past the early stage, a missed handoff can cost more than a missed lead. The gap is usually between someone asking what is available and a paid, verified booking with the details handled cleanly.\n\nThat is what Exotiq is built around: fewer scattered steps between inquiry, verification, deposit, and handoff.\n\nWorth comparing notes for 15 minutes?",
     },
 ]
 
@@ -39,8 +39,8 @@ steps = [
 resp = db.table('outreach_sequences').select('id').eq('tenant_id', TENANT_ID).eq('slug', 'exotiq-default').limit(1).execute()
 if resp.data:
     db.table('outreach_sequences').update({
-        'name': 'Exotiq Automotive -- 2026-06 Operator Outreach',
-        'description': 'SOP-aligned operator outreach by segment: large fleet, fast market, regional operators. Avoids generic SaaS language and unsupported claims.',
+        'name': 'Exotiq Automotive -- Finest Operator Outreach',
+        'description': 'Customer-facing, founder-to-operator outreach. No CRM shorthand, no fleet-signal language, no feature stuffing. Segment by operator scale and market.',
         'steps': steps,
         'is_active': True,
     }).eq('id', resp.data[0]['id']).execute()
@@ -49,8 +49,8 @@ else:
     db.table('outreach_sequences').insert({
         'tenant_id': TENANT_ID,
         'slug': 'exotiq-default',
-        'name': 'Exotiq Automotive -- 2026-06 Operator Outreach',
-        'description': 'SOP-aligned operator outreach by segment: large fleet, fast market, regional operators. Avoids generic SaaS language and unsupported claims.',
+        'name': 'Exotiq Automotive -- Finest Operator Outreach',
+        'description': 'Customer-facing, founder-to-operator outreach. No CRM shorthand, no fleet-signal language, no feature stuffing. Segment by operator scale and market.',
         'is_active': True,
         'steps': steps,
     }).execute()
