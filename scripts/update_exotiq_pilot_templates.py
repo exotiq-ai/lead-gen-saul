@@ -4,42 +4,54 @@ from supabase import create_client
 
 TENANT_ID = "00000000-0000-0000-0000-000000000001"
 load_dotenv('.env.local')
-url=os.environ['NEXT_PUBLIC_SUPABASE_URL']
-key=os.environ['SUPABASE_SERVICE_ROLE_KEY']
-db=create_client(url,key)
+url = os.environ['NEXT_PUBLIC_SUPABASE_URL']
+key = os.environ['SUPABASE_SERVICE_ROLE_KEY']
+db = create_client(url, key)
 
 steps = [
     {
-        "variant": "operator_control_score_5",
-        "label": "IG DM -- Operator Control / Phone-First Backup (Score 5)",
+        "variant": "large_fleet_operator_control",
+        "label": "IG DM -- Large Fleet Operator Control",
         "channel": "instagram_dm",
         "score_min": 80,
         "score_max": 100,
-        "body": "Hey {first_name}, Gregory here from Exotiq.\n\nI started in exotics before building the tech. {company_name} looks like the kind of operation where the hard part is not getting attention, it is keeping pricing, availability, deposits, renter checks, and handoffs clean while demand moves.\n\nThat is the workflow we are building around: command center first, Drive Exotiq marketplace path second.\n\nWorth comparing notes for 15 minutes if I show you where I think this fits?"
+        "body": "Hey {first_name}, Gregory here. I run Exotiq.\n\nAt your scale, the hard part usually is not looking legitimate. It is keeping availability, pricing, deposits, renter checks, and handoffs tight across the team without weakening the customer experience.\n\nThat is the workflow Exotiq is built around for exotic operators: the command center now, with the Drive Exotiq marketplace path coming later this year.\n\nWorth a quick look if I show you where I think this fits for {company_name}?",
     },
     {
-        "variant": "direct_booking_workflow_score_3_4",
-        "label": "IG DM -- Direct Booking Workflow (Score 3-4)",
+        "variant": "fast_market_booking_workflow",
+        "label": "IG DM -- Fast Market Booking Workflow",
         "channel": "instagram_dm",
         "score_min": 60,
         "score_max": 79,
-        "body": "Hey {first_name}, Gregory here. I run Exotiq.\n\nMy guess is the expensive part at {company_name} is not demand. It is the handoff from a fast inquiry to a paid, verified booking with pricing, availability, deposit, docs, and pickup details handled cleanly.\n\nThat is what Exotiq is built around for exotic operators, not another generic rental dashboard.\n\nWorth a quick look if I show you where I think this fits?"
+        "body": "Hey {first_name}, Gregory here from Exotiq.\n\nExotic demand in your market moves fast. My guess is the money gets made or lost in the gap between someone asking what is available this weekend and a paid, verified booking with deposit handled.\n\nExotiq is built around that operator workflow, fast follow-up, live availability, pricing, renter checks, and a cleaner handoff after the lead comes in.\n\nOpen to comparing notes for 15 minutes this week?",
     },
     {
-        "variant": "operator_peer_intro_score_55_59",
-        "label": "IG DM -- Operator Peer Intro (Score 55-59)",
+        "variant": "regional_operator_ops_gap",
+        "label": "IG DM -- Regional Operator Ops Gap",
         "channel": "instagram_dm",
-        "score_min": 55,
+        "score_min": 40,
         "score_max": 59,
-        "body": "Hey {first_name}, Gregory here from Exotiq.\n\nI am talking with exotic rental operators about the pieces that usually get messy as the business grows: availability, weekend pricing, deposits, driver checks, and follow-up living in too many places.\n\nIf {company_name} is dealing with any of that, Exotiq may be relevant. Command center first, marketplace path second.\n\nWorth comparing notes for 15 minutes?"
-    }
+        "body": "Hey {first_name}, Gregory Ringler here. I run Exotiq.\n\nFor operators growing past the early stage, the issue usually is not whether people want the cars. It is whether pricing, availability, deposits, agreements, and follow-up stay clean without the owner chasing every booking.\n\nExotiq is built around that stage of the business, one operator workflow for the pieces that normally live in texts, spreadsheets, and disconnected tools.\n\nWorth comparing notes for 15 minutes?",
+    },
 ]
 
 # Upsert by slug-like row. Update exotiq-default if present, else insert.
-resp=db.table('outreach_sequences').select('id').eq('tenant_id', TENANT_ID).eq('slug','exotiq-default').limit(1).execute()
+resp = db.table('outreach_sequences').select('id').eq('tenant_id', TENANT_ID).eq('slug', 'exotiq-default').limit(1).execute()
 if resp.data:
-    db.table('outreach_sequences').update({'steps': steps, 'is_active': True}).eq('id', resp.data[0]['id']).execute()
+    db.table('outreach_sequences').update({
+        'name': 'Exotiq Automotive -- 2026-06 Operator Outreach',
+        'description': 'SOP-aligned operator outreach by segment: large fleet, fast market, regional operators. Avoids generic SaaS language and unsupported claims.',
+        'steps': steps,
+        'is_active': True,
+    }).eq('id', resp.data[0]['id']).execute()
     print('updated exotiq-default')
 else:
-    db.table('outreach_sequences').insert({'tenant_id':TENANT_ID,'slug':'exotiq-default','name':'Exotiq default founding operator pilot','is_active':True,'steps':steps}).execute()
+    db.table('outreach_sequences').insert({
+        'tenant_id': TENANT_ID,
+        'slug': 'exotiq-default',
+        'name': 'Exotiq Automotive -- 2026-06 Operator Outreach',
+        'description': 'SOP-aligned operator outreach by segment: large fleet, fast market, regional operators. Avoids generic SaaS language and unsupported claims.',
+        'is_active': True,
+        'steps': steps,
+    }).execute()
     print('inserted exotiq-default')
