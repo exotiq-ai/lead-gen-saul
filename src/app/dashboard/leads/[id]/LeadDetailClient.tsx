@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Phone, ClipboardText } from '@phosphor-icons/react'
+import { ArrowLeft, Phone, ClipboardText, NotePencil } from '@phosphor-icons/react'
 
 import { LeadHeader } from '@/components/leads/detail/LeadHeader'
 import { ScoreBreakdownPanel } from '@/components/leads/detail/ScoreBreakdownPanel'
@@ -56,6 +56,11 @@ export function LeadDetailClient({
 }: LeadDetailClientProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<Tab>('activity')
+  const [activitiesState, setActivitiesState] = useState<LeadActivity[]>(activities)
+  const [callNote, setCallNote] = useState('')
+  const [savingNote, setSavingNote] = useState(false)
+  const [noteError, setNoteError] = useState<string | null>(null)
+  const [lastNoteSync, setLastNoteSync] = useState<string | null>(null)
 
   const isAssignedToGregory = lead.assigned_to === 'gregory'
   const callPrep = buildCallPrep({
@@ -76,6 +81,39 @@ export function LeadDetailClient({
     } catch (e) {
       console.error(e)
       alert('Could not copy call script to clipboard')
+    }
+  }
+
+  async function saveCallNote() {
+    const note = callNote.trim()
+    if (!note) {
+      setNoteError('Add a note before saving.')
+      return
+    }
+
+    setSavingNote(true)
+    setNoteError(null)
+    setLastNoteSync(null)
+    try {
+      const res = await fetch(`/api/leads/${lead.id}/notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenant_id: lead.tenant_id, note, sync_to_ghl: true }),
+      })
+      const payload = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(payload.error ?? 'Failed to save note')
+
+      if (payload.activity) {
+        setActivitiesState((prev) => [payload.activity as LeadActivity, ...prev])
+      }
+      setCallNote('')
+      const sync = payload.ghl_note_sync
+      setLastNoteSync(sync?.synced ? 'Saved locally and synced to GHL notes.' : `Saved locally. GHL note not synced: ${sync?.reason ?? 'unknown'}.`)
+      setActiveTab('activity')
+    } catch (e) {
+      setNoteError(e instanceof Error ? e.message : 'Failed to save note')
+    } finally {
+      setSavingNote(false)
     }
   }
 
@@ -157,6 +195,37 @@ export function LeadDetailClient({
             </div>
           </section>
 
+          <section className="rounded-[8px] border p-4" style={{ background: 'var(--color-saul-bg-700)', borderColor: 'var(--color-saul-border)' }}>
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--color-saul-text-primary)]">
+                <NotePencil size={16} weight="bold" />
+                Call notes
+              </span>
+              <span className="text-[12px] text-[var(--color-saul-text-secondary)]">
+                Save discovery notes here. If this lead is synced to GHL, the note is also added to the GHL contact timeline.
+              </span>
+            </div>
+            <textarea
+              value={callNote}
+              onChange={(e) => setCallNote(e.target.value)}
+              placeholder="Example: Spoke with owner. Interested in seeing Exotiq after current weekend bookings. Pain points: deposit tracking, availability, staff handoffs. Next step: schedule 15-minute walkthrough."
+              rows={5}
+              className="w-full rounded-md border border-[var(--color-saul-border)] bg-[var(--color-saul-bg-600)] p-3 text-[13px] leading-relaxed text-[var(--color-saul-text-primary)] placeholder:text-[var(--color-saul-text-tertiary)] outline-none focus:border-[color-mix(in_srgb,var(--color-saul-cyan)_35%,transparent)]"
+            />
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void saveCallNote()}
+                disabled={savingNote || !callNote.trim()}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold text-[var(--color-saul-cyan)] border border-[color-mix(in_srgb,var(--color-saul-cyan)_35%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-saul-cyan)_12%,transparent)] disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {savingNote ? 'Saving…' : 'Save call note'}
+              </button>
+              {noteError && <span className="text-[12px] text-[var(--color-saul-danger)]">{noteError}</span>}
+              {lastNoteSync && <span className="text-[12px] text-[var(--color-saul-text-secondary)]">{lastNoteSync}</span>}
+            </div>
+          </section>
+
           {/* Tabs */}
           <div
             className="rounded-[8px] border flex flex-col"
@@ -201,7 +270,7 @@ export function LeadDetailClient({
             <div className="p-5">
               <AnimatePresence mode="wait">
                 {activeTab === 'activity' && (
-                  <ActivityTimeline key="activity" activities={activities} />
+                  <ActivityTimeline key="activity" activities={activitiesState} />
                 )}
                 {activeTab === 'enrichment' && (
                   <EnrichmentTimeline key="enrichment" enrichments={enrichments} />

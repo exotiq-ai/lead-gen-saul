@@ -496,17 +496,19 @@ export function LeadsPageClient() {
         {/* Row 1: search + assigned + red flags + sort */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* Search */}
-          <div className="relative flex-1 min-w-[160px] max-w-[280px]">
+          <div className="relative flex-1 min-w-[260px] max-w-[520px]">
+            <label htmlFor="leads-search" className="sr-only">Search leads</label>
             <MagnifyingGlass
               size={13}
               className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--color-saul-text-tertiary)] pointer-events-none"
             />
             <input
+              id="leads-search"
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search company, owner…"
-              className="w-full h-7 pl-7 pr-3 text-[12px] bg-[var(--color-saul-bg-600)] border border-[var(--color-saul-border)] rounded-[6px] text-[var(--color-saul-text-primary)] placeholder:text-[var(--color-saul-text-tertiary)] outline-none focus:border-[color-mix(in_srgb,var(--color-saul-cyan)_35%,transparent)] transition-colors duration-150"
+              placeholder="Search leads by company, owner, email, phone, domain, market…"
+              className="w-full h-8 pl-7 pr-3 text-[13px] bg-[var(--color-saul-bg-600)] border border-[var(--color-saul-border)] rounded-[6px] text-[var(--color-saul-text-primary)] placeholder:text-[var(--color-saul-text-tertiary)] outline-none focus:border-[color-mix(in_srgb,var(--color-saul-cyan)_35%,transparent)] transition-colors duration-150"
             />
           </div>
 

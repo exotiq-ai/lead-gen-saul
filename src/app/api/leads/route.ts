@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { parseQuery } from '@/lib/validation/parse'
 import { leadsListQuerySchema } from '@/lib/validation/schemas'
+import { buildLeadSearchOrFilter } from '@/lib/leads/search'
 
 const LEAD_SELECT_FIELDS = [
   'id',
@@ -62,9 +63,7 @@ export async function GET(req: NextRequest) {
       .range(offset, offset + limit - 1)
 
     if (search) {
-      query = query.or(
-        `company_name.ilike.%${search}%,first_name.ilike.%${search}%,last_name.ilike.%${search}%`,
-      )
+      query = query.or(buildLeadSearchOrFilter(search))
     }
 
     if (statusParam) {

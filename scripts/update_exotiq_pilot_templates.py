@@ -10,28 +10,28 @@ db=create_client(url,key)
 
 steps = [
     {
-        "variant": "founding_operator_score_5",
-        "label": "IG DM -- Founding Operator Pilot (Score 5)",
+        "variant": "operator_control_score_5",
+        "label": "IG DM -- Operator Control / Phone-First Backup (Score 5)",
         "channel": "instagram_dm",
         "score_min": 80,
         "score_max": 100,
-        "body": "Hey {first_name}, Gregory here from Exotiq.\n\nWe’re onboarding a small group of serious exotic operators ahead of the Drive Exotiq marketplace rollout this year. {company_name} looks like the kind of fleet that should be in that first group.\n\nThe pilot is simple: command center, direct-booking flow, and insurance-readiness support around your actual operation. Run it for 30 days, then decide if it earns a permanent seat.\n\nWorth a quick look?"
+        "body": "Hey {first_name}, Gregory here from Exotiq.\n\nI started in exotics before building the tech. {company_name} looks like the kind of operation where the hard part is not getting attention, it is keeping pricing, availability, deposits, renter checks, and handoffs clean while demand moves.\n\nThat is the workflow we are building around: command center first, Drive Exotiq marketplace path second.\n\nWorth comparing notes for 15 minutes if I show you where I think this fits?"
     },
     {
-        "variant": "marketplace_direct_booking",
-        "label": "IG DM -- Marketplace + Direct Booking (Score 3-4)",
+        "variant": "direct_booking_workflow_score_3_4",
+        "label": "IG DM -- Direct Booking Workflow (Score 3-4)",
         "channel": "instagram_dm",
         "score_min": 60,
         "score_max": 79,
-        "body": "Hey {first_name}, Gregory here. I run Exotiq.\n\nWe’re building the command center for exotic rental operators, plus the Drive Exotiq marketplace rolling out this year. The goal is simple: help strong fleets own more direct demand instead of depending on scattered channels.\n\n{company_name} stood out as a good fit. Want me to send over what the 30-day founding operator pilot looks like?"
+        "body": "Hey {first_name}, Gregory here. I run Exotiq.\n\nMy guess is the expensive part at {company_name} is not demand. It is the handoff from a fast inquiry to a paid, verified booking with pricing, availability, deposit, docs, and pickup details handled cleanly.\n\nThat is what Exotiq is built around for exotic operators, not another generic rental dashboard.\n\nWorth a quick look if I show you where I think this fits?"
     },
     {
-        "variant": "pilot_peer_intro",
-        "label": "IG DM -- Peer Pilot Intro (Score 55-59)",
+        "variant": "operator_peer_intro_score_55_59",
+        "label": "IG DM -- Operator Peer Intro (Score 55-59)",
         "channel": "instagram_dm",
         "score_min": 55,
         "score_max": 59,
-        "body": "Hey {first_name}, Gregory here from Exotiq.\n\nI’m connecting with exotic rental operators this week as we open up a 30-day founding operator pilot. Command center first, marketplace and insurance infrastructure coming this year.\n\nNot a generic SaaS pitch. We’re trying to work with operators who actually understand this market. Is {company_name} open to taking a quick look?"
+        "body": "Hey {first_name}, Gregory here from Exotiq.\n\nI am talking with exotic rental operators about the pieces that usually get messy as the business grows: availability, weekend pricing, deposits, driver checks, and follow-up living in too many places.\n\nIf {company_name} is dealing with any of that, Exotiq may be relevant. Command center first, marketplace path second.\n\nWorth comparing notes for 15 minutes?"
     }
 ]
 

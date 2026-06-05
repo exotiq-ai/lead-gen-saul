@@ -24,6 +24,7 @@ const ACTIVITY_LABELS: Record<string, string> = {
   dm_replied:     'DM Replied',
   call_made:      'Call Made',
   call_answered:  'Call Answered',
+  call_note:      'Call Note',
   score_changed:  'Score Updated',
   enriched:       'Lead Enriched',
   form_submitted: 'Form Submitted',
@@ -37,6 +38,7 @@ function ActivityIcon({ type }: { type: string }) {
     dm_replied:     <ChatCircle    className={iconClass} />,
     call_made:      <PhoneCall     className={iconClass} />,
     call_answered:  <PhoneCall     className={iconClass} />,
+    call_note:      <ChatCircle    className={iconClass} />,
     score_changed:  <ChartBar      className={iconClass} />,
     enriched:       <MagnifyingGlass className={iconClass} />,
     form_submitted: <CheckCircle   className={iconClass} />,
@@ -79,6 +81,9 @@ export function ActivityTimeline({ activities }: { activities: LeadActivity[] })
         const label =
           (kind && ACTIVITY_LABELS[kind]) ||
           (kind ? kind.replace(/_/g, ' ') : 'activity')
+        const metadata = activity.metadata ?? {}
+        const noteText = typeof metadata.note === 'string' ? metadata.note : null
+        const summary = activity.summary || noteText || 'Activity recorded'
 
         return (
           <motion.div
@@ -118,7 +123,7 @@ export function ActivityTimeline({ activities }: { activities: LeadActivity[] })
                   {label}
                 </span>
                 <p className="text-[13px] leading-snug" style={{ color: 'var(--color-saul-text-primary)' }}>
-                  {activity.summary}
+                  {summary}
                 </p>
               </div>
               <span

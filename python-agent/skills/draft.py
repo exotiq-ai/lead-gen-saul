@@ -29,31 +29,37 @@ MEDSPA_TENANT_ID = "11111111-1111-1111-1111-111111111111"
 # Exotiq (automotive) templates
 TEMPLATES = {
     "tier1_proof": {
-        "name": "IG DM -- Jay Denver Proof (Score 80+)",
+        "name": "IG DM -- Operator Control / Phone-First Backup (Score 80+)",
         "channel": "instagram_dm",
         "body": """Hey {first_name}, Gregory here from Exotiq.
 
-Jay at Denver Exotic Rentals just replaced his entire ops stack with our Command Center. His words: "after 10 years in the exotic rental business, we finally have a system that gets what we need."
+I started in exotics before building the tech. {company_name} looks like the kind of operation where the hard part is not getting attention, it is keeping pricing, availability, deposits, renter checks, and handoffs clean while demand moves.
 
-{company_name} is clearly running at a level where this fits. Worth a 15-minute look?""",
+That is the workflow we are building around: command center first, Drive Exotiq marketplace path second.
+
+Worth comparing notes for 15 minutes if I show you where I think this fits?""",
     },
     "peer_intro": {
-        "name": "IG DM -- Peer Intro (Score 60-79)",
+        "name": "IG DM -- Direct Booking Workflow (Score 60-79)",
         "channel": "instagram_dm",
-        "body": """Hey {first_name}, Gregory here. I run Exotiq. Started in exotics before building the tech.
+        "body": """Hey {first_name}, Gregory here. I run Exotiq.
 
-Curious how you're handling pricing and fleet logistics at {company_name}. That's where most operators tell us they're leaving money on the table.
+My guess is the expensive part at {company_name} is not demand. It is the handoff from a fast inquiry to a paid, verified booking with pricing, availability, deposit, docs, and pickup details handled cleanly.
 
-Connecting with operators this month. Happy to share what we're learning from the ones already on the platform. No sales pitch.""",
+That is what Exotiq is built around for exotic operators, not another generic rental dashboard.
+
+Worth a quick look if I show you where I think this fits?""",
     },
     "visual_fleet": {
-        "name": "IG DM -- Visual/Fleet (Score 55-59)",
+        "name": "IG DM -- Operator Peer Intro (Score 55-59)",
         "channel": "instagram_dm",
-        "body": """Hey {first_name}, it's Gregory at Exotiq.
+        "body": """Hey {first_name}, Gregory here from Exotiq.
 
-Your fleet at {company_name} is unreal. You clearly know your market.
+I am talking with exotic rental operators about the pieces that usually get messy as the business grows: availability, weekend pricing, deposits, driver checks, and follow-up living in too many places.
 
-I'm connecting with exotic car operators this month and helping optimize fleets. With you running at this scale, I'd love your take. Could we grab 15 minutes?""",
+If {company_name} is dealing with any of that, Exotiq may be relevant. Command center first, marketplace path second.
+
+Worth comparing notes for 15 minutes?""",
     },
 }
 
