@@ -14,6 +14,11 @@
     "reset-demo": "tsx scripts/reset-demo.ts",
     "migrate": "tsx scripts/migrate.ts",
     "backfill-scores": "tsx scripts/backfill_scores.ts",
+    "local-services:seed": "tsx scripts/local_services_outscraper.ts seed",
+    "local-services:search": "tsx scripts/local_services_outscraper.ts search",
+    "local-services:import": "tsx scripts/local_services_outscraper.ts import-file",
+    "local-services:sync-ghl": "tsx scripts/local_services_outscraper.ts sync-ghl",
+    "sendblue:webhooks": "tsx scripts/setup_sendblue_webhooks.ts",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install --with-deps chromium"
   },

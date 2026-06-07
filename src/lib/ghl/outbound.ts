@@ -21,6 +21,7 @@
 
 const DEFAULT_TENANT_ID = '00000000-0000-0000-0000-000000000001'
 const MEDSPA_TENANT_ID = '11111111-1111-1111-1111-111111111111'
+const LOCAL_SERVICES_TENANT_ID = '22222222-2222-2222-2222-222222222222'
 
 type GhlConfig = {
   apiKey: string
@@ -34,6 +35,13 @@ function configForTenant(tenantId: string): GhlConfig {
       apiKey: process.env.GHL_MEDSPA_API_KEY ?? '',
       locationId: process.env.GHL_MEDSPA_LOCATION_ID ?? '',
       label: 'medspa',
+    }
+  }
+  if (tenantId === LOCAL_SERVICES_TENANT_ID) {
+    return {
+      apiKey: process.env.GHL_LOCAL_SERVICES_API_KEY ?? process.env.GHL_API_KEY ?? '',
+      locationId: process.env.GHL_LOCAL_SERVICES_LOCATION_ID ?? process.env.GHL_LOCATION_ID ?? '',
+      label: 'local-services',
     }
   }
   return {
