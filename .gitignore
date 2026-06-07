@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+**/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -42,6 +43,10 @@ next-env.d.ts
 
 # Local Netlify folder
 .netlify
+
+# Cloudflare Workers local state
+.wrangler
+.dev.vars
 
 # Python
 __pycache__/

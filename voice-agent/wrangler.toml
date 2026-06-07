@@ -1,0 +1,10 @@
+name = "saul-provider-phone-agent"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[vars]
+PRIMARY_MODEL = "claude-haiku-4-5-20251001"
+ESCALATION_MODEL = "claude-sonnet-4-6"
+DEFAULT_TENANT_ID = "22222222-2222-2222-2222-222222222222"
+DEFAULT_TENANT_SLUG = "ask-saul"
+APP_BASE_URL = "https://leadsbysaul.netlify.app"

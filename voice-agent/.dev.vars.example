@@ -1,0 +1,22 @@
+# Required
+ANTHROPIC_API_KEY=
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# Optional hardening for ElevenLabs Custom LLM auth
+ELEVENLABS_SHARED_SECRET=
+
+# Defaults route phone-agent seller leads to Ask Saul/local-services tenant
+DEFAULT_TENANT_ID=22222222-2222-2222-2222-222222222222
+DEFAULT_TENANT_SLUG=ask-saul
+APP_BASE_URL=https://leadsbysaul.netlify.app
+
+# Optional GHL sync. Use Ask Saul/local-services location only.
+GHL_LOCAL_SERVICES_API_KEY=
+GHL_LOCAL_SERVICES_LOCATION_ID=RxCVQeGoQ3RTJbbLG5gY
+GHL_API_VERSION=2021-07-28
+
+# Optional Telegram/internal alert after booked follow-up
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+TELEGRAM_MESSAGE_THREAD_ID=
