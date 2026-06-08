@@ -399,14 +399,14 @@ export function ApprovalCard({
           <Button
             size="sm"
             onClick={() => {
-              if (!window.confirm(`Mark as sent via GHL? Make sure the message was actually delivered.`)) return
+              if (!window.confirm(`Send this approved outreach now? SMS will send through Sendblue; GHL is only logged/mirrored.`)) return
               void patch('mark_sent')
             }}
             disabled={loading}
             className="gap-1.5"
           >
             <PaperPlaneTilt size={16} weight="bold" />
-            Mark sent (GHL)
+            Send approved
           </Button>
         )}
       </div>

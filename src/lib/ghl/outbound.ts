@@ -1,5 +1,9 @@
 /**
- * GHL Outbound — sends approved outreach messages back through GoHighLevel.
+ * Outbound messaging — routes approved outreach messages through the correct transport.
+ *
+ * SMS is intentionally sent through Sendblue, not GoHighLevel, so Ask Saul
+ * outbound keeps the premium iMessage/Sendblue sender and does not require a
+ * GHL phone number.
  *
  * Design notes:
  * - Tenant-routed credentials. Each tenant has its own GHL sub-account
@@ -16,8 +20,10 @@
  *   the very first "Mark sent" click. Now you have to mean it.
  *
  * The function is *only* called from the outreach queue PATCH handler when
- * a user clicks "Mark sent (GHL)". We never auto-send.
+ * a user clicks "Mark sent". We never auto-send.
  */
+
+import { sendSendblueMessage } from '@/lib/sendblue/client'
 
 const DEFAULT_TENANT_ID = '00000000-0000-0000-0000-000000000001'
 const MEDSPA_TENANT_ID = '11111111-1111-1111-1111-111111111111'
@@ -51,15 +57,13 @@ function configForTenant(tenantId: string): GhlConfig {
   }
 }
 
-// Channel → GHL messageType + endpoint mapping.
+// Channel → GHL messageType + endpoint mapping for non-SMS channels.
 //
-// GHL Conversations API supports SMS, Email, IG, FB, WhatsApp messageTypes.
-// Instagram DM uses messageType "IG"; LinkedIn isn't a native GHL channel
-// so we coerce it to a manual log + warning until you wire LinkedIn separately.
+// SMS is deliberately absent here. All SMS goes through Sendblue instead of
+// GHL so replies return to the Sendblue/iMessage rail.
 const CHANNEL_TO_GHL: Record<string, { messageType: string; supported: boolean }> = {
   instagram_dm: { messageType: 'IG', supported: true },
   email: { messageType: 'Email', supported: true },
-  sms: { messageType: 'SMS', supported: true },
   phone: { messageType: 'Call', supported: false },
   linkedin_dm: { messageType: 'Custom', supported: false },
 }
@@ -103,10 +107,40 @@ export type SendMessageInput = {
 }
 
 export type SendMessageResult =
-  | { ok: true; messageId: string; mode: 'live' | 'dry_run'; reason?: string }
-  | { ok: false; error: string; status?: number; mode: 'live' | 'dry_run' }
+  | {
+      ok: true
+      messageId: string
+      mode: 'live' | 'dry_run'
+      provider: 'sendblue' | 'ghl'
+      service?: string | null
+      status?: string | null
+      reason?: string
+      mirror?: GhlMirrorResult
+    }
+  | { ok: false; error: string; status?: number; mode: 'live' | 'dry_run'; provider: 'sendblue' | 'ghl' }
+
+type GhlMirrorResult =
+  | { ok: true; action: 'note_created' | 'skipped'; noteId?: string; reason?: string }
+  | { ok: false; action: 'note_failed'; error: string; status?: number }
+
+function explicitSendblueDryRun() {
+  return process.env.SENDBLUE_OUTBOUND_DRY_RUN === 'true' || process.env.SENDBLUE_OUTBOUND_DRY_RUN === '1'
+}
+
+function publicStatusCallbackUrl() {
+  const base = process.env.SENDBLUE_WEBHOOK_PUBLIC_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.URL
+  if (!base) return undefined
+  const url = new URL('/api/webhooks/sendblue', base)
+  const secret = process.env.SENDBLUE_WEBHOOK_SECRET
+  if (secret) url.searchParams.set('secret', secret)
+  return url.toString()
+}
 
 export async function sendMessage(input: SendMessageInput): Promise<SendMessageResult> {
+  if (input.channel === 'sms') {
+    return sendSmsViaSendblue(input)
+  }
+
   const cfg = configForTenant(input.tenantId)
   const channelMap = CHANNEL_TO_GHL[input.channel] ?? null
 
@@ -122,6 +156,7 @@ export async function sendMessage(input: SendMessageInput): Promise<SendMessageR
       ok: false,
       error: `channel not supported by GHL outbound: ${input.channel}`,
       mode: dryRun ? 'dry_run' : 'live',
+      provider: 'ghl',
     }
   }
 
@@ -141,6 +176,7 @@ export async function sendMessage(input: SendMessageInput): Promise<SendMessageR
       ok: true,
       messageId: `dryrun_${Date.now()}`,
       mode: 'dry_run',
+      provider: 'ghl',
       reason,
     }
   }
@@ -152,7 +188,7 @@ export async function sendMessage(input: SendMessageInput): Promise<SendMessageR
   let contactId = input.ghlContactId
   if (!contactId) {
     const created = await ghlEnsureContact(cfg, input)
-    if (!created.ok) return { ...created, mode: 'live' }
+    if (!created.ok) return { ...created, mode: 'live', provider: 'ghl' }
     contactId = created.contactId
   }
 
@@ -188,6 +224,7 @@ export async function sendMessage(input: SendMessageInput): Promise<SendMessageR
         error: typeof data.message === 'string' ? data.message : `GHL ${res.status}`,
         status: res.status,
         mode: 'live',
+        provider: 'ghl',
       }
     }
     const messageId =
@@ -195,13 +232,123 @@ export async function sendMessage(input: SendMessageInput): Promise<SendMessageR
       (data.id as string) ||
       ((data.message as Record<string, unknown> | undefined)?.id as string) ||
       'unknown'
-    return { ok: true, messageId, mode: 'live' }
+    return { ok: true, messageId, mode: 'live', provider: 'ghl' }
   } catch (e) {
     return {
       ok: false,
       error: e instanceof Error ? e.message : 'unknown error',
       mode: 'live',
+      provider: 'ghl',
     }
+  }
+}
+
+async function sendSmsViaSendblue(input: SendMessageInput): Promise<SendMessageResult> {
+  if (!input.phone) {
+    return {
+      ok: false,
+      error: 'SMS requires a lead phone number for Sendblue outbound',
+      mode: explicitSendblueDryRun() ? 'dry_run' : 'live',
+      provider: 'sendblue',
+    }
+  }
+
+  if (explicitSendblueDryRun()) {
+    console.info('[sendblue-outbound][dry-run]', {
+      tenantId: input.tenantId,
+      phone: input.phone,
+      bodyPreview: input.body.slice(0, 80),
+    })
+    return {
+      ok: true,
+      messageId: `sendblue_dryrun_${Date.now()}`,
+      mode: 'dry_run',
+      provider: 'sendblue',
+      reason: 'SENDBLUE_OUTBOUND_DRY_RUN is enabled',
+    }
+  }
+
+  const result = await sendSendblueMessage({
+    number: input.phone,
+    content: input.body,
+    statusCallback: publicStatusCallbackUrl(),
+  })
+
+  if (!result.ok) {
+    return {
+      ok: false,
+      error: result.error,
+      status: result.status,
+      mode: 'live',
+      provider: 'sendblue',
+    }
+  }
+
+  const mirror = await mirrorSendblueSmsToGhl(input, result.messageHandle, result.service, result.status)
+  return {
+    ok: true,
+    messageId: result.messageHandle ?? `sendblue_${Date.now()}`,
+    mode: 'live',
+    provider: 'sendblue',
+    service: result.service,
+    status: result.status,
+    mirror,
+  }
+}
+
+async function mirrorSendblueSmsToGhl(
+  input: SendMessageInput,
+  messageHandle: string | null,
+  service: string | null,
+  status: string | null,
+): Promise<GhlMirrorResult> {
+  const cfg = configForTenant(input.tenantId)
+  if (!cfg.apiKey || !cfg.locationId) return { ok: true, action: 'skipped', reason: 'GHL credentials missing' }
+
+  let contactId = input.ghlContactId
+  if (!contactId) {
+    const created = await ghlEnsureContact(cfg, input)
+    if (!created.ok) {
+      return { ok: false, action: 'note_failed', error: `GHL contact mirror failed: ${created.error}`, status: created.status }
+    }
+    contactId = created.contactId
+  }
+
+  const noteBody = [
+    'Sendblue outbound SMS sent from Saul dashboard.',
+    `Status: ${status ?? 'unknown'}`,
+    `Service: ${service ?? 'unknown'}`,
+    `Sendblue handle: ${messageHandle ?? 'unknown'}`,
+    '',
+    input.body,
+  ].join('\n')
+
+  try {
+    const res = await fetch(`https://services.leadconnectorhq.com/contacts/${encodeURIComponent(contactId)}/notes`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${cfg.apiKey}`,
+        Version: '2021-07-28',
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({ body: noteBody }),
+    })
+    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
+    if (!res.ok) {
+      return {
+        ok: false,
+        action: 'note_failed',
+        error: typeof data.message === 'string' ? data.message : `GHL note ${res.status}`,
+        status: res.status,
+      }
+    }
+    const noteId =
+      ((data.note as Record<string, unknown> | undefined)?.id as string | undefined) ||
+      (data.id as string | undefined)
+    return { ok: true, action: 'note_created', noteId }
+  } catch (e) {
+    return { ok: false, action: 'note_failed', error: e instanceof Error ? e.message : 'unknown GHL note error' }
   }
 }
 

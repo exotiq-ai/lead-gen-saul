@@ -19,7 +19,7 @@ Execution path:
 2. `scripts/local_services_outscraper.ts` normalizes, dedupes, scores contact completeness, and imports to Saul Leads Dashboard.
 3. The dashboard is canonical.
 4. Clean phone leads get pending `sms` outreach queue drafts.
-5. GHL/Sendblue sends only after approval and only after Sendblue plan/outbound eligibility is confirmed.
+5. Sendblue sends SMS only after approval and only after Sendblue plan/outbound eligibility is confirmed. GHL stores contacts, notes, fields, and tags; it does not send SMS for this workflow.
 6. Twilio stays focused on phone agents/voice. Do not depend on Twilio SMS for internal lead notifications until A2P is fixed.
 
 ## Required environment variables
@@ -158,7 +158,9 @@ Do not say `trained on your business` in first-touch/early follow-up. Say `set o
 
 ## Sendblue/GHL rules
 
-- Use Sendblue through GHL workflows for initial outbound if possible.
+- Use Sendblue directly for all SMS outbound and inbound replies.
+- Do not use GHL SMS workflows for Ask Saul/local-services outreach unless Gregory explicitly abandons Sendblue/iMessage as the messaging rail.
+- Use GHL as the CRM mirror: contacts, tags, custom fields, notes, booking follow-up, and manual sales process.
 - Confirm the Sendblue account supports proactive outbound, not only inbound/free shared-line messaging.
 - Use dashboard/GHL approval wall before sending.
 - Send during local business hours only.

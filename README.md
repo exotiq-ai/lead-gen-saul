@@ -20,9 +20,11 @@ Copy `.env.local` and set at least:
 | `GHL_SKIP_SIGNATURE` | `true` to skip verification (local only) |
 | `GHL_DEFAULT_TENANT_ID` | Optional UUID for webhook lead resolution |
 | `SAUL_MODEL_NAME` | Shown on Agents page (cosmetic) |
-| `GHL_API_KEY` / `GHL_LOCATION_ID` | Outbound GHL send (Exotiq sub-account) |
-| `GHL_MEDSPA_API_KEY` / `GHL_MEDSPA_LOCATION_ID` | Outbound GHL send (MedSpa sub-account) |
-| `GHL_OUTBOUND_DRY_RUN` | Default = dry-run. Set to `false` (or `0`) to enable live GHL sends. Any other value or missing creds keeps the safe default. |
+| `GHL_API_KEY` / `GHL_LOCATION_ID` | GHL contact sync / non-SMS outbound for Exotiq sub-account |
+| `GHL_MEDSPA_API_KEY` / `GHL_MEDSPA_LOCATION_ID` | GHL contact sync / non-SMS outbound for MedSpa sub-account |
+| `SENDBLUE_API_KEY_ID` / `SENDBLUE_API_SECRET_KEY` / `SENDBLUE_FROM_NUMBER` | Sendblue SMS/iMessage outbound and reply handling |
+| `SENDBLUE_OUTBOUND_DRY_RUN` | Optional. Set to `true` or `1` to force dashboard SMS sends into dry-run. By default, explicit dashboard send actions use Sendblue live. |
+| `GHL_OUTBOUND_DRY_RUN` | Default = dry-run for non-SMS GHL sends. Set to `false` (or `0`) to enable live GHL non-SMS sends. SMS ignores this and uses Sendblue. |
 
 ## Database
 

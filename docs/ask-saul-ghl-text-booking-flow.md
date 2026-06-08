@@ -2,6 +2,8 @@
 
 This is the production flow for moving a local service provider from cold text reply to a booked Gregory intro call in the Ask Saul GHL location.
 
+**Current transport rule:** Sendblue is the SMS/iMessage rail. GHL is the CRM mirror and booking/follow-up system only. Do not publish or rely on a GHL workflow that sends SMS unless Gregory explicitly decides to abandon Sendblue/iMessage for this campaign.
+
 ## Location and calendar
 
 - GHL location: `RxCVQeGoQ3RTJbbLG5gY`
@@ -68,6 +70,8 @@ If a token with opportunities write scope is added later, create a dedicated `As
 10. Opted Out
 
 ## Workflow: customer reply to booked appointment
+
+Prefer implementing this sequence in the Saul dashboard/Sendblue webhook handlers. If mirrored into GHL, actions should update fields/tags/notes and create tasks; SMS sends should stay in Sendblue.
 
 Build/publish this workflow in the Ask Saul GHL UI. The API currently reports workflows as readable but does not expose safe workflow creation/editing with the current token.
 

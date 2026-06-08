@@ -57,7 +57,8 @@ export async function PATCH(
       break
     }
     case 'mark_sent': {
-      // Look up the queue item + lead so we can route the actual GHL send.
+      // Look up the queue item + lead so we can route the actual send.
+      // SMS is routed through Sendblue; GHL is only the mirror/log layer.
       const { data: queueItem, error: lookupErr } = await supabase
         .from('outreach_queue')
         .select(
@@ -102,8 +103,8 @@ export async function PATCH(
         // (or fix env / dry-run flag).
         return NextResponse.json(
           {
-            error: `GHL send failed: ${sendResult.error}`,
-            ghl_status: sendResult.status,
+            error: `${sendResult.provider} send failed: ${sendResult.error}`,
+            provider_status: sendResult.status,
           },
           { status: 502 },
         )
@@ -113,14 +114,14 @@ export async function PATCH(
         ...patch,
         status: 'sent',
         sent_at: now,
-        // Stash the GHL message id + mode in rejection_reason for now.
+        // Stash the transport message id + mode in rejection_reason for now.
         // (Schema doesn't have a dedicated column; the outreach_queue
         // table's free-text fields are limited. A future migration can
         // add ghl_message_id / send_mode if needed.)
         rejection_reason:
           sendResult.mode === 'dry_run'
-            ? `dry_run:${sendResult.messageId}${sendResult.reason ? `:${sendResult.reason}` : ''}`
-            : `live:${sendResult.messageId}`,
+            ? `dry_run:${sendResult.provider}:${sendResult.messageId}${sendResult.reason ? `:${sendResult.reason}` : ''}`
+            : `live:${sendResult.provider}:${sendResult.messageId}`,
       }
       break
     }
@@ -147,14 +148,18 @@ export async function PATCH(
   // and re-scoring loop see it. Channel-aware activity_type.
   if (action === 'mark_sent' && sendResult?.ok) {
     const channel = (data as Record<string, unknown>).channel as string
-    const activityType = channel === 'email' ? 'email_sent' : 'dm_sent'
+    const activityType = channel === 'email' ? 'email_sent' : channel === 'sms' ? 'sms_sent' : 'dm_sent'
     await supabase.from('lead_activities').insert({
       tenant_id: tenantId,
       lead_id: (data as Record<string, unknown>).lead_id as string,
       activity_type: activityType,
       channel: channel === 'email' ? 'email' : channel === 'sms' ? 'sms' : 'ghl',
       metadata: {
-        ghl_message_id: sendResult.messageId,
+        message_id: sendResult.messageId,
+        provider: sendResult.provider,
+        service: sendResult.service,
+        status: sendResult.status,
+        ghl_mirror: sendResult.mirror,
         outreach_queue_id: id,
         send_mode: sendResult.mode,
       },
