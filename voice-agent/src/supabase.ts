@@ -1,4 +1,5 @@
 import type { FollowupInput, LeadCaptureInput } from './types.ts';
+import type { AppointmentResult } from './ghl.ts';
 
 export interface SupabaseCfg {
   url: string;
@@ -11,6 +12,7 @@ export interface LeadRecordResult {
   id?: string;
   error?: string;
   created?: boolean;
+  status?: string;
 }
 
 export function normalizePhone(raw: string): string {
@@ -70,10 +72,13 @@ export async function upsertLead(input: LeadCaptureInput, cfg: SupabaseCfg): Pro
   if (!existing.ok) return existing;
   const row = buildLeadRow({ ...input, caller_phone: phone }, cfg);
   if (existing.id) {
+    const currentRank = statusRank(existing.status);
+    const nextRank = statusRank(row.status);
+    const safeRow = nextRank < currentRank ? { ...row, status: existing.status } : row;
     const resp = await supabaseFetch(cfg, `/rest/v1/leads?id=eq.${encodeURIComponent(existing.id)}`, {
       method: 'PATCH',
       headers: { Prefer: 'return=representation' },
-      body: JSON.stringify(row),
+      body: JSON.stringify(safeRow),
     });
     if (!resp.ok) return { ok: false, error: `${resp.status}: ${(await resp.text()).slice(0, 200)}` };
     await logActivity(existing.id, 'voice_lead_qualified', input.interested ? 'phone' : 'phone', row.score_breakdown, cfg);
@@ -109,6 +114,22 @@ export async function logFollowup(input: FollowupInput, leadId: string, cfg: Sup
   return { ok: true, id: leadId };
 }
 
+export async function logAppointment(input: FollowupInput, leadId: string, appointment: AppointmentResult, cfg: SupabaseCfg): Promise<void> {
+  await logActivity(leadId, 'gregory_appointment_booked', 'phone', {
+    booked_by: 'saul_provider_phone_agent',
+    appointment_id: appointment.appointmentId,
+    start_time: appointment.startTime,
+    end_time: appointment.endTime,
+    source: appointment.source,
+    preferred_time_window: input.preferred_time_window,
+    requested_start_time_iso: input.requested_start_time_iso,
+  }, cfg);
+  await supabaseFetch(cfg, `/rest/v1/leads?id=eq.${encodeURIComponent(leadId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: 'qualified', assigned_to: 'gregory', last_activity_at: new Date().toISOString() }),
+  });
+}
+
 export async function logCallSession(row: Record<string, unknown>, cfg: SupabaseCfg): Promise<void> {
   if (!cfg.url || !cfg.serviceKey) return;
   try {
@@ -127,10 +148,10 @@ export async function logCallSession(row: Record<string, unknown>, cfg: Supabase
 }
 
 async function findLeadByPhone(phone: string, cfg: SupabaseCfg): Promise<LeadRecordResult> {
-  const resp = await supabaseFetch(cfg, `/rest/v1/leads?select=id&tenant_id=eq.${encodeURIComponent(cfg.tenantId)}&phone=eq.${encodeURIComponent(phone)}&limit=1`);
+  const resp = await supabaseFetch(cfg, `/rest/v1/leads?select=id,status&tenant_id=eq.${encodeURIComponent(cfg.tenantId)}&phone=eq.${encodeURIComponent(phone)}&limit=1`);
   if (!resp.ok) return { ok: false, error: `${resp.status}: ${(await resp.text()).slice(0, 200)}` };
-  const rows = (await resp.json()) as Array<{ id: string }>;
-  return { ok: true, id: rows[0]?.id };
+  const rows = (await resp.json()) as Array<{ id: string; status?: string }>;
+  return { ok: true, id: rows[0]?.id, status: rows[0]?.status };
 }
 
 async function logActivity(leadId: string, activityType: string, channel: string, metadata: Record<string, unknown>, cfg: SupabaseCfg): Promise<void> {
@@ -138,6 +159,10 @@ async function logActivity(leadId: string, activityType: string, channel: string
     method: 'POST',
     body: JSON.stringify({ tenant_id: cfg.tenantId, lead_id: leadId, activity_type: activityType, channel, metadata }),
   });
+}
+
+function statusRank(status?: string): number {
+  return { new: 1, engaged: 2, qualified: 3, converted: 4 }[status ?? ''] ?? 0;
 }
 
 async function supabaseFetch(cfg: SupabaseCfg, path: string, init: RequestInit = {}): Promise<Response> {

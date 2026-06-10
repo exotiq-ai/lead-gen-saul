@@ -11,6 +11,16 @@ export interface Env {
   GHL_LOCAL_SERVICES_API_KEY?: string;
   GHL_LOCAL_SERVICES_LOCATION_ID?: string;
   GHL_API_VERSION?: string;
+  GHL_ASK_SAUL_CALENDAR_ID?: string;
+  GHL_ASK_SAUL_PIPELINE_ID?: string;
+  GHL_ASK_SAUL_HOT_LEAD_STAGE_ID?: string;
+  GHL_ASK_SAUL_BOOKED_STAGE_ID?: string;
+  GHL_INBOUND_EMAIL_FOLLOWUP_ENABLED?: string;
+  GHL_INBOUND_EMAIL_FROM?: string;
+  GHL_INBOUND_EMAIL_FROM_NAME?: string;
+  SENDBLUE_API_KEY_ID?: string;
+  SENDBLUE_API_SECRET_KEY?: string;
+  SENDBLUE_FROM_NUMBER?: string;
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_CHAT_ID?: string;
   TELEGRAM_MESSAGE_THREAD_ID?: string;
@@ -52,6 +62,7 @@ export interface LeadCaptureInput {
 export interface FollowupInput extends LeadCaptureInput {
   consent_confirmed: boolean;
   preferred_time_window: string;
+  requested_start_time_iso?: string;
   outstanding_questions?: string;
   custom_solution_needs?: string;
 }

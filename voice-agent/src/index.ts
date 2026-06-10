@@ -14,7 +14,10 @@ export default {
     if (url.pathname === '/' && req.method === 'GET') {
       return Response.json({ service: 'saul-provider-phone-agent', endpoints: ['/chat/completions', '/health'] });
     }
-    if (url.pathname.endsWith('/chat/completions') && req.method === 'POST') return handleChat(req, env, ctx);
+    // ElevenLabs Custom LLM readback currently stores the Worker origin as the URL.
+    // Accept authenticated root POSTs as a compatibility shim while keeping
+    // /chat/completions as the canonical endpoint.
+    if ((url.pathname === '/' || url.pathname.endsWith('/chat/completions')) && req.method === 'POST') return handleChat(req, env, ctx);
     return new Response('Not found', { status: 404 });
   },
 };

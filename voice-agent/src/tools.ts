@@ -1,7 +1,9 @@
 import type { Env, FollowupInput, LeadCaptureInput } from './types.ts';
-import { syncLeadToGhl, addFollowupNote } from './ghl.ts';
-import { logFollowup, upsertLead } from './supabase.ts';
-import { notifyGregory } from './notify.ts';
+import { syncLeadToGhl, addFollowupNote, bookGregoryAppointment, ensureOpportunity } from './ghl.ts';
+import { logAppointment, logFollowup, upsertLead } from './supabase.ts';
+import { notifyGregory, notifyLeadCaptured } from './notify.ts';
+import { sendAppointmentConfirmation } from './sendblue.ts';
+import { sendInboundLeadEmailFollowup } from './emailFollowup.ts';
 
 export const toolSchemas = [
   {
@@ -22,6 +24,7 @@ export const toolSchemas = [
         ...leadProperties(),
         consent_confirmed: { type: 'boolean', description: 'True only if caller verbally agreed to a follow-up.' },
         preferred_time_window: { type: 'string', description: 'Caller preferred callback window, e.g. tomorrow afternoon.' },
+        requested_start_time_iso: { type: 'string', description: 'If the caller asks for a specific bookable time, provide the exact ISO-8601 start time with timezone offset. Only use Monday-Friday 9am-3pm America/Denver. Example: 2026-06-09T14:00:00-06:00.' },
         outstanding_questions: { type: 'string' },
         custom_solution_needs: { type: 'string' },
       },
@@ -48,6 +51,10 @@ export async function executeTool(name: string, input: Record<string, unknown>, 
     apiKey: env.GHL_LOCAL_SERVICES_API_KEY,
     locationId: env.GHL_LOCAL_SERVICES_LOCATION_ID,
     version: env.GHL_API_VERSION,
+    calendarId: env.GHL_ASK_SAUL_CALENDAR_ID,
+    pipelineId: env.GHL_ASK_SAUL_PIPELINE_ID,
+    hotLeadStageId: env.GHL_ASK_SAUL_HOT_LEAD_STAGE_ID,
+    bookedStageId: env.GHL_ASK_SAUL_BOOKED_STAGE_ID,
   };
 
   switch (name) {
@@ -56,6 +63,11 @@ export async function executeTool(name: string, input: Record<string, unknown>, 
       const db = await upsertLead(lead, supabase);
       if (!db.ok) return `I could not save the lead cleanly: ${db.error}. Keep talking and repeat the details back before ending.`;
       const ghlResult = await syncLeadToGhl(lead, ghl);
+      if (ghlResult.ok && ghlResult.contactId) {
+        await ensureOpportunity(lead, ghlResult.contactId, ghl, 'hot_lead');
+        await sendInboundLeadEmailFollowup({ input: lead, contactId: ghlResult.contactId, cfg: ghl, env, reason: 'lead_logged', existingTags: ghlResult.tags });
+      }
+      if (db.id) await notifyLeadCaptured(lead, db.id, env);
       const suffix = ghlResult.ok ? '' : ` GHL sync needs review: ${ghlResult.error}.`;
       return `Lead logged. Qualification score is ${lead.interest_level ?? (lead.interested ? 'warm' : 'cold')}. Keep the caller engaged and ask about a Gregory follow-up if they are interested.${suffix}`;
     }
@@ -66,9 +78,20 @@ export async function executeTool(name: string, input: Record<string, unknown>, 
       const follow = await logFollowup(followup, db.id, supabase);
       if (!follow.ok) return `I could not book the follow-up request: ${follow.error}. Ask for verbal consent and preferred window.`;
       const ghlLead = await syncLeadToGhl(followup, ghl);
-      await addFollowupNote(followup, ghlLead.contactId, ghl);
+      const appointment = await bookGregoryAppointment(followup, ghlLead.contactId, ghl);
+      await ensureOpportunity(followup, ghlLead.contactId, ghl, appointment.ok && appointment.startTime ? 'booked' : 'hot_lead');
+      await addFollowupNote(followup, ghlLead.contactId, ghl, appointment);
+      await sendInboundLeadEmailFollowup({ input: followup, contactId: ghlLead.contactId, cfg: ghl, env, appointment, reason: 'followup_booked', existingTags: ghlLead.tags });
+      if (appointment.ok && !appointment.skipped && appointment.appointmentId) {
+        await logAppointment(followup, db.id, appointment, supabase);
+        await sendAppointmentConfirmation(followup, appointment.confirmationText, env);
+      }
       await notifyGregory(followup, db.id, env);
-      return `Follow-up request logged for Gregory. Tell the caller Gregory has the context, their preferred window is saved, and he will follow up to discuss questions and custom setup.`;
+      if (appointment.ok && appointment.startTime) {
+        return `GHL appointment booked for Gregory at ${appointment.startTime}. Tell the caller they are booked, Gregory will call them at that time, and they should receive the calendar confirmation if their email is on file.`;
+      }
+      const bookingIssue = appointment.ok ? 'calendar booking was skipped because GHL is not fully configured' : appointment.error;
+      return `Follow-up request logged for Gregory, but the calendar appointment was not created: ${bookingIssue}. Tell the caller Gregory has the context and the preferred window is saved; do not claim a confirmed appointment.`;
     }
     case 'answer_capability_question':
       return capabilityAnswer(String(input.topic ?? ''));
@@ -120,6 +143,7 @@ function coerceFollowup(input: Record<string, unknown>): FollowupInput {
     ...coerceLead(input),
     consent_confirmed: Boolean(input.consent_confirmed),
     preferred_time_window: str(input.preferred_time_window) ?? 'next available',
+    requested_start_time_iso: str(input.requested_start_time_iso),
     outstanding_questions: str(input.outstanding_questions),
     custom_solution_needs: str(input.custom_solution_needs),
   };
