@@ -5,6 +5,8 @@ export interface SupabaseCfg {
   url: string;
   serviceKey: string;
   tenantId: string;
+  /** Override lead source for non-production traffic, e.g. saul_phone_agent_staging. */
+  sourceTag?: string;
 }
 
 export interface LeadRecordResult {
@@ -46,7 +48,7 @@ export function buildLeadRow(input: LeadCaptureInput, cfg: SupabaseCfg) {
     company_name: clean(input.business_name) ?? fallbackCompany(first),
     company_industry: clean(input.business_type),
     company_location: clean(input.city_state),
-    source: 'saul_phone_agent_inbound',
+    source: cfg.sourceTag ?? 'saul_phone_agent_inbound',
     source_detail: 'provider_phone_agent',
     status,
     assigned_to: input.interested ? 'gregory' : null,
@@ -147,11 +149,35 @@ export async function logCallSession(row: Record<string, unknown>, cfg: Supabase
   } catch { /* never break call on logging */ }
 }
 
-async function findLeadByPhone(phone: string, cfg: SupabaseCfg): Promise<LeadRecordResult> {
-  const resp = await supabaseFetch(cfg, `/rest/v1/leads?select=id,status&tenant_id=eq.${encodeURIComponent(cfg.tenantId)}&phone=eq.${encodeURIComponent(phone)}&limit=1`);
+export async function findLeadByPhone(phone: string, cfg: SupabaseCfg): Promise<LeadRecordResult & { ghlContactId?: string }> {
+  const resp = await supabaseFetch(cfg, `/rest/v1/leads?select=id,status,ghl_contact_id&tenant_id=eq.${encodeURIComponent(cfg.tenantId)}&phone=eq.${encodeURIComponent(phone)}&limit=1`);
   if (!resp.ok) return { ok: false, error: `${resp.status}: ${(await resp.text()).slice(0, 200)}` };
-  const rows = (await resp.json()) as Array<{ id: string; status?: string }>;
-  return { ok: true, id: rows[0]?.id, status: rows[0]?.status };
+  const rows = (await resp.json()) as Array<{ id: string; status?: string; ghl_contact_id?: string }>;
+  return { ok: true, id: rows[0]?.id, status: rows[0]?.status, ghlContactId: rows[0]?.ghl_contact_id ?? undefined };
+}
+
+export async function logLeadActivity(leadId: string, activityType: string, channel: string, metadata: Record<string, unknown>, cfg: SupabaseCfg): Promise<void> {
+  if (!cfg.url || !cfg.serviceKey) return;
+  try {
+    await logActivity(leadId, activityType, channel, metadata, cfg);
+  } catch { /* never break a call on activity logging */ }
+}
+
+export async function logCallTranscript(row: { conversation_id?: string; caller_phone?: string; duration_secs?: number; funnel: Record<string, boolean>; transcript: string }, cfg: SupabaseCfg): Promise<void> {
+  if (!cfg.url || !cfg.serviceKey) return;
+  try {
+    await supabaseFetch(cfg, '/rest/v1/agent_runs', {
+      method: 'POST',
+      body: JSON.stringify({
+        tenant_id: cfg.tenantId,
+        agent_type: 'saul_provider_phone_agent_transcript',
+        status: 'completed',
+        input_data: { conversation_id: row.conversation_id, caller_phone: row.caller_phone },
+        output_data: { duration_secs: row.duration_secs, funnel: row.funnel, transcript: row.transcript },
+        completed_at: new Date().toISOString(),
+      }),
+    });
+  } catch { /* never fail the webhook on logging */ }
 }
 
 async function logActivity(leadId: string, activityType: string, channel: string, metadata: Record<string, unknown>, cfg: SupabaseCfg): Promise<void> {

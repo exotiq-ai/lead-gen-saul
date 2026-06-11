@@ -4,13 +4,16 @@
   "private": true,
   "type": "module",
   "description": "ElevenLabs Custom-LLM webhook for Saul provider-sales phone agent, with Supabase lead logging and optional GHL sync.",
-  "engines": { "node": ">=22.12.0" },
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "wrangler dev --port 8791",
     "deploy": "wrangler deploy",
     "tail": "wrangler tail",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --experimental-strip-types 'src/**/*.test.ts'"
+    "test": "node --test --experimental-strip-types 'src/**/*.test.ts'",
+    "simulate": "node --experimental-strip-types scripts/simulate-call.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.40.0"

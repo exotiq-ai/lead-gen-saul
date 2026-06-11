@@ -2,8 +2,16 @@ name = "saul-provider-phone-agent"
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
 
+# KV namespace for mid-call mode state (demo mode). Create it with:
+#   npx wrangler kv namespace create SAUL_CALL_STATE
+# then paste the id below and uncomment. The worker fails open to transcript
+# scanning while the binding is absent, so deploys work without it.
+# [[kv_namespaces]]
+# binding = "SAUL_CALL_STATE"
+# id = "REPLACE_WITH_PROD_NAMESPACE_ID"
+
 [vars]
-PRIMARY_MODEL = "claude-haiku-4-5-20251001"
+PRIMARY_MODEL = "claude-sonnet-4-6"
 ESCALATION_MODEL = "claude-sonnet-4-6"
 DEFAULT_TENANT_ID = "22222222-2222-2222-2222-222222222222"
 DEFAULT_TENANT_SLUG = "ask-saul"
@@ -17,3 +25,36 @@ GHL_ASK_SAUL_BOOKED_STAGE_ID = "aba37542-28d5-4f56-9fe4-d4849c61bb11"
 GHL_INBOUND_EMAIL_FOLLOWUP_ENABLED = "true"
 GHL_INBOUND_EMAIL_FROM = "saul3000bot@gmail.com"
 GHL_INBOUND_EMAIL_FROM_NAME = "Saul from AskSaul.ai"
+
+# Staging worker for demo-mode development. Deploy with:
+#   npx wrangler deploy --env staging
+# Point the CLONED ElevenLabs agent at this worker's URL. Secrets
+# (ANTHROPIC_API_KEY, SUPABASE_*, ELEVENLABS_SHARED_SECRET) are set per-env:
+#   npx wrangler secret put ANTHROPIC_API_KEY --env staging
+[env.staging]
+name = "saul-demo-staging"
+
+# Staging KV namespace (separate from prod). Create with:
+#   npx wrangler kv namespace create SAUL_CALL_STATE --env staging
+# then paste the id below and uncomment.
+# [[env.staging.kv_namespaces]]
+# binding = "SAUL_CALL_STATE"
+# id = "REPLACE_WITH_STAGING_NAMESPACE_ID"
+
+[env.staging.vars]
+PRIMARY_MODEL = "claude-sonnet-4-6"
+ESCALATION_MODEL = "claude-sonnet-4-6"
+DEFAULT_TENANT_ID = "22222222-2222-2222-2222-222222222222"
+DEFAULT_TENANT_SLUG = "ask-saul"
+APP_BASE_URL = "https://leadsbysaul.netlify.app"
+GHL_LOCAL_SERVICES_LOCATION_ID = "RxCVQeGoQ3RTJbbLG5gY"
+GHL_API_VERSION = "2021-07-28"
+GHL_ASK_SAUL_CALENDAR_ID = "tbvii3aqFCtT85hdV0Gu"
+GHL_ASK_SAUL_PIPELINE_ID = "QnDY45LoOWXl3VIuBa1w"
+GHL_ASK_SAUL_HOT_LEAD_STAGE_ID = "66bf5184-206f-4bfd-9944-e3d0cb0fffe4"
+GHL_ASK_SAUL_BOOKED_STAGE_ID = "aba37542-28d5-4f56-9fe4-d4849c61bb11"
+GHL_INBOUND_EMAIL_FOLLOWUP_ENABLED = "false"
+GHL_INBOUND_EMAIL_FROM = "saul3000bot@gmail.com"
+GHL_INBOUND_EMAIL_FROM_NAME = "Saul from AskSaul.ai"
+SAUL_DRY_RUN = "true"
+SAUL_SOURCE_TAG = "saul_phone_agent_staging"

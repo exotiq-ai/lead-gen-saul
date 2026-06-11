@@ -1,19 +1,20 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { runClaudeTurn, textFromMessage, toolUsesFromMessage } from './claude.ts';
-import { buildSystemPrompt } from './prompts.ts';
-import { executeTool } from './tools.ts';
+import { runAgentLoop } from './agentLoop.ts';
+import { resolveCallState } from './modes.ts';
 import { logCallSession } from './supabase.ts';
+import { handlePostCall } from './postCall.ts';
 import type { Env, OAIChatRequest, OAIMessage } from './types.ts';
 
-const MAX_TOOL_TURNS = 6;
+const SNAG_FALLBACK = 'Sorry, I hit a snag on my side. I can still take your name and number so Gregory can follow up.';
 
 export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
     if (url.pathname === '/health') return Response.json({ ok: true, service: 'saul-provider-phone-agent' });
     if (url.pathname === '/' && req.method === 'GET') {
-      return Response.json({ service: 'saul-provider-phone-agent', endpoints: ['/chat/completions', '/health'] });
+      return Response.json({ service: 'saul-provider-phone-agent', endpoints: ['/chat/completions', '/webhooks/elevenlabs-post-call', '/health'] });
     }
+    if (url.pathname === '/webhooks/elevenlabs-post-call' && req.method === 'POST') return handlePostCall(req, env, ctx);
     // ElevenLabs Custom LLM readback currently stores the Worker origin as the URL.
     // Accept authenticated root POSTs as a compatibility shim while keeping
     // /chat/completions as the canonical endpoint.
@@ -36,43 +37,69 @@ async function handleChat(req: Request, env: Env, ctx: ExecutionContext): Promis
     ?? resolveString(body.dynamic_variables?.call_id)
     ?? resolveString(body.metadata?.call_id)
     ?? crypto.randomUUID();
-  const systemPrompt = buildSystemPrompt('Saul');
-  const model = env.PRIMARY_MODEL ?? 'claude-3-5-haiku-20241022';
-  let finalText: string;
+  const state = await resolveCallState(env, callId, messages);
+  const model = env.PRIMARY_MODEL ?? 'claude-sonnet-4-6';
+  const maxTokens = body.max_tokens ?? 320;
+
+  const logSession = (mode: string) => ctx.waitUntil(logCallSession(
+    { call_id: callId, mode, last_user_text: lastUserText(messages) },
+    {
+      url: env.SUPABASE_URL,
+      serviceKey: env.SUPABASE_SERVICE_ROLE_KEY,
+      tenantId: env.DEFAULT_TENANT_ID ?? '22222222-2222-2222-2222-222222222222',
+    },
+  ));
+
+  if (body.stream === true) {
+    return streamingAgentResponse({ env, state, messages, maxTokens, model, callId }, logSession);
+  }
+
   try {
-    finalText = await runAgentLoop({ env, systemPrompt, messages, maxTokens: body.max_tokens ?? 320, model });
+    const result = await runAgentLoop({ env, state, messages, maxTokens, model, callId });
+    logSession(result.state.mode);
+    return jsonResponse(result.text, model);
   } catch (err) {
     console.error('agentLoopError', err instanceof Error ? err.message : String(err));
-    finalText = 'Sorry, I hit a snag on my side. I can still take your name and number so Gregory can follow up.';
+    logSession(state.mode);
+    return jsonResponse(SNAG_FALLBACK, model);
   }
-  ctx.waitUntil(logCallSession({ call_id: callId, last_user_text: lastUserText(messages) }, {
-    url: env.SUPABASE_URL,
-    serviceKey: env.SUPABASE_SERVICE_ROLE_KEY,
-    tenantId: env.DEFAULT_TENANT_ID ?? '22222222-2222-2222-2222-222222222222',
-  }));
-  return body.stream === true ? streamingResponse(finalText, model) : jsonResponse(finalText, model);
 }
 
-async function runAgentLoop(args: { env: Env; systemPrompt: string; messages: Anthropic.MessageParam[]; maxTokens: number; model: string }): Promise<string> {
-  let messages = [...args.messages];
-  for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
-    const resp = await runClaudeTurn({ apiKey: args.env.ANTHROPIC_API_KEY, model: args.model, systemPrompt: args.systemPrompt, messages, maxTokens: args.maxTokens });
-    const toolUses = toolUsesFromMessage(resp);
-    if (!toolUses.length) return textFromMessage(resp) || 'One moment.';
-    messages = [
-      ...messages,
-      { role: 'assistant', content: resp.content },
-      {
-        role: 'user',
-        content: await Promise.all(toolUses.map(async (tu) => ({
-          type: 'tool_result' as const,
-          tool_use_id: tu.id,
-          content: await executeTool(tu.name, tu.input as Record<string, unknown>, args.env),
-        }))),
-      },
-    ];
-  }
-  return 'I want to make sure this is handled cleanly. Let me get Gregory your details for follow-up.';
+function streamingAgentResponse(
+  args: { env: Env; state: Parameters<typeof runAgentLoop>[0]['state']; messages: Anthropic.MessageParam[]; maxTokens: number; model: string; callId: string },
+  logSession: (mode: string) => void,
+): Response {
+  const encoder = new TextEncoder();
+  const id = `chatcmpl_${crypto.randomUUID()}`;
+  const created = Math.floor(Date.now() / 1000);
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (delta: Record<string, unknown>, finish: string | null = null) => {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+          id, object: 'chat.completion.chunk', created, model: args.model,
+          choices: [{ index: 0, delta, finish_reason: finish }],
+        })}\n\n`));
+      };
+      send({ role: 'assistant' });
+      try {
+        let emitted = false;
+        const result = await runAgentLoop({
+          ...args,
+          onText: (delta) => { emitted = true; send({ content: delta }); },
+        });
+        if (!emitted && result.text) send({ content: result.text });
+        logSession(result.state.mode);
+      } catch (err) {
+        console.error('agentLoopError', err instanceof Error ? err.message : String(err));
+        send({ content: SNAG_FALLBACK });
+        logSession(args.state.mode);
+      }
+      send({}, 'stop');
+      controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+      controller.close();
+    },
+  });
+  return new Response(stream, { headers: { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache' } });
 }
 
 function toAnthropicMessages(messages: OAIMessage[]): Anthropic.MessageParam[] {
@@ -118,16 +145,4 @@ function jsonResponse(text: string, model: string): Response {
     choices: [{ index: 0, message: { role: 'assistant', content: text }, finish_reason: 'stop' }],
     usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
   });
-}
-
-function streamingResponse(text: string, model: string): Response {
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream({
-    start(controller) {
-      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ id: `chatcmpl_${crypto.randomUUID()}`, object: 'chat.completion.chunk', created: Math.floor(Date.now() / 1000), model, choices: [{ index: 0, delta: { role: 'assistant', content: text }, finish_reason: null }] })}\n\n`));
-      controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-      controller.close();
-    },
-  });
-  return new Response(stream, { headers: { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache' } });
 }

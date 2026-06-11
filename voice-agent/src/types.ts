@@ -1,10 +1,17 @@
 export interface Env {
   ANTHROPIC_API_KEY: string;
   ELEVENLABS_SHARED_SECRET?: string;
+  ELEVENLABS_POST_CALL_SECRET?: string;
   SUPABASE_URL: string;
   SUPABASE_SERVICE_ROLE_KEY: string;
   PRIMARY_MODEL?: string;
   ESCALATION_MODEL?: string;
+  /** KV for mid-call mode state (demo mode). Optional: transcript scanning covers absence. */
+  SAUL_CALL_STATE?: KVNamespace;
+  /** "true" on staging: external side effects (GHL, SMS, email, Telegram) are skipped. */
+  SAUL_DRY_RUN?: string;
+  /** Lead source override for non-production traffic, e.g. saul_phone_agent_staging. */
+  SAUL_SOURCE_TAG?: string;
   DEFAULT_TENANT_ID?: string;
   DEFAULT_TENANT_SLUG?: string;
   APP_BASE_URL?: string;

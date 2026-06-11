@@ -1,4 +1,19 @@
 import type { FollowupInput, Env, LeadCaptureInput } from './types.ts';
+import type { DemoFacts } from './modes.ts';
+
+export async function notifyDemoCompleted(facts: DemoFacts | undefined, env: Env): Promise<void> {
+  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) return;
+  const text = [
+    '🎭 Caller completed a live Saul demo',
+    facts?.business_name ? `Business: ${facts.business_name}` : null,
+    facts?.business_type ? `Type: ${facts.business_type}` : null,
+    facts?.city_state ? `Market: ${facts.city_state}` : null,
+    facts?.pain_points ? `Pain: ${facts.pain_points}` : null,
+    facts?.customer_scenario ? `Scenario: ${facts.customer_scenario}` : null,
+    facts?.lead_id && env.APP_BASE_URL ? `${env.APP_BASE_URL.replace(/\/$/, '')}/dashboard/leads/${facts.lead_id}` : null,
+  ].filter(Boolean).join('\n');
+  await sendTelegram(text, env);
+}
 
 export async function notifyLeadCaptured(input: LeadCaptureInput, leadId: string, env: Env): Promise<void> {
   if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID || input.interested === false) return;

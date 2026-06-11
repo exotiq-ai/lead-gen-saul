@@ -6,6 +6,14 @@ SUPABASE_SERVICE_ROLE_KEY=
 # Optional hardening for ElevenLabs Custom LLM auth
 ELEVENLABS_SHARED_SECRET=
 
+# Optional HMAC secret for the ElevenLabs post-call transcript webhook
+ELEVENLABS_POST_CALL_SECRET=
+
+# Demo-mode dev toggles: dry-run skips GHL/SMS/email/Telegram side effects;
+# the source tag marks non-production leads in Supabase.
+SAUL_DRY_RUN=true
+SAUL_SOURCE_TAG=saul_phone_agent_staging
+
 # Defaults route phone-agent seller leads to Ask Saul/local-services tenant
 DEFAULT_TENANT_ID=22222222-2222-2222-2222-222222222222
 DEFAULT_TENANT_SLUG=ask-saul
