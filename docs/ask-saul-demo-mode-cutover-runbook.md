@@ -9,31 +9,90 @@ build environment doesn't have. Steps are ordered; don't skip the gates.
 
 ---
 
-## Part 1 — One-time setup (≈20 minutes)
+## Part 0 — Be in the right folder (every wrangler command needs this)
 
-### 1.1 Create the KV namespaces (Cloudflare)
-
-From `voice-agent/`:
+Wrangler reads `voice-agent/wrangler.toml` to know the worker name and the
+staging environment. **Every command in this runbook must run from the
+`voice-agent/` folder of the repo, on the demo-mode branch.** Running from
+your home folder produces `No environment found in configuration with name
+"staging"` and `Required Worker name missing`.
 
 ```sh
-npx wrangler kv namespace create SAUL_CALL_STATE
-npx wrangler kv namespace create SAUL_CALL_STATE --env staging
+cd ~/lead-gen-saul
 ```
 
-Each command prints an `id`. Open `voice-agent/wrangler.toml`, uncomment the
-two `[[kv_namespaces]]` blocks, and paste the matching ids (prod id in the
-top-level block, staging id in `[env.staging]`).
+(If the repo lives somewhere else, find it with
+`find ~ -maxdepth 4 -type d -name "lead-gen-saul" 2>/dev/null` and `cd` there.)
+
+```sh
+git fetch origin claude/stoic-hypatia-hl3t32
+```
+
+```sh
+git checkout claude/stoic-hypatia-hl3t32
+```
+
+```sh
+git pull origin claude/stoic-hypatia-hl3t32
+```
+
+```sh
+cd voice-agent
+```
+
+```sh
+npm install
+```
+
+Two terminal habits that prevent most errors:
+
+- **Run one command per line.** Don't paste a whole block at once.
+- **Never paste the `#` comment part of a line.** The shell treats it as
+  arguments (`Unknown arguments: #, pick, a, fresh, value`).
+
+## Part 1 — One-time setup (≈20 minutes)
+
+### 1.1 KV namespaces (Cloudflare) — already half done
+
+Both namespaces were created on 2026-06-11. The **production** id
+(`979e9f93f6e2438f946ca5c9cf735e9f`, title `SAUL_CALL_STATE`) is already
+pasted into `wrangler.toml`. The **staging** namespace exists under the title
+`staging-SAUL_CALL_STATE`; to wire it up:
+
+```sh
+npx wrangler kv namespace list
+```
+
+Find the entry whose `title` is `staging-SAUL_CALL_STATE` and copy its `id`.
+Open `voice-agent/wrangler.toml`, find the commented
+`[[env.staging.kv_namespaces]]` block, paste the id, and uncomment both lines
+of the block. Commit the change.
 
 > The worker runs fine without KV — it falls back to transcript scanning — but
 > KV is the primary mode store and carries the demo facts, so do this first.
 
 ### 1.2 Set staging secrets
 
+Run each line on its own. Each command waits for you to paste the secret value
+and press Enter (the value is invisible while you type — that's normal).
+
 ```sh
 npx wrangler secret put ANTHROPIC_API_KEY --env staging
+```
+
+```sh
 npx wrangler secret put SUPABASE_URL --env staging
+```
+
+```sh
 npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY --env staging
-npx wrangler secret put ELEVENLABS_SHARED_SECRET --env staging   # pick a fresh value
+```
+
+For the next one, make up a fresh random password (don't reuse the production
+one) and save it — you'll paste the same value into ElevenLabs in step 1.4:
+
+```sh
+npx wrangler secret put ELEVENLABS_SHARED_SECRET --env staging
 ```
 
 Do NOT set `GHL_LOCAL_SERVICES_API_KEY`, Sendblue, or Telegram secrets on
@@ -162,6 +221,16 @@ config changes (extra body, webhook) are safe to leave in place either way.
 - `agent_runs` transcripts: skim the first few demo calls end to end; tune the
   prompts in `voice-agent/src/prompts.ts` if the demo runs long or the
   reverse close lands clumsily.
+
+## Troubleshooting (real errors and what they mean)
+
+| Error | Cause | Fix |
+|---|---|---|
+| `No environment found in configuration with name "staging"` | You're not in the repo's `voice-agent/` folder, or you're on a branch without the demo-mode `wrangler.toml`. | Do Part 0: `cd` into `voice-agent/` on branch `claude/stoic-hypatia-hl3t32`. |
+| `Required Worker name missing` | Same cause — wrangler can't see `wrangler.toml`. | Same fix. |
+| `Unknown arguments: #, pick, a, fresh, value` | The `# comment` part of a line got pasted into the terminal. | Re-run just the command, nothing after it. |
+| `A KV namespace with the title "..." already exists` | It was created on an earlier attempt — this is fine, nothing is broken. | `npx wrangler kv namespace list`, copy the existing `id`, paste it into `wrangler.toml`. |
+| Secrets prompt shows nothing while you type/paste | Normal — secret input is hidden. | Paste and press Enter. |
 
 ## Appendix — Local verification (no dashboards needed)
 
