@@ -8,7 +8,7 @@ import type { Env } from './types.ts';
 const MAX_TOOL_TURNS = 6;
 
 export type TurnRunner = (input: ClaudeTurnInput) => Promise<Anthropic.Message>;
-export type ToolExecutor = (name: string, input: Record<string, unknown>, env: Env, opts: { callId?: string }) => Promise<ToolExecutionResult>;
+export type ToolExecutor = (name: string, input: Record<string, unknown>, env: Env, opts: { callId?: string; state?: CallState }) => Promise<ToolExecutionResult>;
 
 export interface AgentLoopArgs {
   env: Env;
@@ -71,7 +71,7 @@ export async function runAgentLoop(args: AgentLoopArgs): Promise<AgentLoopResult
       // Defense in depth: even if the model hallucinates a tool outside the
       // current mode's set, it never executes.
       const result = allowed.has(tu.name)
-        ? await exec(tu.name, tu.input as Record<string, unknown>, args.env, { callId: args.callId })
+        ? await exec(tu.name, tu.input as Record<string, unknown>, args.env, { callId: args.callId, state })
         : { content: 'That tool is not available right now. Continue the conversation naturally.' };
       if (result.state) state = result.state;
       results.push({ type: 'tool_result', tool_use_id: tu.id, content: result.content });
@@ -82,5 +82,12 @@ export async function runAgentLoop(args: AgentLoopArgs): Promise<AgentLoopResult
       { role: 'user', content: results },
     ];
   }
-  return { text: spoken.join(' ').trim() || 'I want to make sure this is handled cleanly. Let me get Gregory your details for follow-up.', state };
+  // Loop exhausted after a tool turn: the caller must still hear a complete
+  // wrap-up, not a dangling filler ("one second...") followed by silence.
+  const wrapUp = 'I want to make sure this is handled cleanly. Let me get Gregory your details for follow-up.';
+  if (args.onText) {
+    if (emittedAny) args.onText(' ');
+    args.onText(wrapUp);
+  }
+  return { text: [...spoken, wrapUp].join(' ').trim(), state };
 }

@@ -117,6 +117,28 @@ test('end_demo_roleplay switches back to debrief with facts preserved', async ()
   assert.match(store.get('call:call-1') ?? '', /Mike/);
 });
 
+test('end_demo without KV still preserves facts via the loop state', async () => {
+  const calls: ClaudeTurnInput[] = [];
+  const env = dryEnv(); // no SAUL_CALL_STATE binding at all
+  const result = await runAgentLoop({
+    env,
+    state: { mode: 'discovery' },
+    messages: [{ role: 'user', content: 'Ready when you are.' }],
+    maxTokens: 320,
+    model: 'test-model',
+    callId: 'call-1',
+    turnRunner: scriptedRunner([
+      toolMessage('One sec.', 'start_demo_roleplay', { business_name: 'Mile High HVAC', business_type: 'HVAC' }),
+      toolMessage('Alright — new hat on. Thanks for calling Mile High HVAC, how can I help you today?', 'end_demo_roleplay', { demo_outcome: 'caller_exited' }),
+      textMessage('Okay — Sawl hat back on. That was your agent answering. What stood out to you?'),
+    ], calls),
+  });
+  assert.equal(result.state.mode, 'debrief');
+  assert.equal(result.state.facts?.business_name, 'Mile High HVAC');
+  // Debrief prompt still grounded in the business despite no KV.
+  assert.ok(calls[2].systemPrompt.includes('Mile High HVAC'));
+});
+
 test('a hallucinated out-of-mode tool never executes (defense in depth)', async () => {
   const executed: string[] = [];
   const calls: ClaudeTurnInput[] = [];
@@ -159,16 +181,20 @@ test('streaming deltas across turns arrive separated', async () => {
   assert.match(joined, /One sec\. Alright — new hat on\./);
 });
 
-test('loop exhaustion returns the safe wrap-up line', async () => {
-  const script: Anthropic.Message[] = Array.from({ length: 6 }, () =>
-    toolMessage('', 'answer_capability_question', { topic: 'pricing' }));
+test('loop exhaustion appends the safe wrap-up after any streamed filler', async () => {
+  const script: Anthropic.Message[] = Array.from({ length: 6 }, (_, i) =>
+    toolMessage(i === 0 ? 'Got it, one second.' : '', 'answer_capability_question', { topic: 'pricing' }));
+  const deltas: string[] = [];
   const result = await runAgentLoop({
     env: dryEnv(),
     state: { mode: 'discovery' },
     messages: [{ role: 'user', content: 'hi' }],
     maxTokens: 320,
     model: 'test-model',
+    onText: (d) => deltas.push(d),
     turnRunner: scriptedRunner(script, []),
   });
-  assert.match(result.text, /Gregory/);
+  // The caller never ends on a dangling filler — streamed or not.
+  assert.match(result.text, /Got it, one second\. I want to make sure this is handled cleanly\./);
+  assert.match(deltas.join(''), /Got it, one second\. I want to make sure this is handled cleanly\./);
 });

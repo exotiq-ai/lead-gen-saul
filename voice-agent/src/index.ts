@@ -33,10 +33,7 @@ async function handleChat(req: Request, env: Env, ctx: ExecutionContext): Promis
   const messages = toAnthropicMessages(body.messages ?? []);
   if (!messages.length) return Response.json({ error: { message: 'No user messages in request.' } }, { status: 400 });
 
-  const callId = resolveString(req.headers.get('x-call-id'))
-    ?? resolveString(body.dynamic_variables?.call_id)
-    ?? resolveString(body.metadata?.call_id)
-    ?? crypto.randomUUID();
+  const callId = resolveCallId(req, body) ?? crypto.randomUUID();
   const state = await resolveCallState(env, callId, messages);
   const model = env.PRIMARY_MODEL ?? 'claude-sonnet-4-6';
   const maxTokens = body.max_tokens ?? 320;
@@ -80,8 +77,8 @@ function streamingAgentResponse(
           choices: [{ index: 0, delta, finish_reason: finish }],
         })}\n\n`));
       };
-      send({ role: 'assistant' });
       try {
+        send({ role: 'assistant' });
         let emitted = false;
         const result = await runAgentLoop({
           ...args,
@@ -91,18 +88,38 @@ function streamingAgentResponse(
         logSession(result.state.mode);
       } catch (err) {
         console.error('agentLoopError', err instanceof Error ? err.message : String(err));
-        send({ content: SNAG_FALLBACK });
         logSession(args.state.mode);
+        // The consumer may already be gone; never let the fallback write
+        // double-fault and swallow the session log above.
+        try { send({ content: SNAG_FALLBACK }); } catch { /* consumer gone */ }
       }
-      send({}, 'stop');
-      controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-      controller.close();
+      try {
+        send({}, 'stop');
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+        controller.close();
+      } catch { /* consumer gone mid-stream */ }
     },
   });
   return new Response(stream, { headers: { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache' } });
 }
 
-function toAnthropicMessages(messages: OAIMessage[]): Anthropic.MessageParam[] {
+// ElevenLabs sends a stable conversation id inside elevenlabs_extra_body when
+// "Custom LLM extra body" is enabled on the agent; older shapes and the
+// simulator use headers/metadata. Stable ids make KV the primary mode store.
+export function resolveCallId(req: Request, body: OAIChatRequest): string | undefined {
+  const extra = (body as { elevenlabs_extra_body?: Record<string, unknown> }).elevenlabs_extra_body;
+  return resolveString(req.headers.get('x-call-id'))
+    ?? resolveString(extra?.conversation_id)
+    ?? resolveString(extra?.call_id)
+    ?? resolveString(body.extra_body?.conversation_id)
+    ?? resolveString(body.extra_body?.call_id)
+    ?? resolveString(body.dynamic_variables?.call_id)
+    ?? resolveString(body.dynamic_variables?.conversation_id)
+    ?? resolveString(body.metadata?.call_id)
+    ?? resolveString(body.metadata?.conversation_id);
+}
+
+export function toAnthropicMessages(messages: OAIMessage[]): Anthropic.MessageParam[] {
   const out: Anthropic.MessageParam[] = [];
   for (const m of messages) {
     if (m.role === 'system' || m.role === 'tool') continue;
@@ -110,6 +127,11 @@ function toAnthropicMessages(messages: OAIMessage[]): Anthropic.MessageParam[] {
     if (!text.trim()) continue;
     out.push({ role: m.role === 'assistant' ? 'assistant' : 'user', content: stripRouteBlock(text) });
   }
+  // Sonnet 4.6 rejects requests whose final message is an assistant turn
+  // (prefill removal). ElevenLabs can resend a transcript ending mid-agent-turn
+  // after an interruption; drop the trailing assistant text so the model
+  // regenerates instead of the whole call hitting the snag fallback.
+  while (out.length && out[out.length - 1].role === 'assistant') out.pop();
   return out;
 }
 

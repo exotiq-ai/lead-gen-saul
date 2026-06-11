@@ -98,7 +98,7 @@ export function isDryRun(env: Env): boolean {
   return env.SAUL_DRY_RUN === 'true';
 }
 
-export async function executeTool(name: string, input: Record<string, unknown>, env: Env, opts: { callId?: string } = {}): Promise<ToolExecutionResult> {
+export async function executeTool(name: string, input: Record<string, unknown>, env: Env, opts: { callId?: string; state?: CallState } = {}): Promise<ToolExecutionResult> {
   const tenantId = env.DEFAULT_TENANT_ID ?? '22222222-2222-2222-2222-222222222222';
   const supabase: SupabaseCfg = {
     url: env.SUPABASE_URL,
@@ -189,8 +189,10 @@ export async function executeTool(name: string, input: Record<string, unknown>, 
     }
     case 'end_demo_roleplay': {
       const outcome = str(input.demo_outcome) ?? 'completed';
+      // KV first, then the loop's in-memory state: without the KV binding (or
+      // with an unstable call id) the loop state still carries the demo facts.
       const prior = await readCallState(env, opts.callId);
-      const facts = prior?.facts;
+      const facts = prior?.facts ?? opts.state?.facts;
       const state: CallState = { mode: 'debrief', facts };
       await writeCallState(env, opts.callId, state);
       if (facts?.lead_id) {

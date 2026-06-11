@@ -45,6 +45,8 @@ export interface OAIChatRequest {
   max_tokens?: number;
   metadata?: Record<string, unknown>;
   extra_body?: Record<string, unknown>;
+  /** Sent by ElevenLabs when "Custom LLM extra body" is enabled; carries the stable conversation_id. */
+  elevenlabs_extra_body?: Record<string, unknown>;
   dynamic_variables?: Record<string, unknown>;
   user?: string;
 }

@@ -51,7 +51,9 @@ export function scanTranscriptForMode(messages: Anthropic.MessageParam[]): CallS
     }
     if (lower.includes(DEMO_EXIT_SENTINEL)) exitIdx = i;
   });
-  if (exitIdx >= 0 && exitIdx >= entryIdx) return { mode: 'debrief' };
+  // The exit sentinel only counts after a demo actually started: a stray
+  // "hat back on" with no entry fails open to discovery, the safe default.
+  if (entryIdx >= 0 && exitIdx >= entryIdx) return { mode: 'debrief' };
   if (entryIdx >= 0) {
     const match = entryText.match(/thanks for calling (.+?)[,.!?]/i);
     const business = match?.[1]?.trim();

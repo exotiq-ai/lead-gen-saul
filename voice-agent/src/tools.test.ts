@@ -69,6 +69,22 @@ test('end_demo_roleplay flips to debrief, preserves facts, returns the verbatim 
   assert.match(store.get('call:call-1') ?? '', /"mode":"debrief"/);
 });
 
+test('end_demo_roleplay without any KV binding falls back to the loop state for facts', async () => {
+  const env = {
+    ANTHROPIC_API_KEY: 'test',
+    SUPABASE_URL: '',
+    SUPABASE_SERVICE_ROLE_KEY: '',
+    SAUL_DRY_RUN: 'true',
+  } as unknown as Env;
+  const result = await executeTool('end_demo_roleplay', { demo_outcome: 'completed' }, env, {
+    callId: 'call-9',
+    state: { mode: 'demo', facts: { business_name: 'Mile High HVAC', caller_first_name: 'Mike' } },
+  });
+  assert.equal(result.state?.mode, 'debrief');
+  assert.equal(result.state?.facts?.business_name, 'Mile High HVAC');
+  assert.equal(result.state?.facts?.caller_first_name, 'Mike');
+});
+
 test('dry run with no Supabase configured still logs the lead successfully', async () => {
   const result = await executeTool('qualify_and_log_lead', {
     caller_phone: '5551234567',

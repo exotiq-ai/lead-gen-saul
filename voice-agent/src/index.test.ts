@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import worker from './index.ts';
+import worker, { resolveCallId, toAnthropicMessages } from './index.ts';
 import { isAllowedGregorySlot, selectGregorySlot, formatConfirmationText } from './scheduling.ts';
 import { funnelFromTranscript, verifyElevenLabsSignature } from './postCall.ts';
 
@@ -45,7 +45,7 @@ test('post-call webhook rejects unsigned requests when a secret is configured', 
   assert.equal(res.status, 401);
 });
 
-test('post-call webhook accepts requests when no secret is configured', async () => {
+test('post-call webhook fails CLOSED when no secret is configured', async () => {
   const res = await worker.fetch(
     new Request('https://example.com/webhooks/elevenlabs-post-call', {
       method: 'POST',
@@ -54,8 +54,55 @@ test('post-call webhook accepts requests when no secret is configured', async ()
     { SUPABASE_URL: '', SUPABASE_SERVICE_ROLE_KEY: '' } as any,
     ctx(),
   );
+  assert.equal(res.status, 503);
+});
+
+test('post-call webhook accepts a correctly signed request', async () => {
+  const secret = 'whsec_route_test';
+  const body = JSON.stringify({ type: 'post_call_transcription', data: { conversation_id: 'c1', transcript: [{ role: 'agent', message: 'hi' }] } });
+  const t = Math.floor(Date.now() / 1000);
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${t}.${body}`));
+  const hex = [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  const res = await worker.fetch(
+    new Request('https://example.com/webhooks/elevenlabs-post-call', {
+      method: 'POST',
+      headers: { 'elevenlabs-signature': `t=${t},v0=${hex}` },
+      body,
+    }),
+    { ELEVENLABS_POST_CALL_SECRET: secret, SUPABASE_URL: '', SUPABASE_SERVICE_ROLE_KEY: '' } as any,
+    ctx(),
+  );
   assert.equal(res.status, 200);
   assert.deepEqual(await res.json(), { ok: true });
+});
+
+test('call id resolution reads the ElevenLabs extra body conversation id', () => {
+  const req = new Request('https://example.com/chat/completions', { method: 'POST' });
+  assert.equal(
+    resolveCallId(req, { messages: [], elevenlabs_extra_body: { conversation_id: 'conv_abc' } } as any),
+    'conv_abc',
+  );
+  assert.equal(
+    resolveCallId(req, { messages: [], extra_body: { conversation_id: 'conv_def' } } as any),
+    'conv_def',
+  );
+  assert.equal(
+    resolveCallId(new Request('https://example.com/', { method: 'POST', headers: { 'x-call-id': 'header-wins' } }),
+      { messages: [], elevenlabs_extra_body: { conversation_id: 'conv_abc' } } as any),
+    'header-wins',
+  );
+  assert.equal(resolveCallId(req, { messages: [] } as any), undefined);
+});
+
+test('a trailing assistant message is dropped so Sonnet 4.6 never sees a prefill', () => {
+  const out = toAnthropicMessages([
+    { role: 'assistant', content: 'Thanks for calling, who am I speaking with?' },
+    { role: 'user', content: 'Mike.' },
+    { role: 'assistant', content: 'Nice to meet you Mi—' },
+  ]);
+  assert.equal(out.length, 2);
+  assert.equal(out[out.length - 1].role, 'user');
 });
 
 test('post-call signature verification round-trips and rejects tampering', async () => {

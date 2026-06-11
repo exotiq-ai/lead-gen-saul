@@ -26,11 +26,12 @@ interface PostCallPayload {
 }
 
 export async function handlePostCall(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  // Fail closed: without a configured secret, anonymous POSTs could write
+  // attacker-controlled transcripts onto real leads and GHL contacts.
+  if (!env.ELEVENLABS_POST_CALL_SECRET) return new Response('Webhook secret not configured', { status: 503 });
   const raw = await req.text();
-  if (env.ELEVENLABS_POST_CALL_SECRET) {
-    const ok = await verifyElevenLabsSignature(raw, req.headers.get('elevenlabs-signature'), env.ELEVENLABS_POST_CALL_SECRET);
-    if (!ok) return new Response('Unauthorized', { status: 401 });
-  }
+  const ok = await verifyElevenLabsSignature(raw, req.headers.get('elevenlabs-signature'), env.ELEVENLABS_POST_CALL_SECRET);
+  if (!ok) return new Response('Unauthorized', { status: 401 });
   let payload: PostCallPayload;
   try { payload = JSON.parse(raw) as PostCallPayload; } catch { return new Response('Bad JSON', { status: 400 }); }
   ctx.waitUntil(processPostCall(payload, env));

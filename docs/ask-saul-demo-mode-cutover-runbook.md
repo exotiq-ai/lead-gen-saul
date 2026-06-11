@@ -58,24 +58,30 @@ In the ElevenLabs dashboard:
 2. In the clone's **Custom LLM** settings, set the URL to the staging worker
    URL from 1.3 and the API key to the `ELEVENLABS_SHARED_SECRET` you set in
    1.2 (sent as a Bearer token).
-3. **Enable "Custom LLM extra body"** (or the equivalent setting that forwards
-   the conversation id) so the worker receives a stable call id. This is what
-   makes the KV mode store reliable; without it the transcript-scan fallback
-   carries the call.
+3. **Enable "Custom LLM extra body"** so the worker receives a stable call id
+   (the worker reads `elevenlabs_extra_body.conversation_id` from the request
+   body). This is what makes the KV mode store reliable; without it the
+   transcript-scan fallback carries the call. On the first staging call, check
+   `npx wrangler tail --env staging` — if you see a fresh random call id per
+   turn, this setting isn't on.
 4. Set the model field if shown — the worker decides the real model
    (`claude-sonnet-4-6` via `PRIMARY_MODEL`), so this value is cosmetic.
 5. Attach a test phone number to the clone, or use dashboard test calls.
 
 ### 1.5 Wire the post-call transcript webhook (staging first)
 
+The endpoint **fails closed**: it returns 503 until its secret is configured,
+so set the secret first, then add the URL.
+
 In the ElevenLabs agent's **post-call webhook** settings:
 
-- URL: `https://saul-demo-staging.<account>.workers.dev/webhooks/elevenlabs-post-call`
 - Copy the signing secret ElevenLabs generates, then:
 
 ```sh
 npx wrangler secret put ELEVENLABS_POST_CALL_SECRET --env staging
 ```
+
+- Then set the URL: `https://saul-demo-staging.<account>.workers.dev/webhooks/elevenlabs-post-call`
 
 After the first test call, transcripts land in Supabase `agent_runs` with
 `agent_type=saul_provider_phone_agent_transcript`, and on the lead's

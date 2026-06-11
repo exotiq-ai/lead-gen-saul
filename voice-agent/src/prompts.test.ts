@@ -16,6 +16,9 @@ test('discovery prompt carries the demo bridge with consent and rescue scripts',
   const prompt = buildSystemPrompt('Saul', { mode: 'discovery' });
   assert.match(prompt, /LIVE DEMO BRIDGE/);
   assert.match(prompt, /start_demo_roleplay/);
+  // The offer question is scripted verbatim so the post-call funnel flag
+  // (demo_offered, scanned as "hear how that would sound") stays reliable.
+  assert.match(prompt, /"Want to hear how that would sound for your business\?"/);
   assert.match(prompt, /Put yourself in the shoes of one of your customers/);
   assert.match(prompt, /If they hesitate or freeze, carry it for them/);
   assert.match(prompt, /If they decline the demo, do not push/);

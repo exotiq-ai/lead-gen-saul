@@ -45,6 +45,15 @@ test('exit sentinel after entry resolves to debrief', () => {
   assert.equal(state.mode, 'debrief');
 });
 
+test('a stray exit sentinel with no demo entry fails open to discovery', () => {
+  const state = scanTranscriptForMode([
+    msg('assistant', 'Thanks for calling, who am I speaking with?'),
+    msg('user', 'Mike.'),
+    msg('assistant', 'Got it Mike — hat back on my end, ha. What kind of business do you run?'),
+  ]);
+  assert.equal(state.mode, 'discovery');
+});
+
 test('sentinels in USER speech never flip the mode', () => {
   const state = scanTranscriptForMode([
     msg('assistant', 'What kind of business do you run?'),
