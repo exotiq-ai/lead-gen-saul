@@ -1,10 +1,16 @@
 # Ask Saul Prospector Agent: "Demo Mode" (Multiple Hats) — Build Spec
 
-Status: build-ready spec (v3 — A/B testing shelved until customer volume; model
-selection finalized).
+Status: **BUILT** (v4 — Phases 0–2 implemented in `voice-agent/` on this branch;
+see `docs/ask-saul-demo-mode-cutover-runbook.md` for the manual staging/cutover
+steps). A/B testing shelved until customer volume; model selection finalized.
 Scope: `voice-agent/` (Saul provider phone agent), plus small Supabase additions.
-Audience: this doc is the specification a build agent works from. Acceptance
-criteria are in §10.
+Audience: originally the spec a build agent worked from; now the design record.
+Acceptance criteria are in §10.
+
+> Implementation notes vs. spec: production `PRIMARY_MODEL` was already set to
+> Haiku 4.5 in `wrangler.toml`, so production was NOT erroring on the retired
+> model — the dead code default was still replaced with `claude-sonnet-4-6`.
+> The fixture tests use `node:test` (the worker's existing pattern), not vitest.
 
 ---
 
