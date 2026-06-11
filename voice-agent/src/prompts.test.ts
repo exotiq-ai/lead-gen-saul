@@ -8,6 +8,8 @@ test('provider phone agent prompt anchors goals and booking flow', () => {
   assert.match(prompt, /qualify whether they are interested/i);
   assert.match(prompt, /book a follow-up request with Gregory/i);
   assert.match(prompt, /Always ask and use the caller's name/i);
+  assert.match(prompt, /Never promise exact pricing, ballpark ranges/);
+  assert.match(prompt, /do not quote a range/);
   assert.match(prompt, /qualify_and_log_lead, book_gregory_followup/);
   assert.match(prompt, /Sawl/);
 });
@@ -20,7 +22,7 @@ test('discovery prompt carries the demo bridge with consent and rescue scripts',
   // (demo_offered, scanned as "hear how that would sound") stays reliable.
   assert.match(prompt, /"Want to hear how that would sound for your business\?"/);
   assert.match(prompt, /Put yourself in the shoes of one of your customers/);
-  assert.match(prompt, /If they hesitate or freeze, carry it for them/);
+  assert.match(prompt, /Do NOT call start_demo_roleplay in that same response/);
   assert.match(prompt, /If they decline the demo, do not push/);
   assert.match(prompt, /EXACTLY the opening line the tool result gives you/);
 });
@@ -35,7 +37,8 @@ test('demo prompt is the other hat: in character, gated, illustrative only', () 
   assert.match(prompt, /missed after-hours calls/);
   assert.match(prompt, /three to five exchanges/);
   assert.match(prompt, /quote no real prices/);
-  assert.match(prompt, /end_demo_roleplay/);
+  assert.match(prompt, /After your wrap line, you MUST call end_demo_roleplay/);
+  assert.match(prompt, /Do not answer the caller's out-of-character question/);
   // The demo hat never sees the sales persona or the real tools.
   assert.ok(!prompt.includes('qualify_and_log_lead'));
   assert.ok(!prompt.includes('book_gregory_followup'));

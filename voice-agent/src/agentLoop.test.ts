@@ -100,7 +100,7 @@ test('end_demo_roleplay switches back to debrief with facts preserved', async ()
   const result = await runAgentLoop({
     env: dryEnv(store),
     state: { mode: 'demo', facts: { business_name: 'Mile High HVAC' } },
-    messages: [{ role: 'user', content: 'okay Sawl, that is enough' }],
+    messages: [{ role: 'user', content: 'please wrap the scene now' }],
     maxTokens: 320,
     model: 'test-model',
     callId: 'call-1',
@@ -137,6 +137,49 @@ test('end_demo without KV still preserves facts via the loop state', async () =>
   assert.equal(result.state.facts?.business_name, 'Mile High HVAC');
   // Debrief prompt still grounded in the business despite no KV.
   assert.ok(calls[2].systemPrompt.includes('Mile High HVAC'));
+});
+
+test('discovery demo-ready confirmation deterministically starts demo before role-play can bleed', async () => {
+  const executed: string[] = [];
+  const result = await runAgentLoop({
+    env: dryEnv(),
+    state: { mode: 'discovery' },
+    messages: [
+      { role: 'user', content: 'I own Mile High HVAC here in Denver and miss after-hours calls.' },
+      { role: 'assistant', content: 'Great. Put yourself in the shoes of one of your customers calling in. Just say something like my furnace died. Ready?' },
+      { role: 'user', content: 'My furnace died and it is freezing. Can someone come out?' },
+    ],
+    maxTokens: 320,
+    model: 'test-model',
+    turnRunner: async () => { throw new Error('model should not be called for deterministic demo start'); },
+    toolExecutor: async (name, input) => {
+      executed.push(`${name}:${input.business_name}:${input.business_type}`);
+      return { content: 'ok', state: { mode: 'demo', facts: { business_name: input.business_name as string, business_type: input.business_type as string } } };
+    },
+  });
+  assert.deepEqual(executed, ['start_demo_roleplay:Mile High HVAC:HVAC']);
+  assert.equal(result.state.mode, 'demo');
+  assert.equal(result.text, 'Alright — new hat on. Thanks for calling Mile High HVAC, how can I help you today?');
+});
+
+test('demo mode deterministically exits when the caller breaks character', async () => {
+  const executed: string[] = [];
+  const result = await runAgentLoop({
+    env: dryEnv(),
+    state: { mode: 'demo', facts: { business_name: "Sam's Driveway Pros" } },
+    messages: [{ role: 'user', content: 'Wait, is this the AI talking right now?' }],
+    maxTokens: 320,
+    model: 'test-model',
+    turnRunner: async () => { throw new Error('model should not be called for deterministic demo exits'); },
+    toolExecutor: async (name, input, _env, opts) => {
+      executed.push(`${name}:${input.demo_outcome}`);
+      return { content: 'ok', state: { mode: 'debrief', facts: opts.state?.facts } };
+    },
+  });
+  assert.deepEqual(executed, ['end_demo_roleplay:caller_exited']);
+  assert.equal(result.state.mode, 'debrief');
+  assert.equal(result.state.facts?.business_name, "Sam's Driveway Pros");
+  assert.equal(result.text, 'Okay — Sawl hat back on. That was your agent answering. What stood out to you?');
 });
 
 test('a hallucinated out-of-mode tool never executes (defense in depth)', async () => {

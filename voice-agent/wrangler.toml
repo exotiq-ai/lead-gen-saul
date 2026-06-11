@@ -34,12 +34,11 @@ GHL_INBOUND_EMAIL_FROM_NAME = "Saul from AskSaul.ai"
 name = "saul-demo-staging"
 
 # Staging KV namespace (dashboard title: "staging-SAUL_CALL_STATE" — it was
-# already created). Find its id with:
-#   npx wrangler kv namespace list
-# then paste it below and uncomment both lines.
-# [[env.staging.kv_namespaces]]
-# binding = "SAUL_CALL_STATE"
-# id = "REPLACE_WITH_STAGING_NAMESPACE_ID"
+# already created). Separate from production so demo-mode staging calls keep
+# isolated mid-call state.
+[[env.staging.kv_namespaces]]
+binding = "SAUL_CALL_STATE"
+id = "2e8244ea7b974875ada758d84468783c"
 
 [env.staging.vars]
 PRIMARY_MODEL = "claude-sonnet-4-6"

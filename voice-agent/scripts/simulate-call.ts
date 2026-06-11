@@ -21,7 +21,7 @@ import worker from '../src/index.ts';
 import { scanTranscriptForMode } from '../src/modes.ts';
 import type { Env, OAIMessage } from '../src/types.ts';
 
-const MAX_CALLER_TURNS = 14;
+const MAX_CALLER_TURNS = 18;
 const PERSONA_MODEL = process.env.SIM_PERSONA_MODEL ?? 'claude-haiku-4-5';
 const SAUL_MODEL = process.env.SIM_SAUL_MODEL ?? 'claude-sonnet-4-6';
 const FIRST_MESSAGE = "Thanks for calling, this is Sawl with Gregory's phone-agent team. Who am I speaking with?";
@@ -36,9 +36,9 @@ const SCENARIOS: Scenario[] = [
     name: 'clean-funnel',
     persona: `You are Mike Rivera, owner of Mile High HVAC in Denver, Colorado.
 You miss after-hours calls constantly and it costs you jobs. You are friendly and curious about AI phone agents.
-When offered a live demo, accept enthusiastically and play along as a customer with a dead furnace at 9pm.
+When offered a live demo, accept enthusiastically and play along as a customer with a dead furnace at 9pm. During the role-play, do not ask about price or cost; focus on urgency, address, contact details, and whether help is available.
 After the demo, you are impressed. Share your number 720-555-0142 and email mike@milehighhvac.com when asked.
-Agree to a follow-up call with Gregory tomorrow morning.`,
+Agree to a follow-up call with Gregory tomorrow morning. Once Saul says the preferred window is saved or you are all set, say thanks and hang up.`,
   },
   {
     name: 'demo-refusal',
@@ -49,7 +49,8 @@ Push on price twice. If the agent handles it well, reluctantly give your number 
   {
     name: 'mid-demo-derail',
     persona: `You are Sam, owner of a driveway paving business in Austin.
-You agree to the live demo and start playing a customer asking about a cracked driveway.
+You called Ask Saul because your paving business misses too many lead calls while crews are on job sites; do not ask for an actual driveway repair during discovery.
+When offered a live demo, accept clearly and start playing one of your customers asking about a cracked driveway. During the in-character demo, ask only for availability and quote scheduling, not price or cost.
 After two exchanges in the demo, break character abruptly: ask "wait, is this the AI talking right now?" and stop playing along.
 See how the agent recovers. If it recovers gracefully, answer one more qualifying question, then say you have to run.`,
   },
