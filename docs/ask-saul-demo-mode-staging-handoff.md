@@ -68,41 +68,30 @@ Gregory created the staging clone:
 - Branch id: `agtbrch_5501ktvxmb7hfyzahtg56qfd3rv3`
 - Name: `Saul Demo Staging`
 
-Avi inspected it read-only via the saved ElevenLabs API key. Current clone settings still need dashboard/API write updates:
+Gregory provided an ElevenLabs API key with write access, and Avi updated the clone via API:
 
-- Custom LLM URL currently points to production:
-  - `https://saul-provider-phone-agent.gregory-ringler.workers.dev`
-- Required staging Custom LLM URL:
-  - `https://saul-demo-staging.gregory-ringler.workers.dev`
-- `custom_llm_extra_body` is currently `false`.
-- Required: `custom_llm_extra_body = true` so the worker receives `elevenlabs_extra_body.conversation_id` for stable KV state.
-- `post_call_webhook_id` is currently `null`.
-- No phone numbers are attached to the clone yet.
-
-The locally saved ElevenLabs API key can read agents but cannot clone/update them. API duplication failed with:
-
-```text
-missing_permissions: The API key you used is missing the permission convai_write
-```
-
-Because of that, Avi cannot update the clone via API unless Gregory provides an ElevenLabs API key with `convai_write`, or Gregory performs the dashboard settings manually.
+- Custom LLM URL now points to staging:
+  - `https://saul-demo-staging.gregory-ringler.workers.dev/chat/completions`
+- Custom LLM model id is now `saul-demo-staging`.
+- Custom LLM Bearer auth uses ConvAI secret id `MBOvSHAYGiuDLIeO0ukU` (value matches the staging Worker `ELEVENLABS_SHARED_SECRET`).
+- `custom_llm_extra_body` is now `true`, so the worker should receive `elevenlabs_extra_body.conversation_id` for stable KV state.
+- Post-call webhook is configured:
+  - webhook id: `09076ec189324663b3adbf7c3283df63`
+  - URL: `https://saul-demo-staging.gregory-ringler.workers.dev/webhooks/elevenlabs-post-call`
+  - events: `transcript`
+  - transcript format: JSON
+  - send audio: false
+- Staging Worker `ELEVENLABS_POST_CALL_SECRET` is set to the generated webhook secret.
+- A signed manual webhook check returned `200 {"ok":true}`.
+- A direct authenticated staging Custom LLM POST to `/chat/completions` returned HTTP 200.
+- No phone numbers are attached to the clone yet; use dashboard test calls or attach a test number.
 
 ## Manual/dashboard action needed now
 
 In `Saul Demo Staging` (`agent_3001ktvxmb72fastam3vm58d926z`):
 
-1. Change Custom LLM URL from production to staging:
-   - `https://saul-demo-staging.gregory-ringler.workers.dev`
-2. Set Custom LLM auth Bearer token to the value in:
-   - `/Users/gbot/.hermes/secrets/saul_demo_staging_elevenlabs_shared_secret.txt`
-3. Enable Custom LLM extra body.
-4. Attach a test number or use dashboard test calls.
-5. Create/configure post-call webhook:
-   - URL: `https://saul-demo-staging.gregory-ringler.workers.dev/webhooks/elevenlabs-post-call`
-   - events: transcript
-   - transcript format: JSON
-6. Provide the ElevenLabs webhook signing secret to Avi so he can set:
-   - `npx wrangler secret put ELEVENLABS_POST_CALL_SECRET --env staging`
+1. Use dashboard test calls, or attach a test number.
+2. During the first call, Avi should run `npx wrangler tail --env staging` and confirm stable call ids from `elevenlabs_extra_body.conversation_id`.
 
 ## Staging validation checklist still remaining
 
