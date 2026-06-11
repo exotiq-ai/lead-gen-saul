@@ -3,6 +3,7 @@
 Date: 2026-06-11
 Branch: `claude/stoic-hypatia-hl3t32`
 Staging worker: `https://saul-demo-staging.gregory-ringler.workers.dev`
+Staging ElevenLabs clone: `agent_3001ktvxmb72fastam3vm58d926z` / branch `agtbrch_5501ktvxmb7hfyzahtg56qfd3rv3`
 
 ## Current verified staging state
 
@@ -35,7 +36,7 @@ npm run typecheck
 npm test
 npm run simulate
 npx wrangler deploy --dry-run --outdir /tmp/wb
-CLOUDFLARE_API_TOKEN=... npx wrangler deploy --dry-run --outdir /tmp/wbs --env staging
+CLOUDFLARE_API_TOKEN=*** npx wrangler deploy --dry-run --outdir /tmp/wbs --env staging
 ```
 
 Results:
@@ -58,38 +59,49 @@ Simulator behavior verified:
 - Pricing pressure does not produce quoted price ranges.
 - Reverse close appears at most once per transcript.
 
-## ElevenLabs staging blocker
+## ElevenLabs staging clone status
 
-The locally saved ElevenLabs API key can read agents, including production agent:
+Gregory created the staging clone:
 
-- production agent id: `agent_0001kthsce71ehsvshmwrk2br7h6`
-- production name: `Saul Providers`
-- production Custom LLM URL currently points at:
+- Talk-to link: `https://elevenlabs.io/app/talk-to?agent_id=agent_3001ktvxmb72fastam3vm58d926z&branch_id=agtbrch_5501ktvxmb7hfyzahtg56qfd3rv3`
+- Agent id: `agent_3001ktvxmb72fastam3vm58d926z`
+- Branch id: `agtbrch_5501ktvxmb7hfyzahtg56qfd3rv3`
+- Name: `Saul Demo Staging`
+
+Avi inspected it read-only via the saved ElevenLabs API key. Current clone settings still need dashboard/API write updates:
+
+- Custom LLM URL currently points to production:
   - `https://saul-provider-phone-agent.gregory-ringler.workers.dev`
+- Required staging Custom LLM URL:
+  - `https://saul-demo-staging.gregory-ringler.workers.dev`
+- `custom_llm_extra_body` is currently `false`.
+- Required: `custom_llm_extra_body = true` so the worker receives `elevenlabs_extra_body.conversation_id` for stable KV state.
+- `post_call_webhook_id` is currently `null`.
+- No phone numbers are attached to the clone yet.
 
-However, the API key is missing `convai_write`, so API duplication failed with:
+The locally saved ElevenLabs API key can read agents but cannot clone/update them. API duplication failed with:
 
 ```text
 missing_permissions: The API key you used is missing the permission convai_write
 ```
 
-Because of that, Avi could not complete the ElevenLabs clone/configure step via API.
+Because of that, Avi cannot update the clone via API unless Gregory provides an ElevenLabs API key with `convai_write`, or Gregory performs the dashboard settings manually.
 
-Manual/dashboard action needed, or provide an ElevenLabs key with `convai_write`:
+## Manual/dashboard action needed now
 
-1. Duplicate production agent `Saul Providers` (`agent_0001kthsce71ehsvshmwrk2br7h6`).
-2. Name the clone `Saul Demo Staging`.
-3. Set Custom LLM URL to:
+In `Saul Demo Staging` (`agent_3001ktvxmb72fastam3vm58d926z`):
+
+1. Change Custom LLM URL from production to staging:
    - `https://saul-demo-staging.gregory-ringler.workers.dev`
-4. Set Custom LLM auth Bearer token to the value in:
+2. Set Custom LLM auth Bearer token to the value in:
    - `/Users/gbot/.hermes/secrets/saul_demo_staging_elevenlabs_shared_secret.txt`
-5. Enable Custom LLM extra body.
-6. Attach a test number or use dashboard test calls.
-7. Create/configure post-call webhook:
+3. Enable Custom LLM extra body.
+4. Attach a test number or use dashboard test calls.
+5. Create/configure post-call webhook:
    - URL: `https://saul-demo-staging.gregory-ringler.workers.dev/webhooks/elevenlabs-post-call`
    - events: transcript
    - transcript format: JSON
-8. Provide the ElevenLabs webhook signing secret to Avi so he can set:
+6. Provide the ElevenLabs webhook signing secret to Avi so he can set:
    - `npx wrangler secret put ELEVENLABS_POST_CALL_SECRET --env staging`
 
 ## Staging validation checklist still remaining
