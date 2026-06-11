@@ -84,6 +84,8 @@ Gregory provided an ElevenLabs API key with write access, and Avi updated the cl
 - Staging Worker `ELEVENLABS_POST_CALL_SECRET` is set to the generated webhook secret.
 - A signed manual webhook check returned `200 {"ok":true}`.
 - A direct authenticated staging Custom LLM POST to `/chat/completions` returned HTTP 200.
+- Gregory ran a dashboard staging test call and reported the hat switching was smooth.
+- Booking did not create real leads/appointments during the test, as expected for staging/demo dry-run behavior.
 - No phone numbers are attached to the clone yet; use dashboard test calls or attach a test number.
 
 ## Manual/dashboard action needed now
