@@ -141,7 +141,7 @@ Saul can route the summary into:
 
 Current demo number:
 
-**(720) 292-7554**
+**(970) 401-7285**
 
 Talk track:
 
@@ -401,7 +401,7 @@ Cover:
 
 Have them call:
 
-**(720) 292-7554**
+**(970) 401-7285**
 
 Suggested prompt for them:
 
@@ -597,7 +597,7 @@ Before committing to a big reseller push, clarify:
 ## 20. Short checklist to cover before ending
 
 - They understand Saul is for missed-call / after-hours / intake capture.
-- They called or heard the demo number: **(720) 292-7554**.
+- They called or heard the demo number: **(970) 401-7285**.
 - They understand each customer gets a configured call flow.
 - They understand Saul can route to GHL / CRM / SMS / email depending on setup.
 - They know not to overpromise guaranteed revenue or full autonomous dispatch.

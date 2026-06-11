@@ -138,7 +138,7 @@ Set:
 ```text
 Great. Two easy options.
 
-I can ask a couple quick questions here and set up a callback, or you can call Saul directly and hear the agent live: (720) 292-7554.
+I can ask a couple quick questions here and set up a callback, or you can call Saul directly and hear the agent live: (970) 401-7285.
 
 He’ll ask about your business and get a time window over to Gregory.
 ```
@@ -146,7 +146,7 @@ He’ll ask about your business and get a time window over to Gregory.
 Set:
 
 - `Saul Demo Offered = yes_text`
-- `Demo Phone Agent Number = (720) 292-7554`
+- `Demo Phone Agent Number = (970) 401-7285`
 
 #### Text qualification question 1
 
@@ -231,7 +231,7 @@ Saul demo offered/called: {{contact.custom_fields.saul_demo_offered}} / {{contac
 ```text
 You’re booked. Gregory will call you at that time and already have the phone-agent context.
 
-If you want to hear Saul before then, call (720) 292-7554.
+If you want to hear Saul before then, call (970) 401-7285.
 ```
 
 ### No-book follow-up

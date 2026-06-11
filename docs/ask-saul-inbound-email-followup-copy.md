@@ -6,7 +6,7 @@ Sender target:
 
 - From name: Saul from AskSaul.ai
 - From email: saul3000bot@gmail.com
-- Reply expectation: invite a simple text or call to the SendBlue number, plus normal email replies.
+- Reply expectation: invite a simple text to the SendBlue number, plus normal email replies.
 - SendBlue number: (720) 292-7554
 
 ## Trigger logic
@@ -55,7 +55,7 @@ What Saul captured:
 
 The goal is not to bolt on a generic bot. The goal is to build a phone agent that understands your business, answers consistently, captures the details that matter, and gets the right next step to the right person before the lead goes cold.
 
-If texting is easier, text or call us at (720) 292-7554. A quick text like "call me" or "send details" is enough and we will help from there.
+If texting is easier, text us at (720) 292-7554. A quick text like "call me" or "send details" is enough and we will help from there.
 
 If Saul already grabbed a preferred callback window from you, you are good. Gregory will have the context before he reaches out.
 
@@ -94,7 +94,7 @@ What Gregory will already have in front of him:
 
 That is the bigger idea behind AskSaul.ai: the agent should not just answer the phone. It should capture intent, qualify the moment, preserve context, and make the next human handoff feel seamless.
 
-If anything changes before the call, text or call us at (720) 292-7554. A quick text is fine. We are always here to help.
+If anything changes before the call, text us at (720) 292-7554. A quick text is fine. We are always here to help.
 
 Talk soon,
 Saul
@@ -162,7 +162,7 @@ For most service businesses, that usually means:
 - logging the conversation so nobody starts from zero
 - handing off to GHL, text, email, or a real person with context
 
-That is the workflow Gregory can map with you. If you want the fastest path, text or call (720) 292-7554 and say what you want Saul to handle first.
+That is the workflow Gregory can map with you. If you want the fastest path, text (720) 292-7554 and say what you want Saul to handle first.
 
 Always here to help,
 Saul
