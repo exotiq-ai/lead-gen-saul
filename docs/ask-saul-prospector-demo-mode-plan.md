@@ -188,7 +188,46 @@ techniques live inside that constraint, not instead of it.
 | Caller hangs up mid-demo | Lead already logged at hat-switch (§4.1). |
 | Demo overpromises | DEMO prompt carries the same no-pricing/no-guarantee rules, reframed as "illustrative only." |
 
-## 6. Split testing voices and speed
+## 6. Rollout and isolation strategy (same repo, isolated deployment)
+
+Do NOT split to a new repo — the shared code (`supabase.ts`, `ghl.ts`, tools) would
+fork and drift, and merging back later is the most expensive path. Isolation happens at
+the deployment layer instead, which gives identical safety:
+
+1. **Feature branch in this repo → second Cloudflare Worker** (`saul-demo-staging`,
+   wrangler environment). Production worker untouched.
+2. **Cloned ElevenLabs agent pointed at the staging worker URL** — duplicate the
+   production agent in ElevenLabs, attach a test number (or use dashboard test calls).
+   The production agent and phone number never change during development.
+3. **Staging side effects in dry-run.** Reuse the existing dry-run pattern
+   (`GHL_OUTBOUND_DRY_RUN`) so staging calls never write to Gregory's real calendar or
+   send real SMS; Supabase writes go to a clearly tagged source
+   (`saul_phone_agent_staging`).
+4. **Cutover = one field**: repoint the production agent's Custom LLM URL to the new
+   worker. **Rollback = the same field back.** No deploy needed in either direction.
+5. **Fail-open by construction**: mode resolution defaults to DISCOVERY, which IS the
+   current agent's behavior. If KV, mode detection, or demo machinery fails mid-call,
+   the call degrades to today's agent — not a broken one.
+
+## 7. Test before phone: transcript replay + simulated callers
+
+The biggest de-risking step costs no phone calls at all. The worker takes a plain
+OpenAI-format transcript over HTTP, so the whole state machine is testable as text:
+
+- **Fixture replay (deterministic):** a vitest suite that replays scripted multi-turn
+  transcripts against the worker and asserts mode transitions, tool gating (no real
+  tools callable in DEMO), sentinel detection, and fail-open behavior. Covers the
+  adversarial cases: caller refuses the demo, asks "is this AI?" mid-demo, plays a
+  hostile customer, goes silent, asks for pricing inside the role-play.
+- **LLM caller simulator (fuzzing):** a second LLM plays the provider (persona seeded
+  per vertical: chatty HVAC owner, skeptical garage-door owner, improv-frozen caller)
+  and runs full simulated calls against the worker. Cheap, fast, and finds the weird
+  paths before a human ever dials. Transcripts get reviewed before staging calls begin.
+
+Live staging calls happen only after the suite passes; production cutover only after
+N clean staging calls (suggest 10) including at least one intentional derail.
+
+## 8. Split testing voices and speed
 
 **Mechanism (confirmed supported):** ElevenLabs inbound calls can fetch
 "conversation initiation client data" from a webhook before the call connects; the
@@ -206,17 +245,67 @@ webhook response can override TTS settings — voice, speed, stability — per c
 booked-Gregory-follow-up rate (primary), demo started → demo completed rate, call
 duration, `interest_level` distribution.
 
+**The first experiment is demo vs. no-demo — not voice A vs. voice B.** The same
+variant machinery can flag a call as demo-enabled or current-behavior. Baseline the
+existing booked-follow-up rate from historical data first, then split traffic. Prove
+the feature moves the number before tuning voices within it.
+
 **Honest stats caveat — "check trend shifts" is the right instinct.** At a new line's
 call volume, classic A/B significance needs hundreds of calls per arm. Do NOT build a
-stats framework now. Ship: (a) one variable varied at a time (voice first, then speed),
-(b) a small trend card on the dashboard (same pattern as `/api/dashboard/roi`), (c) a
-review cadence. Graduate to epsilon-greedy bandit only if volume justifies it.
+stats framework now. Ship: (a) one variable varied at a time (feature first, then
+voice, then speed), (b) a small trend card on the dashboard (same pattern as
+`/api/dashboard/roi`), (c) a review cadence. Graduate to epsilon-greedy bandit only if
+volume justifies it.
 
 New funnel events (`lead_activities`): `demo_offered`, `demo_started`,
 `demo_completed`, `reverse_close_asked` — these make "does the demo convert?" itself
 measurable, which is the experiment that matters more than voice choice.
 
-## 7. Build phases
+## 9. Gaps closed in round 2
+
+### 9.1 Persist full transcripts (post-call webhook)
+
+Today only `last_user_text` is logged per call (`logCallSession`). That is not enough
+for (a) Gregory walking into the follow-up call with context, (b) judging split-test
+results, or (c) tuning prompts from real calls. ElevenLabs supports a **post-call
+webhook** delivering the full transcript and call metadata — add an endpoint (worker or
+Next.js `/api/webhooks/elevenlabs`) that stores transcript + duration + variant +
+funnel outcome per `call_id` in Supabase and attaches a transcript summary to the GHL
+contact note before Gregory's call. This is cheap and should ship with Phase 2, not
+later.
+
+### 9.2 Latency: the current "streaming" is fake
+
+`streamingResponse()` (`index.ts:123`) buffers the entire completion and emits it as
+one SSE chunk — the caller hears silence for the whole LLM round-trip. Acceptable for
+short Haiku turns; it will NOT be acceptable if the model is upgraded for demo quality.
+True token streaming from Claude → SSE is the fix and benefits the existing agent too.
+Schedule it alongside the model benchmark; treat "time-to-first-token under ~800 ms" as
+the budget for demo-mode turns.
+
+### 9.3 AI disclosure / recording compliance check
+
+The prompt discloses AI only when asked. Several states regulate undisclosed bots in
+sales calls (e.g. California's bot-disclosure law) and two-party-consent states matter
+if calls are recorded for the split tests. This is an inbound line and the demo itself
+is explicit about being an AI, so risk is low — but a one-time legal sanity check on
+the discovery portion belongs on the list before scaling call volume. A one-line
+greeting tweak is the likely worst case.
+
+### 9.4 Returning-caller recognition (v2, high wow, low cost)
+
+The conversation-initiation webhook receives the caller's number before the call
+connects. Look up the lead in Supabase and inject context: "Hey, welcome back — last
+time we talked about your garage-door intake. Gregory's call is set for Thursday,
+want to add anything?" Costs one DB read in `/call-init`; lands as a v2 item with the
+split-testing endpoint since it is the same webhook.
+
+## 10. Build phases
+
+**Phase 0 — Safety rails (~half day)**
+- Staging worker (wrangler environment) + cloned ElevenLabs agent pointed at it.
+- Dry-run wiring for staging side effects; `saul_phone_agent_staging` source tag.
+- Transcript-replay test skeleton (fixtures + assertions on mode/tool gating).
 
 **Phase 1 — Hat switch core (~1 day)**
 - `voice-agent/src/prompts.ts`: `buildSystemPrompt(mode, demoFacts)` with the three
@@ -229,22 +318,28 @@ measurable, which is the experiment that matters more than voice choice.
 - Verify stable call id from ElevenLabs (enable Custom LLM extra body if needed).
 - Test: scripted multi-turn transcripts replayed against the worker locally.
 
-**Phase 2 — Close instrumentation (~half day)**
+**Phase 2 — Instrumentation + transcripts (~1 day)**
 - Funnel events to `lead_activities` (demo_offered/started/completed).
+- Post-call webhook → full transcript persistence + GHL contact note (§9.1).
 - DEBRIEF prompt with reverse close + improved Telegram notify ("completed demo!").
-- Decide/benchmark model upgrade via `PRIMARY_MODEL`/`ESCALATION_MODEL`.
+- Benchmark model upgrade via `PRIMARY_MODEL`/`ESCALATION_MODEL`; if upgrading,
+  implement true token streaming (§9.2).
+- LLM caller-simulator runs; review transcripts; 10 clean staging calls → cutover.
 
 **Phase 3 — Split testing (~1 day)**
 - `/call-init` endpoint + variant assignment + Supabase logging.
+- First experiment: demo-enabled vs. current behavior, against the historical baseline.
 - ElevenLabs agent: enable initiation webhook + overrides.
 - Dashboard trend card (booked rate by variant, demo funnel).
 
 **Phase 4 — v2 candidates (only if v1 earns it)**
+- Voice/speed variants (after the feature itself proves out).
+- Returning-caller recognition in `/call-init` (§9.4).
 - Agent-to-agent transfer for a true voice change in demo mode.
 - Per-vertical demo presets expanded from `local-services/config.ts`.
 - Bandit-style variant allocation.
 
-## 8. Open questions
+## 11. Open questions
 
 1. Is ElevenLabs currently sending a stable per-call id to the worker? (Determines
    whether KV is primary or the transcript scan carries v1.)
