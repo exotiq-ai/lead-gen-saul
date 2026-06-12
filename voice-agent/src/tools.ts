@@ -121,38 +121,56 @@ export async function executeTool(name: string, input: Record<string, unknown>, 
     case 'qualify_and_log_lead': {
       const lead = coerceLead(input);
       const db = await safeUpsertLead(lead, supabase, env);
-      if (!db.ok) return { content: `I could not save the lead cleanly: ${db.error}. Keep talking and repeat the details back before ending.` };
-      let ghlSuffix = '';
-      if (!dryRun) {
-        const ghlResult = await syncLeadToGhl(lead, ghl);
-        if (ghlResult.ok && ghlResult.contactId) {
-          await ensureOpportunity(lead, ghlResult.contactId, ghl, 'hot_lead');
-          await sendInboundLeadEmailFollowup({ input: lead, contactId: ghlResult.contactId, cfg: ghl, env, reason: 'lead_logged', existingTags: ghlResult.tags });
-        }
-        if (db.id) await notifyLeadCaptured(lead, db.id, env);
-        ghlSuffix = ghlResult.ok ? '' : ` GHL sync needs review: ${ghlResult.error}.`;
+      if (dryRun) {
+        if (!db.ok) return { content: `I could not save the lead cleanly: ${db.error}. Keep talking and repeat the details back before ending.` };
+        return { content: `Lead logged. Qualification score is ${lead.interest_level ?? (lead.interested ? 'warm' : 'cold')}. Keep the caller engaged and ask about a Gregory follow-up if they are interested.` };
       }
+
+      const ghlResult = await syncLeadToGhl(lead, ghl);
+      if (ghlResult.ok && ghlResult.contactId) {
+        await ensureOpportunity(lead, ghlResult.contactId, ghl, 'hot_lead');
+        await sendInboundLeadEmailFollowup({ input: lead, contactId: ghlResult.contactId, cfg: ghl, env, reason: 'lead_logged', existingTags: ghlResult.tags });
+      }
+
+      const savedToGhl = ghlResult.ok && !ghlResult.skipped && Boolean(ghlResult.contactId);
+      if (!savedToGhl && !db.ok) {
+        return { content: `I could not save the lead cleanly. GHL: ${ghlResult.error ?? 'not configured or no contact returned'}. Supabase: ${db.error ?? 'not configured'}. Keep talking and repeat the details back before ending.` };
+      }
+
+      await notifyLeadCaptured(lead, db.id ?? ghlResult.contactId ?? 'ghl-contact', env);
+      const ghlSuffix = ghlResult.ok ? '' : ` GHL sync needs review: ${ghlResult.error}.`;
       return { content: `Lead logged. Qualification score is ${lead.interest_level ?? (lead.interested ? 'warm' : 'cold')}. Keep the caller engaged and ask about a Gregory follow-up if they are interested.${ghlSuffix}` };
     }
     case 'book_gregory_followup': {
       const followup = coerceFollowup(input);
       const db = await safeUpsertLead(followup, supabase, env);
-      if (!db.ok || !db.id) return { content: `I could not save the lead cleanly: ${db.error}. Ask for the best phone and preferred window again.` };
       if (dryRun) {
+        if (!db.ok || !db.id) return { content: `I could not save the lead cleanly: ${db.error}. Ask for the best phone and preferred window again.` };
         return { content: `Dry run: follow-up request recorded for ${followup.preferred_time_window}. Tell the caller the preferred window is saved for Gregory; do not claim a confirmed appointment.` };
       }
-      const follow = await logFollowup(followup, db.id, supabase);
-      if (!follow.ok) return { content: `I could not book the follow-up request: ${follow.error}. Ask for verbal consent and preferred window.` };
+
       const ghlLead = await syncLeadToGhl(followup, ghl);
+      const savedToGhl = ghlLead.ok && !ghlLead.skipped && Boolean(ghlLead.contactId);
+      if (!savedToGhl && !db.ok) {
+        return { content: `I could not save the lead cleanly. GHL: ${ghlLead.error ?? 'not configured or no contact returned'}. Supabase: ${db.error ?? 'not configured'}. Ask for the best phone and preferred window again.` };
+      }
+
+      if (db.ok && db.id) {
+        const follow = await logFollowup(followup, db.id, supabase);
+        if (!follow.ok) console.warn('supabaseFollowupLogFailed', follow.error);
+      } else {
+        console.warn('supabaseLeadUpsertFailed', db.error);
+      }
+
       const appointment = await bookGregoryAppointment(followup, ghlLead.contactId, ghl);
       await ensureOpportunity(followup, ghlLead.contactId, ghl, appointment.ok && appointment.startTime ? 'booked' : 'hot_lead');
       await addFollowupNote(followup, ghlLead.contactId, ghl, appointment);
       await sendInboundLeadEmailFollowup({ input: followup, contactId: ghlLead.contactId, cfg: ghl, env, appointment, reason: 'followup_booked', existingTags: ghlLead.tags });
       if (appointment.ok && !appointment.skipped && appointment.appointmentId) {
-        await logAppointment(followup, db.id, appointment, supabase);
+        if (db.ok && db.id) await logAppointment(followup, db.id, appointment, supabase);
         await sendAppointmentConfirmation(followup, appointment.confirmationText, env);
       }
-      await notifyGregory(followup, db.id, env);
+      await notifyGregory(followup, db.id ?? ghlLead.contactId ?? 'ghl-contact', env);
       if (appointment.ok && appointment.startTime) {
         return { content: `GHL appointment booked for Gregory at ${appointment.startTime}. Tell the caller they are booked, Gregory will call them at that time, and they should receive the calendar confirmation if their email is on file.` };
       }

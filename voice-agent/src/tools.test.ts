@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { executeTool, toolsForMode } from './tools.ts';
+import { isAllowedGregorySlot } from './scheduling.ts';
 import type { Env } from './types.ts';
 
 function fakeKv(store: Map<string, string>): KVNamespace {
@@ -104,4 +105,91 @@ test('dry run book_gregory_followup never claims a confirmed appointment', async
     preferred_time_window: 'tomorrow afternoon',
   }, dryEnv(new Map()), {});
   assert.match(result.content, /do not claim a confirmed appointment/);
+});
+
+function liveGhlEnv(): Env {
+  return {
+    ANTHROPIC_API_KEY: 'test',
+    SUPABASE_URL: '',
+    SUPABASE_SERVICE_ROLE_KEY: '',
+    GHL_LOCAL_SERVICES_API_KEY: 'ghl-test',
+    GHL_LOCAL_SERVICES_LOCATION_ID: 'RxCVQeGoQ3RTJbbLG5gY',
+    GHL_API_VERSION: '2021-07-28',
+    GHL_ASK_SAUL_CALENDAR_ID: 'tbvii3aqFCtT85hdV0Gu',
+    GHL_ASK_SAUL_PIPELINE_ID: 'QnDY45LoOWXl3VIuBa1w',
+    GHL_ASK_SAUL_HOT_LEAD_STAGE_ID: '66bf5184-206f-4bfd-9944-e3d0cb0fffe4',
+    GHL_ASK_SAUL_BOOKED_STAGE_ID: 'aba37542-28d5-4f56-9fe4-d4849c61bb11',
+  } as unknown as Env;
+}
+
+function nextAllowedSlot(): string {
+  for (let i = 1; i < 30; i++) {
+    const candidate = new Date(Date.now() + i * 24 * 60 * 60 * 1000);
+    candidate.setUTCHours(16, 0, 0, 0); // 10am MT during daylight time, still within booking hours otherwise.
+    const iso = candidate.toISOString();
+    if (isAllowedGregorySlot(iso)) return iso;
+  }
+  throw new Error('No allowed slot found');
+}
+
+test('live qualify_and_log_lead uses GHL even when Supabase is unavailable', async () => {
+  const originalFetch = globalThis.fetch;
+  const calls: string[] = [];
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    calls.push(url);
+    if (url.includes('/contacts/upsert')) return Response.json({ contact: { id: 'ghl-contact-1', tags: [] } });
+    if (url.includes('/opportunities/search')) return Response.json({ opportunities: [] });
+    if (url.includes('/opportunities/')) return Response.json({ opportunity: { id: 'opp-1' } });
+    return Response.json({ ok: true });
+  }) as typeof fetch;
+  try {
+    const result = await executeTool('qualify_and_log_lead', {
+      caller_phone: '5551234567',
+      caller_name: 'Mike Rivera',
+      business_name: 'Mile High HVAC',
+      interested: true,
+      interest_level: 'warm',
+    }, liveGhlEnv(), {});
+
+    assert.match(result.content, /Lead logged\. Qualification score is warm\./);
+    assert.ok(calls.some((url) => url.includes('/contacts/upsert')));
+    assert.ok(calls.some((url) => url.includes('/opportunities/')));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('live book_gregory_followup books in GHL even when Supabase is unavailable', async () => {
+  const originalFetch = globalThis.fetch;
+  const calls: string[] = [];
+  const slot = nextAllowedSlot();
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    calls.push(url);
+    if (url.includes('/contacts/upsert')) return Response.json({ contact: { id: 'ghl-contact-1', tags: [] } });
+    if (url.includes('/contacts/ghl-contact-1/appointments')) return Response.json({ events: [] });
+    if (url.includes('/calendars/') && url.includes('/free-slots')) return Response.json({ day: { slots: [slot] } });
+    if (url.includes('/calendars/events/appointments')) return Response.json({ appointment: { id: 'appt-1' } });
+    if (url.includes('/opportunities/search')) return Response.json({ opportunities: [] });
+    if (url.includes('/opportunities/')) return Response.json({ opportunity: { id: 'opp-1' } });
+    if (url.includes('/contacts/ghl-contact-1/notes')) return Response.json({ note: { id: 'note-1' } });
+    return Response.json({ ok: true });
+  }) as typeof fetch;
+  try {
+    const result = await executeTool('book_gregory_followup', {
+      caller_phone: '5551234567',
+      caller_name: 'Mike Rivera',
+      business_name: 'Mile High HVAC',
+      interested: true,
+      consent_confirmed: true,
+      preferred_time_window: 'next available',
+    }, liveGhlEnv(), {});
+
+    assert.match(result.content, /GHL appointment booked for Gregory/);
+    assert.ok(calls.some((url) => url.includes('/contacts/upsert')));
+    assert.ok(calls.some((url) => url.includes('/calendars/events/appointments')));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
