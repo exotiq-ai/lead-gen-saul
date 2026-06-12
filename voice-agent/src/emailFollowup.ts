@@ -1,6 +1,6 @@
 import type { Env, FollowupInput, LeadCaptureInput } from './types.ts';
 import type { AppointmentResult, GhlCfg, GhlResult } from './ghl.ts';
-import { addContactNote, addContactTags, sendGhlEmailMessage } from './ghl.ts';
+import { addContactNote, addContactTags, getContactNotes, sendGhlEmailMessage } from './ghl.ts';
 
 const SENDBLUE_DISPLAY_NUMBER = '(720) 292-7554';
 const DEFAULT_FROM_EMAIL = 'saul3000bot@gmail.com';
@@ -30,6 +30,12 @@ export async function sendInboundLeadEmailFollowup(args: {
   const targetTag = emailSentTag(reason);
   if (existing.has(targetTag) || existing.has('ask-saul-booked-email-sent')) {
     return { ok: true, contactId, skipped: true, skippedReason: `email already sent: ${targetTag}` };
+  }
+
+  const previousNotes = await getContactNotes(contactId, cfg);
+  const previousEmailNote = previousNotes.find((note) => /Ask Saul inbound email follow-up sent\./i.test(`${note.body ?? ''}\n${note.bodyText ?? ''}`));
+  if (previousEmailNote) {
+    return { ok: true, contactId, skipped: true, skippedReason: 'GHL notes show an inbound follow-up email was already sent' };
   }
 
   // Keep the follow-up live by default for the provider phone agent, because Gregory explicitly approved it.

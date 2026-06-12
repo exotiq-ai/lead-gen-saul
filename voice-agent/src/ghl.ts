@@ -79,6 +79,21 @@ export async function addContactNote(body: string, contactId: string | undefined
   }
 }
 
+export async function getContactNotes(contactId: string | undefined, cfg: GhlCfg): Promise<Array<{ body?: string; bodyText?: string; dateAdded?: string }>> {
+  if (!cfg.apiKey || !cfg.locationId || !contactId) return [];
+  try {
+    const resp = await fetch(`https://services.leadconnectorhq.com/contacts/${encodeURIComponent(contactId)}/notes`, {
+      method: 'GET',
+      headers: headers(cfg),
+    });
+    if (!resp.ok) return [];
+    const data = await resp.json().catch(() => ({})) as { notes?: Array<{ body?: string; bodyText?: string; dateAdded?: string }> };
+    return Array.isArray(data.notes) ? data.notes : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function addFollowupNote(input: FollowupInput, contactId: string | undefined, cfg: GhlCfg, appointment?: AppointmentResult): Promise<GhlResult> {
   const body = [
     appointment?.ok ? 'Saul phone-agent call booked for Gregory.' : 'Saul phone-agent follow-up requested for Gregory.',
@@ -188,6 +203,10 @@ export async function ensureOpportunity(input: LeadCaptureInput | FollowupInput,
 export async function bookGregoryAppointment(input: FollowupInput, contactId: string | undefined, cfg: GhlCfg): Promise<AppointmentResult> {
   if (!cfg.apiKey || !cfg.locationId || !contactId) return { ok: true, skipped: true, contactId };
   const calendarId = cfg.calendarId || ASK_SAUL_CALENDAR_ID;
+  const existing = await findExistingAppointment(contactId, calendarId, cfg);
+  if (existing) {
+    return { ok: true, skipped: true, contactId, appointmentId: existing.id, startTime: existing.startTime, endTime: existing.endTime, source: 'next_available_slot', confirmationText: existing.startTime ? formatConfirmationText(existing.startTime) : undefined };
+  }
   const selected = await selectGregorySlot({
     preference: {
       preferredWindow: input.preferred_time_window,
@@ -231,6 +250,21 @@ export async function bookGregoryAppointment(input: FollowupInput, contactId: st
     };
   } catch (err) {
     return { ok: false, contactId, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+async function findExistingAppointment(contactId: string, calendarId: string, cfg: GhlCfg): Promise<{ id?: string; startTime?: string; endTime?: string } | null> {
+  try {
+    const resp = await fetch(`https://services.leadconnectorhq.com/contacts/${encodeURIComponent(contactId)}/appointments`, {
+      method: 'GET',
+      headers: headers(cfg),
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json().catch(() => ({})) as { events?: Array<{ id?: string; calendarId?: string; deleted?: boolean; startTime?: string; endTime?: string }> };
+    const existing = data.events?.find((event) => event.calendarId === calendarId && event.deleted !== true);
+    return existing ? { id: existing.id, startTime: existing.startTime, endTime: existing.endTime } : null;
+  } catch {
+    return null;
   }
 }
 
