@@ -48,11 +48,11 @@ async function handleChat(req: Request, env: Env, ctx: ExecutionContext): Promis
   ));
 
   if (body.stream === true) {
-    return streamingAgentResponse({ env, state, messages, maxTokens, model, callId }, logSession);
+    return streamingAgentResponse({ env, state, messages, maxTokens, model, callId, callerPhone: resolveCallerPhone(body) }, logSession);
   }
 
   try {
-    const result = await runAgentLoop({ env, state, messages, maxTokens, model, callId });
+    const result = await runAgentLoop({ env, state, messages, maxTokens, model, callId, callerPhone: resolveCallerPhone(body) });
     logSession(result.state.mode);
     return jsonResponse(result.text, model);
   } catch (err) {
@@ -63,7 +63,7 @@ async function handleChat(req: Request, env: Env, ctx: ExecutionContext): Promis
 }
 
 function streamingAgentResponse(
-  args: { env: Env; state: Parameters<typeof runAgentLoop>[0]['state']; messages: Anthropic.MessageParam[]; maxTokens: number; model: string; callId: string },
+  args: { env: Env; state: Parameters<typeof runAgentLoop>[0]['state']; messages: Anthropic.MessageParam[]; maxTokens: number; model: string; callId: string; callerPhone?: string },
   logSession: (mode: string) => void,
 ): Response {
   const encoder = new TextEncoder();
@@ -115,8 +115,18 @@ export function resolveCallId(req: Request, body: OAIChatRequest): string | unde
     ?? resolveString(body.extra_body?.call_id)
     ?? resolveString(body.dynamic_variables?.call_id)
     ?? resolveString(body.dynamic_variables?.conversation_id)
+    ?? resolveString(body.dynamic_variables?.system__conversation_id)
     ?? resolveString(body.metadata?.call_id)
     ?? resolveString(body.metadata?.conversation_id);
+}
+
+export function resolveCallerPhone(body: OAIChatRequest): string | undefined {
+  const extra = (body as { elevenlabs_extra_body?: Record<string, unknown> }).elevenlabs_extra_body;
+  return resolveString(extra?.caller_id)
+    ?? resolveString(extra?.system__caller_id)
+    ?? resolveString(body.dynamic_variables?.caller_id)
+    ?? resolveString(body.dynamic_variables?.system__caller_id)
+    ?? resolveString(body.metadata?.caller_id);
 }
 
 export function toAnthropicMessages(messages: OAIMessage[]): Anthropic.MessageParam[] {

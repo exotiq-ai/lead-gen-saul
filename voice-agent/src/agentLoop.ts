@@ -18,6 +18,7 @@ export interface AgentLoopArgs {
   maxTokens: number;
   model: string;
   callId?: string;
+  callerPhone?: string;
   agentName?: string;
   onText?: (delta: string) => void;
   turnRunner?: TurnRunner;
@@ -56,6 +57,15 @@ export async function runAgentLoop(args: AgentLoopArgs): Promise<AgentLoopResult
     return { text: line, state };
   }
 
+  const deterministicSave = shouldDeterministicallySave(messages, state, args.callerPhone);
+  if (deterministicSave) {
+    const result = await exec(deterministicSave.tool, deterministicSave.input, args.env, { callId: args.callId, state });
+    state = markSaved(state, deterministicSave.tool);
+    const line = deterministicSaveResponse(result.content, deterministicSave.tool);
+    if (args.onText) args.onText(line);
+    return { text: line, state };
+  }
+
   for (let turnIdx = 0; turnIdx < MAX_TOOL_TURNS; turnIdx++) {
     const tools = toolsForMode(state.mode);
     let firstDeltaOfTurn = true;
@@ -82,6 +92,14 @@ export async function runAgentLoop(args: AgentLoopArgs): Promise<AgentLoopResult
     if (text) spoken.push(text);
     const toolUses = toolUsesFromMessage(resp);
     if (!toolUses.length) {
+      const fallbackSave = shouldRepairClaimedSave(text, messages, state, args.callerPhone);
+      if (fallbackSave) {
+        const result = await exec(fallbackSave.tool, fallbackSave.input, args.env, { callId: args.callId, state });
+        state = markSaved(state, fallbackSave.tool);
+        const line = deterministicSaveResponse(result.content, fallbackSave.tool);
+        if (args.onText && !emittedAny) args.onText(line);
+        return { text: line, state };
+      }
       return { text: spoken.join(' ').trim() || 'One moment.', state };
     }
     const allowed = new Set(tools.map((t) => t.name));
@@ -109,6 +127,154 @@ export async function runAgentLoop(args: AgentLoopArgs): Promise<AgentLoopResult
     args.onText(wrapUp);
   }
   return { text: [...spoken, wrapUp].join(' ').trim(), state };
+}
+
+function markSaved(state: CallState, tool: 'qualify_and_log_lead' | 'book_gregory_followup'): CallState {
+  if (tool === 'book_gregory_followup') return { ...state, leadLogged: true, followupLogged: true };
+  return { ...state, leadLogged: true };
+}
+
+function shouldRepairClaimedSave(text: string, messages: Anthropic.MessageParam[], state: CallState, callerPhone?: string): DeterministicSave | null {
+  if (!/\b(all set|booked|saved|logged|calendar confirmation|gregory will call)\b/i.test(text)) return null;
+  return shouldDeterministicallySave(messages, state, callerPhone, true);
+}
+
+interface DeterministicSave {
+  tool: 'qualify_and_log_lead' | 'book_gregory_followup';
+  input: Record<string, unknown>;
+}
+
+function shouldDeterministicallySave(messages: Anthropic.MessageParam[], state: CallState, callerPhone?: string, repairingClaim = false): DeterministicSave | null {
+  if (state.followupLogged) return null;
+  const transcript = transcriptText(messages);
+  const lastUser = lastUserText(messages).toLowerCase();
+  const phone = extractPhone(transcript) ?? normalizePhone(callerPhone);
+  if (!phone) return null;
+  const lead = inferLeadInput(transcript, phone, state);
+  const hasConsent = /\b(yes please|yeah call|yes call|call me|sure|sounds good|okay|go ahead)\b/i.test(transcript);
+  const hasWindow = /\b(whenever|next available|tomorrow|morning|afternoon|between 9 and 3|9 and 3|monday|tuesday|wednesday|thursday|friday)\b/i.test(transcript);
+  const isClosing = /\b(bye|goodbye|talk soon|thanks|thank you|that's it|that is it|we should already have it saved|already have it saved)\b/i.test(lastUser);
+
+  if ((repairingClaim || state.mode === 'debrief') && hasConsent && (hasWindow || isClosing)) {
+    return {
+      tool: 'book_gregory_followup',
+      input: {
+        ...lead,
+        consent_confirmed: true,
+        preferred_time_window: inferPreferredWindow(transcript),
+        outstanding_questions: inferOutstandingQuestions(transcript),
+        custom_solution_needs: inferCustomNeeds(transcript),
+      },
+    };
+  }
+
+  if (!state.leadLogged && (isClosing || repairingClaim) && hasBusinessSignal(transcript)) {
+    return { tool: 'qualify_and_log_lead', input: lead };
+  }
+
+  return null;
+}
+
+function deterministicSaveResponse(toolResult: string, tool: DeterministicSave['tool']): string {
+  if (tool === 'book_gregory_followup') {
+    if (/GHL appointment booked/i.test(toolResult)) return 'You are all set. I have the details saved for Gregory, and he will call you at the scheduled time. Thanks again, goodbye.';
+    return 'You are all set. I have the details and preferred callback window saved for Gregory. Thanks again, goodbye.';
+  }
+  return 'You are all set. I have the details saved for Gregory. Thanks again, goodbye.';
+}
+
+function transcriptText(messages: Anthropic.MessageParam[]): string {
+  return messages.map((m) => typeof m.content === 'string' ? m.content : '').join('\n');
+}
+
+function inferLeadInput(transcript: string, phone: string, state: CallState): Record<string, unknown> {
+  const caller_name = lastMatch(transcript, /\b(?:my name is|name's|this is|call me)\s+([A-Z][A-Za-z' -]{1,40})/gi)
+    ?? state.facts?.caller_first_name;
+  const business_type = inferBusinessType(transcript) ?? state.facts?.business_type ?? 'local service';
+  const city_state = /\bdenver\b/i.test(transcript) ? 'Denver, CO' : state.facts?.city_state;
+  const business_name = state.facts?.business_name
+    ?? lastMatch(transcript, /\b(?:run|own|operate)\s+([A-Z][A-Za-z0-9'&. -]{2,60}?)(?:\s+(?:in|and|with)|[.,\n])/gi)
+    ?? `${business_type} business`;
+  const email = inferEmail(transcript);
+  const notes = [
+    'Caller completed or discussed a live phone-agent demo.',
+    /multiple locations/i.test(transcript) ? 'Multiple locations.' : '',
+    /after[- ]hours|miss/i.test(transcript) ? 'Pain point: after-hours or missed calls.' : '',
+    /price|cost/i.test(transcript) ? 'Asked about pricing; Gregory should review exact structure.' : '',
+  ].filter(Boolean).join(' ');
+  return {
+    caller_name,
+    caller_first_name: caller_name?.split(/\s+/)[0],
+    caller_phone: phone,
+    caller_email: email,
+    business_name,
+    business_type,
+    city_state,
+    current_call_handling: /voicemail/i.test(transcript) ? 'Some calls route to voicemail or are handled by individual locations.' : undefined,
+    pain_points: /after[- ]hours|miss/i.test(transcript) ? 'After-hours calls, repeated questions, and missed-call follow-up.' : undefined,
+    interested: true,
+    interest_level: /price|cost|book|follow-up|call me|yes please/i.test(transcript) ? 'hot' : 'warm',
+    fit_summary: `Interested ${business_type} operator exploring an AI phone agent.`,
+    notes,
+  };
+}
+
+function inferPreferredWindow(transcript: string): string {
+  if (/\b(whenever|next available)\b/i.test(transcript)) return 'next available';
+  const specific = lastMatch(transcript, /\b((?:monday|tuesday|wednesday|thursday|friday)[^\n.]{0,40})/gi);
+  return specific ?? 'next available';
+}
+
+function inferOutstandingQuestions(transcript: string): string | undefined {
+  return /price|cost/i.test(transcript) ? 'Pricing and setup structure.' : undefined;
+}
+
+function inferCustomNeeds(transcript: string): string | undefined {
+  const needs: string[] = [];
+  if (/multiple locations/i.test(transcript)) needs.push('multi-location routing');
+  if (/existing phone number|change my phone number/i.test(transcript)) needs.push('keep existing phone numbers');
+  if (/GHL|CRM/i.test(transcript)) needs.push('CRM/GHL handoff');
+  return needs.length ? needs.join(', ') : undefined;
+}
+
+function hasBusinessSignal(transcript: string): boolean {
+  return /\b(business|company|shop|dispensary|plumbing|hvac|garage|calls?|customers?|locations?)\b/i.test(transcript);
+}
+
+function inferBusinessType(transcript: string): string | undefined {
+  const lower = transcript.toLowerCase();
+  if (lower.includes('dispensary')) return 'dispensary';
+  if (lower.includes('plumb')) return 'plumbing';
+  if (lower.includes('hvac')) return 'HVAC';
+  if (lower.includes('garage door')) return 'garage door';
+  if (lower.includes('pav') || lower.includes('driveway')) return 'paving';
+  return undefined;
+}
+
+function extractPhone(text: string): string | undefined {
+  const matches = [...text.matchAll(/(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}/g)].map((m) => normalizePhone(m[0])).filter(Boolean) as string[];
+  return matches.at(-1);
+}
+
+function normalizePhone(value?: string): string | undefined {
+  if (!value) return undefined;
+  const digits = value.replace(/\D/g, '');
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
+  return undefined;
+}
+
+function inferEmail(text: string): string | undefined {
+  const direct = lastMatch(text, /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi);
+  if (direct) return direct.toLowerCase();
+  const spoken = lastMatch(text, /([A-Z0-9._%+-]+)\s*(?:at|@)\s*([A-Z0-9.-]+)\s*(?:dot|\.)\s*([A-Z]{2,})/gi);
+  return spoken?.toLowerCase();
+}
+
+function lastMatch(text: string, regex: RegExp): string | undefined {
+  let found: string | undefined;
+  for (const match of text.matchAll(regex)) found = match[1]?.trim();
+  return found?.replace(/\s+/g, ' ');
 }
 
 function lastUserText(messages: Anthropic.MessageParam[]): string {

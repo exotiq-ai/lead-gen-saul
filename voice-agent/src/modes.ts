@@ -17,6 +17,8 @@ export interface DemoFacts {
 export interface CallState {
   mode: CallMode;
   facts?: DemoFacts;
+  leadLogged?: boolean;
+  followupLogged?: boolean;
 }
 
 // These sentinel phrases are scripted VERBATIM into the prompts at the two mode

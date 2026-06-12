@@ -241,3 +241,54 @@ test('loop exhaustion appends the safe wrap-up after any streamed filler', async
   assert.match(result.text, /Got it, one second\. I want to make sure this is handled cleanly\./);
   assert.match(deltas.join(''), /Got it, one second\. I want to make sure this is handled cleanly\./);
 });
+
+test('debrief close deterministically books before model can claim saved without tools', async () => {
+  const executed: Array<{ name: string; input: Record<string, unknown> }> = [];
+  const result = await runAgentLoop({
+    env: dryEnv(),
+    state: { mode: 'debrief', facts: { business_name: 'Denver Green', business_type: 'dispensary' } },
+    messages: [
+      { role: 'user', content: 'Yeah, call me at 970-343-9634.' },
+      { role: 'assistant', content: 'Great, and what time between 9 and 3 Mountain works best for you?' },
+      { role: 'user', content: 'Whenever.' },
+    ],
+    maxTokens: 320,
+    model: 'test-model',
+    turnRunner: async () => { throw new Error('model should not be called before deterministic save'); },
+    toolExecutor: async (name, input) => {
+      executed.push({ name, input });
+      return { content: 'GHL appointment booked for Gregory at 2026-06-16T09:00:00-06:00.' };
+    },
+  });
+
+  assert.equal(executed.length, 1);
+  assert.equal(executed[0].name, 'book_gregory_followup');
+  assert.match(String(executed[0].input.caller_phone), /^\+1\d{10}$/);
+  assert.equal(executed[0].input.business_type, 'dispensary');
+  assert.equal(executed[0].input.preferred_time_window, 'next available');
+  assert.equal(result.state.followupLogged, true);
+  assert.match(result.text, /details saved for Gregory/);
+});
+
+test('claimed booked response is repaired by running the follow-up tool', async () => {
+  const executed: string[] = [];
+  const result = await runAgentLoop({
+    env: dryEnv(),
+    state: { mode: 'discovery', facts: { business_name: 'Denver Green', business_type: 'dispensary' } },
+    messages: [
+      { role: 'user', content: 'Yeah, call me at 970-343-9634.' },
+      { role: 'assistant', content: 'Great, and what time between 9 and 3 Mountain works best for you?' },
+      { role: 'user', content: 'Whenever.' },
+    ],
+    maxTokens: 320,
+    model: 'test-model',
+    turnRunner: scriptedRunner([textMessage('You are all set, Gregory will call you Tuesday.')], []),
+    toolExecutor: async (name) => {
+      executed.push(name);
+      return { content: 'Follow-up request logged for Gregory, but the calendar appointment was not created: dry run.' };
+    },
+  });
+
+  assert.deepEqual(executed, ['book_gregory_followup']);
+  assert.equal(result.text, 'You are all set. I have the details and preferred callback window saved for Gregory. Thanks again, goodbye.');
+});
