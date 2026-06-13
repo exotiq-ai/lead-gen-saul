@@ -4,6 +4,8 @@ import { buildSystemPrompt } from './prompts.ts';
 
 test('provider phone agent prompt anchors goals and booking flow', () => {
   const prompt = buildSystemPrompt('Saul');
+  assert.match(prompt, /This is Sawl, an AI agent built by the team at AskSaul\.ai/i);
+  assert.match(prompt, /stop revenue from leaking/i);
   assert.match(prompt, /service providers and business owners/);
   assert.match(prompt, /qualify whether they are interested/i);
   assert.match(prompt, /book a follow-up request with Gregory/i);

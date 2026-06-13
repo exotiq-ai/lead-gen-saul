@@ -287,7 +287,8 @@ test('debrief close deterministically books before model can claim saved without
   assert.equal(executed[0].input.preferred_time_window, 'next available');
   assert.equal(result.state.followupLogged, true);
   assert.match(store.get('call:call-save-1') ?? '', /"followupLogged":true/);
-  assert.match(result.text, /details saved for Gregory/);
+  assert.match(result.text, /saved for Gregory/);
+  assert.match(result.text, /look forward to working together/);
 });
 
 test('claimed booked response is repaired by running the follow-up tool', async () => {
@@ -310,5 +311,45 @@ test('claimed booked response is repaired by running the follow-up tool', async 
   });
 
   assert.deepEqual(executed, ['book_gregory_followup']);
-  assert.equal(result.text, 'You are all set. I have the details and preferred callback window saved for Gregory. Thanks again, goodbye.');
+  assert.equal(result.text, 'Perfect, you are saved for Gregory. He has your details and preferred callback window. Thanks for calling AskSaul.ai, and we look forward to working together.');
+});
+
+test('post-close saved question gets reassurance instead of repeating the hard goodbye', async () => {
+  const result = await runAgentLoop({
+    env: dryEnv(),
+    state: { mode: 'debrief', followupLogged: true, leadLogged: true, facts: { business_name: 'Homie Clinics' } },
+    messages: [{ role: 'user', content: 'Are you sure you saved it?' }],
+    maxTokens: 320,
+    model: 'test-model',
+    turnRunner: async () => { throw new Error('model should not be called after close'); },
+  });
+  assert.match(result.text, /Yes/);
+  assert.match(result.text, /saved for Gregory/);
+  assert.doesNotMatch(result.text, /Thanks again, goodbye/);
+});
+
+test('post-close abruptness concern gets a warm recovery', async () => {
+  const result = await runAgentLoop({
+    env: dryEnv(),
+    state: { mode: 'debrief', followupLogged: true, leadLogged: true },
+    messages: [{ role: 'user', content: 'Why are you ending so abruptly?' }],
+    maxTokens: 320,
+    model: 'test-model',
+    turnRunner: async () => { throw new Error('model should not be called after close'); },
+  });
+  assert.match(result.text, /Fair point/i);
+  assert.match(result.text, /anything else/i);
+});
+
+test('post-close goodbye gets one warm final signoff', async () => {
+  const result = await runAgentLoop({
+    env: dryEnv(),
+    state: { mode: 'debrief', followupLogged: true, leadLogged: true },
+    messages: [{ role: 'user', content: 'Okay goodbye. Hang up.' }],
+    maxTokens: 320,
+    model: 'test-model',
+    turnRunner: async () => { throw new Error('model should not be called after close'); },
+  });
+  assert.match(result.text, /on behalf of the team at AskSaul\.ai/i);
+  assert.match(result.text, /look forward to working together/i);
 });

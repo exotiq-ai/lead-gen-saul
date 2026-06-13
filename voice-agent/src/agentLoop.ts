@@ -39,6 +39,12 @@ export async function runAgentLoop(args: AgentLoopArgs): Promise<AgentLoopResult
   const spoken: string[] = [];
   let emittedAny = false;
 
+  const closedLine = postCloseResponse(lastUserText(messages), state);
+  if (closedLine) {
+    if (args.onText) args.onText(closedLine);
+    return { text: closedLine, state };
+  }
+
   const deterministicExit = demoExitOutcome(lastUserText(messages));
   if (state.mode === 'demo' && deterministicExit) {
     const result = await exec('end_demo_roleplay', { demo_outcome: deterministicExit }, args.env, { callId: args.callId, state });
@@ -179,10 +185,29 @@ function shouldDeterministicallySave(messages: Anthropic.MessageParam[], state: 
 
 function deterministicSaveResponse(toolResult: string, tool: DeterministicSave['tool']): string {
   if (tool === 'book_gregory_followup') {
-    if (/GHL appointment booked/i.test(toolResult)) return 'You are all set. I have the details saved for Gregory, and he will call you at the scheduled time. Thanks again, goodbye.';
-    return 'You are all set. I have the details and preferred callback window saved for Gregory. Thanks again, goodbye.';
+    if (/GHL appointment booked/i.test(toolResult)) return 'Perfect, you are saved for Gregory, and he will call you at the scheduled time. Thanks for calling AskSaul.ai. We look forward to working together.';
+    return 'Perfect, you are saved for Gregory. He has your details and preferred callback window. Thanks for calling AskSaul.ai, and we look forward to working together.';
   }
-  return 'You are all set. I have the details saved for Gregory. Thanks again, goodbye.';
+  return 'Perfect, I have your details saved for Gregory. Thanks for calling AskSaul.ai. We look forward to working together.';
+}
+
+function postCloseResponse(lastUser: string, state: CallState): string | null {
+  if (!state.followupLogged) return null;
+  const lower = lastUser.toLowerCase();
+  if (!lower.trim()) return null;
+  if (/\b(are you sure|did you save|saved it|is it saved|did it go through)\b/.test(lower)) {
+    return 'Yes, you are saved for Gregory. He has your details and callback preference. You are good.';
+  }
+  if (/\b(why are you ending|ending so abruptly|cutting me off|not done|we are not done|we're not done)\b/.test(lower)) {
+    return 'Fair point, I did not mean to cut you off. You are saved for Gregory, and I am happy to answer anything else before I let you go.';
+  }
+  if (/\b(goodbye|bye|hang up|talk soon|thanks|thank you|stop|backslash stop)\b/.test(lower)) {
+    return 'Sounds good. Thanks for calling, on behalf of the team at AskSaul.ai. We look forward to working together.';
+  }
+  if (/\b(start over|restart)\b/.test(lower)) {
+    return 'We already have your follow-up saved for Gregory, so I do not want to restart and risk duplicating it. What else can I clarify before we wrap?';
+  }
+  return 'You are saved for Gregory. I can answer one more question if you have it, otherwise thanks for calling AskSaul.ai and we look forward to working together.';
 }
 
 function transcriptText(messages: Anthropic.MessageParam[]): string {
