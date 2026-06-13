@@ -2,8 +2,6 @@ export interface Env {
   ANTHROPIC_API_KEY: string;
   ELEVENLABS_SHARED_SECRET?: string;
   ELEVENLABS_POST_CALL_SECRET?: string;
-  SUPABASE_URL: string;
-  SUPABASE_SERVICE_ROLE_KEY: string;
   PRIMARY_MODEL?: string;
   ESCALATION_MODEL?: string;
   /** KV for mid-call mode state (demo mode). Optional: transcript scanning covers absence. */

@@ -1,5 +1,5 @@
 import type { Env, FollowupInput } from './types.ts';
-import { normalizePhone } from './supabase.ts';
+import { normalizePhone } from './leadUtils.ts';
 
 export async function sendAppointmentConfirmation(input: FollowupInput, confirmationText: string | undefined, env: Env): Promise<{ ok: boolean; skipped?: boolean; error?: string; messageHandle?: string }> {
   if (!confirmationText) return { ok: true, skipped: true };

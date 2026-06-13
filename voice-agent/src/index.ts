@@ -1,7 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { runAgentLoop } from './agentLoop.ts';
 import { resolveCallState } from './modes.ts';
-import { logCallSession } from './supabase.ts';
 import { handlePostCall } from './postCall.ts';
 import type { Env, OAIChatRequest, OAIMessage } from './types.ts';
 
@@ -38,14 +37,7 @@ async function handleChat(req: Request, env: Env, ctx: ExecutionContext): Promis
   const model = env.PRIMARY_MODEL ?? 'claude-sonnet-4-6';
   const maxTokens = body.max_tokens ?? 320;
 
-  const logSession = (mode: string) => ctx.waitUntil(logCallSession(
-    { call_id: callId, mode, last_user_text: lastUserText(messages) },
-    {
-      url: env.SUPABASE_URL,
-      serviceKey: env.SUPABASE_SERVICE_ROLE_KEY,
-      tenantId: env.DEFAULT_TENANT_ID ?? '22222222-2222-2222-2222-222222222222',
-    },
-  ));
+  const logSession = (_mode: string) => undefined;
 
   if (body.stream === true) {
     return streamingAgentResponse({ env, state, messages, maxTokens, model, callId, callerPhone: resolveCallerPhone(body) }, logSession);

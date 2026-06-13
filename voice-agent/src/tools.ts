@@ -1,6 +1,5 @@
 import type { Env, FollowupInput, LeadCaptureInput } from './types.ts';
 import { syncLeadToGhl, addFollowupNote, bookGregoryAppointment, ensureOpportunity } from './ghl.ts';
-import { logAppointment, logFollowup, logLeadActivity, upsertLead, type LeadRecordResult, type SupabaseCfg } from './supabase.ts';
 import { notifyGregory, notifyLeadCaptured, notifyDemoCompleted } from './notify.ts';
 import { sendAppointmentConfirmation } from './sendblue.ts';
 import { sendInboundLeadEmailFollowup } from './emailFollowup.ts';
@@ -99,13 +98,6 @@ export function isDryRun(env: Env): boolean {
 }
 
 export async function executeTool(name: string, input: Record<string, unknown>, env: Env, opts: { callId?: string; state?: CallState } = {}): Promise<ToolExecutionResult> {
-  const tenantId = env.DEFAULT_TENANT_ID ?? '22222222-2222-2222-2222-222222222222';
-  const supabase: SupabaseCfg = {
-    url: env.SUPABASE_URL,
-    serviceKey: env.SUPABASE_SERVICE_ROLE_KEY,
-    tenantId,
-    sourceTag: env.SAUL_SOURCE_TAG,
-  };
   const ghl = {
     apiKey: env.GHL_LOCAL_SERVICES_API_KEY,
     locationId: env.GHL_LOCAL_SERVICES_LOCATION_ID,
@@ -120,9 +112,7 @@ export async function executeTool(name: string, input: Record<string, unknown>, 
   switch (name) {
     case 'qualify_and_log_lead': {
       const lead = coerceLead(input);
-      const db = await safeUpsertLead(lead, supabase, env);
       if (dryRun) {
-        if (!db.ok) return { content: `I could not save the lead cleanly: ${db.error}. Keep talking and repeat the details back before ending.` };
         return { content: `Lead logged. Qualification score is ${lead.interest_level ?? (lead.interested ? 'warm' : 'cold')}. Keep the caller engaged and ask about a Gregory follow-up if they are interested.` };
       }
 
@@ -133,33 +123,24 @@ export async function executeTool(name: string, input: Record<string, unknown>, 
       }
 
       const savedToGhl = ghlResult.ok && !ghlResult.skipped && Boolean(ghlResult.contactId);
-      if (!savedToGhl && !db.ok) {
-        return { content: `I could not save the lead cleanly. GHL: ${ghlResult.error ?? 'not configured or no contact returned'}. Supabase: ${db.error ?? 'not configured'}. Keep talking and repeat the details back before ending.` };
+      if (!savedToGhl) {
+        return { content: `I could not save the lead cleanly in GHL: ${ghlResult.error ?? 'not configured or no contact returned'}. Keep talking and repeat the details back before ending.` };
       }
 
-      await notifyLeadCaptured(lead, db.id ?? ghlResult.contactId ?? 'ghl-contact', env);
+      await notifyLeadCaptured(lead, ghlResult.contactId ?? 'ghl-contact', env);
       const ghlSuffix = ghlResult.ok ? '' : ` GHL sync needs review: ${ghlResult.error}.`;
       return { content: `Lead logged. Qualification score is ${lead.interest_level ?? (lead.interested ? 'warm' : 'cold')}. Keep the caller engaged and ask about a Gregory follow-up if they are interested.${ghlSuffix}` };
     }
     case 'book_gregory_followup': {
       const followup = coerceFollowup(input);
-      const db = await safeUpsertLead(followup, supabase, env);
       if (dryRun) {
-        if (!db.ok || !db.id) return { content: `I could not save the lead cleanly: ${db.error}. Ask for the best phone and preferred window again.` };
         return { content: `Dry run: follow-up request recorded for ${followup.preferred_time_window}. Tell the caller the preferred window is saved for Gregory; do not claim a confirmed appointment.` };
       }
 
       const ghlLead = await syncLeadToGhl(followup, ghl);
       const savedToGhl = ghlLead.ok && !ghlLead.skipped && Boolean(ghlLead.contactId);
-      if (!savedToGhl && !db.ok) {
-        return { content: `I could not save the lead cleanly. GHL: ${ghlLead.error ?? 'not configured or no contact returned'}. Supabase: ${db.error ?? 'not configured'}. Ask for the best phone and preferred window again.` };
-      }
-
-      if (db.ok && db.id) {
-        const follow = await logFollowup(followup, db.id, supabase);
-        if (!follow.ok) console.warn('supabaseFollowupLogFailed', follow.error);
-      } else {
-        console.warn('supabaseLeadUpsertFailed', db.error);
+      if (!savedToGhl) {
+        return { content: `I could not save the lead cleanly in GHL: ${ghlLead.error ?? 'not configured or no contact returned'}. Ask for the best phone and preferred window again.` };
       }
 
       const appointment = await bookGregoryAppointment(followup, ghlLead.contactId, ghl);
@@ -167,10 +148,9 @@ export async function executeTool(name: string, input: Record<string, unknown>, 
       await addFollowupNote(followup, ghlLead.contactId, ghl, appointment);
       await sendInboundLeadEmailFollowup({ input: followup, contactId: ghlLead.contactId, cfg: ghl, env, appointment, reason: 'followup_booked', existingTags: ghlLead.tags });
       if (appointment.ok && !appointment.skipped && appointment.appointmentId) {
-        if (db.ok && db.id) await logAppointment(followup, db.id, appointment, supabase);
         await sendAppointmentConfirmation(followup, appointment.confirmationText, env);
       }
-      await notifyGregory(followup, db.id ?? ghlLead.contactId ?? 'ghl-contact', env);
+      await notifyGregory(followup, ghlLead.contactId ?? 'ghl-contact', env);
       if (appointment.ok && appointment.startTime) {
         return { content: `GHL appointment booked for Gregory at ${appointment.startTime}. Tell the caller they are booked, Gregory will call them at that time, and they should receive the calendar confirmation if their email is on file.` };
       }
@@ -188,14 +168,12 @@ export async function executeTool(name: string, input: Record<string, unknown>, 
         if (!lead.interest_level || lead.interest_level === 'cold' || lead.interest_level === 'curious') {
           lead.interest_level = 'warm';
         }
-        const db = await safeUpsertLead(lead, supabase, env);
-        if (db.ok && db.id) {
-          facts.lead_id = db.id;
-          if (!dryRun) {
-            const ghlResult = await syncLeadToGhl(lead, ghl);
-            if (ghlResult.ok && ghlResult.contactId) await ensureOpportunity(lead, ghlResult.contactId, ghl, 'hot_lead');
+        if (!dryRun) {
+          const ghlResult = await syncLeadToGhl(lead, ghl);
+          if (ghlResult.ok && ghlResult.contactId) {
+            facts.lead_id = ghlResult.contactId;
+            await ensureOpportunity(lead, ghlResult.contactId, ghl, 'hot_lead');
           }
-          await logLeadActivity(db.id, 'demo_started', 'phone', { customer_scenario: facts.customer_scenario, business_type: facts.business_type }, supabase);
         }
       }
       const state: CallState = { mode: 'demo', facts };
@@ -213,9 +191,6 @@ export async function executeTool(name: string, input: Record<string, unknown>, 
       const facts = prior?.facts ?? opts.state?.facts;
       const state: CallState = { mode: 'debrief', facts };
       await writeCallState(env, opts.callId, state);
-      if (facts?.lead_id) {
-        await logLeadActivity(facts.lead_id, 'demo_completed', 'phone', { outcome }, supabase);
-      }
       if (outcome === 'completed' && !dryRun) await notifyDemoCompleted(facts, env);
       return {
         content: `The demo is over and you are Saul again. Your entire next reply must be exactly this line and nothing else: "${debriefOpeningLine()}" After they answer, run the debrief and close.`,
@@ -225,13 +200,6 @@ export async function executeTool(name: string, input: Record<string, unknown>, 
     default:
       return { content: `Unknown tool: ${name}` };
   }
-}
-
-async function safeUpsertLead(lead: LeadCaptureInput, supabase: SupabaseCfg, env: Env): Promise<LeadRecordResult> {
-  if (isDryRun(env) && (!supabase.url || !supabase.serviceKey)) {
-    return { ok: true, id: 'dry-run-lead', created: true };
-  }
-  return upsertLead(lead, supabase);
 }
 
 function leadProperties(): Record<string, unknown> {

@@ -3,7 +3,7 @@
  *
  * Drives a full simulated phone call against the worker handler in-process:
  * a persona LLM plays the service-provider caller, the worker plays Saul.
- * All side effects run in dry-run mode (no Supabase/GHL/SMS/Telegram writes),
+ * All side effects run in dry-run mode (no GHL/SMS/Telegram writes),
  * so the only network calls are to the Anthropic API.
  *
  * Usage:
@@ -64,8 +64,6 @@ async function simulate(scenario: Scenario): Promise<string> {
   const pending: Promise<unknown>[] = [];
   const env = {
     ANTHROPIC_API_KEY: apiKey,
-    SUPABASE_URL: '',
-    SUPABASE_SERVICE_ROLE_KEY: '',
     PRIMARY_MODEL: SAUL_MODEL,
     SAUL_DRY_RUN: 'true',
     SAUL_SOURCE_TAG: 'saul_phone_agent_simulator',

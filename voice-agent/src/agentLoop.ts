@@ -2,7 +2,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 import { runClaudeTurn, textFromMessage, toolUsesFromMessage, type ClaudeTurnInput } from './claude.ts';
 import { buildSystemPrompt } from './prompts.ts';
 import { executeTool, toolsForMode, type ToolExecutionResult } from './tools.ts';
-import { debriefOpeningLine, demoOpeningLine } from './modes.ts';
+import { debriefOpeningLine, demoOpeningLine, writeCallState } from './modes.ts';
 import type { CallState } from './modes.ts';
 import type { Env } from './types.ts';
 
@@ -61,6 +61,7 @@ export async function runAgentLoop(args: AgentLoopArgs): Promise<AgentLoopResult
   if (deterministicSave) {
     const result = await exec(deterministicSave.tool, deterministicSave.input, args.env, { callId: args.callId, state });
     state = markSaved(state, deterministicSave.tool);
+    await writeCallState(args.env, args.callId, state);
     const line = deterministicSaveResponse(result.content, deterministicSave.tool);
     if (args.onText) args.onText(line);
     return { text: line, state };
@@ -96,6 +97,7 @@ export async function runAgentLoop(args: AgentLoopArgs): Promise<AgentLoopResult
       if (fallbackSave) {
         const result = await exec(fallbackSave.tool, fallbackSave.input, args.env, { callId: args.callId, state });
         state = markSaved(state, fallbackSave.tool);
+        await writeCallState(args.env, args.callId, state);
         const line = deterministicSaveResponse(result.content, fallbackSave.tool);
         if (args.onText && !emittedAny) args.onText(line);
         return { text: line, state };
@@ -338,6 +340,7 @@ function demoExitOutcome(text: string): 'caller_exited' | 'derailed' | null {
   const lower = text.toLowerCase();
   if (!lower.trim()) return null;
   if (/\b(stop|that's enough|that is enough|okay saul|okay sawl)\b/.test(lower)) return 'caller_exited';
+  if (/\b(the conversation was good|that was good|that was great|captured my problem|you captured|you set an appointment|very responsive|that was responsive|that worked|pretty good|nice demo|good demo)\b/.test(lower)) return 'caller_exited';
   if (/\b(is this (the )?ai|are you (an? )?(ai|robot|real person)|pricing|price|cost|gregory|saul|sawl)\b/.test(lower)) return 'caller_exited';
   if (/\b(confused|what do i say|i don't know what to say|silent)\b/.test(lower)) return 'derailed';
   return null;

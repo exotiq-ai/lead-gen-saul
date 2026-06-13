@@ -16,8 +16,6 @@ function fakeKv(store: Map<string, string>): KVNamespace {
 function dryEnv(store?: Map<string, string>): Env {
   return {
     ANTHROPIC_API_KEY: 'test',
-    SUPABASE_URL: '',
-    SUPABASE_SERVICE_ROLE_KEY: '',
     SAUL_DRY_RUN: 'true',
     ...(store ? { SAUL_CALL_STATE: fakeKv(store) } : {}),
   } as unknown as Env;
@@ -182,6 +180,25 @@ test('demo mode deterministically exits when the caller breaks character', async
   assert.equal(result.text, 'Okay — Sawl hat back on. That was your agent answering. What stood out to you?');
 });
 
+test('demo mode deterministically exits when the caller starts debriefing the experience', async () => {
+  const executed: string[] = [];
+  const result = await runAgentLoop({
+    env: dryEnv(),
+    state: { mode: 'demo', facts: { business_name: 'ABC Roofing Solutions' } },
+    messages: [{ role: 'user', content: 'The conversation was good, and you captured my problem. You set an appointment and were very responsive.' }],
+    maxTokens: 320,
+    model: 'test-model',
+    turnRunner: async () => { throw new Error('model should not be called for deterministic demo exits'); },
+    toolExecutor: async (name, input, _env, opts) => {
+      executed.push(`${name}:${input.demo_outcome}`);
+      return { content: 'ok', state: { mode: 'debrief', facts: opts.state?.facts } };
+    },
+  });
+  assert.deepEqual(executed, ['end_demo_roleplay:caller_exited']);
+  assert.equal(result.state.mode, 'debrief');
+  assert.equal(result.text, 'Okay — Sawl hat back on. That was your agent answering. What stood out to you?');
+});
+
 test('a hallucinated out-of-mode tool never executes (defense in depth)', async () => {
   const executed: string[] = [];
   const calls: ClaudeTurnInput[] = [];
@@ -244,8 +261,9 @@ test('loop exhaustion appends the safe wrap-up after any streamed filler', async
 
 test('debrief close deterministically books before model can claim saved without tools', async () => {
   const executed: Array<{ name: string; input: Record<string, unknown> }> = [];
+  const store = new Map<string, string>();
   const result = await runAgentLoop({
-    env: dryEnv(),
+    env: dryEnv(store),
     state: { mode: 'debrief', facts: { business_name: 'Denver Green', business_type: 'dispensary' } },
     messages: [
       { role: 'user', content: 'Yeah, call me at 970-343-9634.' },
@@ -254,6 +272,7 @@ test('debrief close deterministically books before model can claim saved without
     ],
     maxTokens: 320,
     model: 'test-model',
+    callId: 'call-save-1',
     turnRunner: async () => { throw new Error('model should not be called before deterministic save'); },
     toolExecutor: async (name, input) => {
       executed.push({ name, input });
@@ -267,6 +286,7 @@ test('debrief close deterministically books before model can claim saved without
   assert.equal(executed[0].input.business_type, 'dispensary');
   assert.equal(executed[0].input.preferred_time_window, 'next available');
   assert.equal(result.state.followupLogged, true);
+  assert.match(store.get('call:call-save-1') ?? '', /"followupLogged":true/);
   assert.match(result.text, /details saved for Gregory/);
 });
 

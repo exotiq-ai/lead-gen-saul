@@ -51,7 +51,7 @@ test('post-call webhook fails CLOSED when no secret is configured', async () => 
       method: 'POST',
       body: JSON.stringify({ type: 'post_call_transcription', data: { conversation_id: 'c1', transcript: [{ role: 'agent', message: 'hi' }] } }),
     }),
-    { SUPABASE_URL: '', SUPABASE_SERVICE_ROLE_KEY: '' } as any,
+    {} as any,
     ctx(),
   );
   assert.equal(res.status, 503);
@@ -70,7 +70,7 @@ test('post-call webhook accepts a correctly signed request', async () => {
       headers: { 'elevenlabs-signature': `t=${t},v0=${hex}` },
       body,
     }),
-    { ELEVENLABS_POST_CALL_SECRET: secret, SUPABASE_URL: '', SUPABASE_SERVICE_ROLE_KEY: '' } as any,
+    { ELEVENLABS_POST_CALL_SECRET: secret } as any,
     ctx(),
   );
   assert.equal(res.status, 200);

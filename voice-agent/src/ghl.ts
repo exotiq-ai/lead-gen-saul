@@ -1,5 +1,5 @@
 import type { FollowupInput, LeadCaptureInput } from './types.ts';
-import { normalizePhone, splitName } from './supabase.ts';
+import { normalizePhone, splitName } from './leadUtils.ts';
 import {
   ASK_SAUL_CALENDAR_ID,
   appointmentDescription,

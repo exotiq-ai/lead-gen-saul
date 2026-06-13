@@ -15,8 +15,6 @@ function fakeKv(store: Map<string, string>): KVNamespace {
 function dryEnv(store: Map<string, string>): Env {
   return {
     ANTHROPIC_API_KEY: 'test',
-    SUPABASE_URL: '',
-    SUPABASE_SERVICE_ROLE_KEY: '',
     SAUL_DRY_RUN: 'true',
     SAUL_CALL_STATE: fakeKv(store),
   } as unknown as Env;
@@ -73,8 +71,6 @@ test('end_demo_roleplay flips to debrief, preserves facts, returns the verbatim 
 test('end_demo_roleplay without any KV binding falls back to the loop state for facts', async () => {
   const env = {
     ANTHROPIC_API_KEY: 'test',
-    SUPABASE_URL: '',
-    SUPABASE_SERVICE_ROLE_KEY: '',
     SAUL_DRY_RUN: 'true',
   } as unknown as Env;
   const result = await executeTool('end_demo_roleplay', { demo_outcome: 'completed' }, env, {
@@ -86,7 +82,7 @@ test('end_demo_roleplay without any KV binding falls back to the loop state for 
   assert.equal(result.state?.facts?.caller_first_name, 'Mike');
 });
 
-test('dry run with no Supabase configured still logs the lead successfully', async () => {
+test('dry run lead logging succeeds without external CRM writes', async () => {
   const result = await executeTool('qualify_and_log_lead', {
     caller_phone: '5551234567',
     caller_name: 'Mike Rivera',
@@ -110,8 +106,10 @@ test('dry run book_gregory_followup never claims a confirmed appointment', async
 function liveGhlEnv(): Env {
   return {
     ANTHROPIC_API_KEY: 'test',
-    SUPABASE_URL: '',
-    SUPABASE_SERVICE_ROLE_KEY: '',
+    // Production provider voice calls must not write to Supabase at all.
+    // Supabase may still be configured as an old secret, but GHL is the only CRM sink.
+    SUPABASE_URL: 'https://qbvkisrazmipmwlejqtf.supabase.co',
+    SUPABASE_SERVICE_ROLE_KEY: 'legacy-supabase-key-that-must-not-be-used',
     GHL_LOCAL_SERVICES_API_KEY: 'ghl-test',
     GHL_LOCAL_SERVICES_LOCATION_ID: 'RxCVQeGoQ3RTJbbLG5gY',
     GHL_API_VERSION: '2021-07-28',
@@ -132,7 +130,7 @@ function nextAllowedSlot(): string {
   throw new Error('No allowed slot found');
 }
 
-test('live qualify_and_log_lead uses GHL even when Supabase is unavailable', async () => {
+test('live qualify_and_log_lead uses only GHL even if legacy Supabase env exists', async () => {
   const originalFetch = globalThis.fetch;
   const calls: string[] = [];
   globalThis.fetch = (async (input: RequestInfo | URL) => {
@@ -155,12 +153,13 @@ test('live qualify_and_log_lead uses GHL even when Supabase is unavailable', asy
     assert.match(result.content, /Lead logged\. Qualification score is warm\./);
     assert.ok(calls.some((url) => url.includes('/contacts/upsert')));
     assert.ok(calls.some((url) => url.includes('/opportunities/')));
+    assert.ok(!calls.some((url) => url.includes('supabase.co')), 'provider voice tool should not call Supabase');
   } finally {
     globalThis.fetch = originalFetch;
   }
 });
 
-test('live book_gregory_followup books in GHL even when Supabase is unavailable', async () => {
+test('live book_gregory_followup books only in GHL even if legacy Supabase env exists', async () => {
   const originalFetch = globalThis.fetch;
   const calls: string[] = [];
   const slot = nextAllowedSlot();
@@ -189,6 +188,7 @@ test('live book_gregory_followup books in GHL even when Supabase is unavailable'
     assert.match(result.content, /GHL appointment booked for Gregory/);
     assert.ok(calls.some((url) => url.includes('/contacts/upsert')));
     assert.ok(calls.some((url) => url.includes('/calendars/events/appointments')));
+    assert.ok(!calls.some((url) => url.includes('supabase.co')), 'provider voice booking should not call Supabase');
   } finally {
     globalThis.fetch = originalFetch;
   }

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "ElevenLabs Custom-LLM webhook for Saul provider-sales phone agent, with Supabase lead logging and optional GHL sync.",
+  "description": "ElevenLabs Custom-LLM webhook for Saul provider-sales phone agent, with GHL-first lead capture and booking.",
   "engines": {
     "node": ">=22.12.0"
   },

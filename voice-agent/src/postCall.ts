@@ -1,7 +1,6 @@
 import { DEMO_ENTRY_SENTINEL, DEMO_EXIT_SENTINEL } from './modes.ts';
-import { findLeadByPhone, logCallTranscript, logLeadActivity, normalizePhone, type SupabaseCfg } from './supabase.ts';
-import { addContactNote } from './ghl.ts';
-import { isDryRun } from './tools.ts';
+import { addContactNote, syncLeadToGhl } from './ghl.ts';
+import { normalizePhone } from './leadUtils.ts';
 import type { Env } from './types.ts';
 
 const TRANSCRIPT_CAP = 12000;
@@ -54,12 +53,6 @@ async function processPostCall(payload: PostCallPayload, env: Env): Promise<void
   const data = payload.data;
   const turns = Array.isArray(data?.transcript) ? data.transcript : [];
   if (!turns.length) return;
-  const supabase: SupabaseCfg = {
-    url: env.SUPABASE_URL,
-    serviceKey: env.SUPABASE_SERVICE_ROLE_KEY,
-    tenantId: env.DEFAULT_TENANT_ID ?? '22222222-2222-2222-2222-222222222222',
-    sourceTag: env.SAUL_SOURCE_TAG,
-  };
   const funnel = funnelFromTranscript(turns);
   const transcript = turns
     .map((t) => `${t.role === 'agent' || t.role === 'assistant' ? 'Agent' : 'Caller'}: ${(t.message ?? '').trim()}`)
@@ -69,37 +62,29 @@ async function processPostCall(payload: PostCallPayload, env: Env): Promise<void
   const callerPhone = data?.metadata?.phone_call?.external_number;
   const durationSecs = data?.metadata?.call_duration_secs;
 
-  await logCallTranscript({
-    conversation_id: data?.conversation_id,
-    caller_phone: callerPhone,
-    duration_secs: durationSecs,
-    funnel,
-    transcript,
-  }, supabase);
+  if (!callerPhone || !env.GHL_LOCAL_SERVICES_API_KEY || !env.GHL_LOCAL_SERVICES_LOCATION_ID) return;
 
-  if (!callerPhone || !supabase.url || !supabase.serviceKey) return;
-  const lead = await findLeadByPhone(normalizePhone(callerPhone), supabase);
-  if (!lead.ok || !lead.id) return;
-  await logLeadActivity(lead.id, 'voice_call_transcript', 'phone', {
-    conversation_id: data?.conversation_id,
-    duration_secs: durationSecs,
-    funnel,
-    transcript: transcript.slice(0, 8000),
-  }, supabase);
+  const ghl = {
+    apiKey: env.GHL_LOCAL_SERVICES_API_KEY,
+    locationId: env.GHL_LOCAL_SERVICES_LOCATION_ID,
+    version: env.GHL_API_VERSION,
+  };
+  const lead = await syncLeadToGhl({
+    caller_phone: normalizePhone(callerPhone),
+    interested: true,
+    interest_level: funnel.demo_completed ? 'hot' : 'warm',
+    notes: `Post-call transcript received from ElevenLabs conversation ${data?.conversation_id ?? 'unknown'}.`,
+  }, ghl);
+  if (!lead.ok || !lead.contactId) return;
 
   // Gregory walks into the follow-up call with the transcript in GHL.
-  if (!isDryRun(env) && lead.ghlContactId && env.GHL_LOCAL_SERVICES_API_KEY) {
-    const noteHeader = [
-      'Saul call transcript',
-      durationSecs ? `Duration: ${Math.round(durationSecs)}s` : null,
-      `Demo: offered=${funnel.demo_offered} started=${funnel.demo_started} completed=${funnel.demo_completed}`,
-    ].filter(Boolean).join(' | ');
-    await addContactNote(`${noteHeader}\n\n${transcript.slice(0, NOTE_CAP)}`, lead.ghlContactId, {
-      apiKey: env.GHL_LOCAL_SERVICES_API_KEY,
-      locationId: env.GHL_LOCAL_SERVICES_LOCATION_ID,
-      version: env.GHL_API_VERSION,
-    });
-  }
+  const noteHeader = [
+    'Saul call transcript',
+    durationSecs ? `Duration: ${Math.round(durationSecs)}s` : null,
+    `Demo: offered=${funnel.demo_offered} started=${funnel.demo_started} completed=${funnel.demo_completed}`,
+    data?.conversation_id ? `ElevenLabs: ${data.conversation_id}` : null,
+  ].filter(Boolean).join(' | ');
+  await addContactNote(`${noteHeader}\n\n${transcript.slice(0, NOTE_CAP)}`, lead.contactId, ghl);
 }
 
 export async function verifyElevenLabsSignature(rawBody: string, header: string | null, secret: string): Promise<boolean> {

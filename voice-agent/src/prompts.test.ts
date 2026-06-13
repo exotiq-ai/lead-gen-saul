@@ -37,6 +37,10 @@ test('demo prompt is the other hat: in character, gated, illustrative only', () 
   assert.match(prompt, /missed after-hours calls/);
   assert.match(prompt, /three to five exchanges/);
   assert.match(prompt, /quote no real prices/);
+  assert.match(prompt, /do not collect real customer names, phone numbers, emails, addresses, or appointment details/i);
+  assert.match(prompt, /Here's where I would take your customer's information/i);
+  assert.doesNotMatch(prompt, /get the caller's name/i);
+  assert.doesNotMatch(prompt, /what's the best number/i);
   assert.match(prompt, /After your wrap line, you MUST call end_demo_roleplay/);
   assert.match(prompt, /Do not answer the caller's out-of-character question/);
   // The demo hat never sees the sales persona or the real tools.
