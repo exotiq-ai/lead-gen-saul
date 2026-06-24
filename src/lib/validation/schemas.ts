@@ -54,7 +54,7 @@ export const leadsListQuerySchema = z.object({
   source: z.preprocess(emptyToUndef, z.string().max(200).optional()),
 
   assigned_to: z
-    .preprocess(emptyToUndef, z.enum(['all', 'gregory', 'team']).optional()),
+    .preprocess(emptyToUndef, z.enum(['all', 'gregory', 'benjamin', 'team']).optional()),
 
   red_flags_only: z
     .preprocess((v) => v === 'true' || v === true, z.boolean())

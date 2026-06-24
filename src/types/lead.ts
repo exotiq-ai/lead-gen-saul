@@ -9,7 +9,7 @@ export type LeadStatus =
   | 'lost'
   | 'disqualified'
 
-export type AssignedTo = 'gregory' | 'team' | null
+export type AssignedTo = 'gregory' | 'benjamin' | 'team' | null
 
 export type LeadSource = 'organic' | 'paid' | 'referral' | 'outbound' | 'api'
 
