@@ -2,22 +2,64 @@
 
 import { Warning } from '@phosphor-icons/react'
 import { Tooltip } from '@/components/ui/Tooltip'
-import type { RedFlag } from '@/types/lead'
+
+interface NormalizedRedFlag {
+  code: string
+  reason: string
+  flagged_at: string
+}
 
 interface RedFlagBadgeProps {
-  flags: RedFlag[]
+  // Older imported leads may still store red_flags as string codes, while newer
+  // scorer output stores { code, reason, flagged_at } objects. Keep the UI
+  // defensive so filtering to red-flagged leads never crashes on legacy rows.
+  flags: unknown
 }
 
 function formatFlagCode(code: string): string {
   return code.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-export function RedFlagBadge({ flags }: RedFlagBadgeProps) {
-  if (flags.length === 0) return null
+function normalizeFlags(flags: unknown): NormalizedRedFlag[] {
+  if (!Array.isArray(flags)) return []
 
-  if (flags.length === 1) {
+  return flags
+    .map((flag): NormalizedRedFlag | null => {
+      if (typeof flag === 'string') {
+        return {
+          code: flag,
+          reason: formatFlagCode(flag),
+          flagged_at: '',
+        }
+      }
+
+      if (!flag || typeof flag !== 'object') return null
+
+      const record = flag as Record<string, unknown>
+      const code = typeof record.code === 'string' ? record.code : null
+      if (!code) return null
+
+      const reason = typeof record.reason === 'string' && record.reason.trim()
+        ? record.reason
+        : formatFlagCode(code)
+
+      return {
+        code,
+        reason,
+        flagged_at: typeof record.flagged_at === 'string' ? record.flagged_at : '',
+      }
+    })
+    .filter((flag): flag is NormalizedRedFlag => flag !== null)
+}
+
+export function RedFlagBadge({ flags }: RedFlagBadgeProps) {
+  const normalizedFlags = normalizeFlags(flags)
+  if (normalizedFlags.length === 0) return null
+
+  if (normalizedFlags.length === 1) {
+    const [flag] = normalizedFlags
     return (
-      <Tooltip content={flags[0].reason} position="top">
+      <Tooltip content={flag.reason} position="top">
         <span className="inline-flex items-center gap-1 cursor-default">
           <Warning
             size={14}
@@ -25,7 +67,7 @@ export function RedFlagBadge({ flags }: RedFlagBadgeProps) {
             className="text-[var(--color-saul-caution)] shrink-0"
           />
           <span className="text-[10px] font-medium text-[var(--color-saul-caution)] leading-none truncate max-w-[80px]">
-            {formatFlagCode(flags[0].code)}
+            {formatFlagCode(flag.code)}
           </span>
         </span>
       </Tooltip>
@@ -34,7 +76,7 @@ export function RedFlagBadge({ flags }: RedFlagBadgeProps) {
 
   const tooltipContent = (
     <span className="flex flex-col gap-1">
-      {flags.map((f) => (
+      {normalizedFlags.map((f) => (
         <span key={f.code} className="flex items-start gap-1.5">
           <Warning size={11} weight="fill" className="text-[var(--color-saul-caution)] mt-0.5 shrink-0" />
           <span className="text-[11px] leading-tight">{f.reason}</span>
@@ -59,7 +101,7 @@ export function RedFlagBadge({ flags }: RedFlagBadgeProps) {
             border: '1px solid rgba(232,118,109,0.3)',
           }}
         >
-          {flags.length}
+          {normalizedFlags.length}
         </span>
       </span>
     </Tooltip>

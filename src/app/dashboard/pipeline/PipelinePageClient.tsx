@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, type Transition } from 'framer-motion'
@@ -109,6 +110,12 @@ function SummaryBar({ data }: { data: PipelinePageData }) {
       accent: false,
     },
     {
+      label: "Benjamin's Leads",
+      value: formatNumber(data.total_benjamin),
+      sub: 'assigned to benjamin',
+      accent: false,
+    },
+    {
       label: 'Added This Week',
       value: formatNumber(data.added_this_week),
       sub: 'new entries',
@@ -117,7 +124,7 @@ function SummaryBar({ data }: { data: PipelinePageData }) {
   ]
 
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
       {kpis.map((kpi) => (
         <div
           key={kpi.label}
@@ -158,6 +165,16 @@ function StageStats({ stage }: { stage: PipelineStageDetail }) {
         </span>
       </div>
 
+      {/* Benjamin */}
+      <div className="flex items-center gap-1" title="Assigned to Benjamin">
+        <span className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-[color-mix(in_srgb,var(--color-saul-violet)_12%,transparent)] border border-[color-mix(in_srgb,var(--color-saul-violet)_25%,transparent)] text-[9px] font-bold text-[var(--color-saul-violet)] leading-none select-none">
+          B
+        </span>
+        <span className="text-[11px] font-mono tabular-nums text-[var(--color-saul-text-secondary)]">
+          {stage.benjamin_count}
+        </span>
+      </div>
+
       {/* High score (80+) */}
       <div className="flex items-center gap-1" title="Score 80+">
         <Star size={11} weight="fill" className="text-[var(--color-saul-cyan)] flex-shrink-0" />
@@ -192,9 +209,11 @@ function StageStats({ stage }: { stage: PipelineStageDetail }) {
 function LeadPreviewCard({
   lead,
   index,
+  onDragStart,
 }: {
   lead: PipelineTopLead
   index: number
+  onDragStart: (lead: PipelineTopLead) => void
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -210,6 +229,13 @@ function LeadPreviewCard({
       initial="hidden"
       animate="visible"
       whileHover={{ scale: 1.02 }}
+      draggable
+      onDragStart={(e) => {
+        const dataTransfer = (e as unknown as { dataTransfer: DataTransfer }).dataTransfer
+        dataTransfer.effectAllowed = 'move'
+        dataTransfer.setData('text/plain', lead.id)
+        onDragStart(lead)
+      }}
       onClick={() => router.push(`/dashboard/leads/${lead.id}?tenant=${tenantParam}`)}
       className="relative p-2.5 rounded-[6px] border border-[var(--color-saul-border-soft)] bg-[var(--color-saul-overlay-soft)] cursor-pointer transition-[border-color,box-shadow] duration-150 hover:border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] hover:shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-saul-cyan)_8%,transparent)]"
     >
@@ -252,12 +278,18 @@ function LeadPreviewCard({
 function EmptyStageColumn({
   stage,
   color,
+  onDropLead,
 }: {
   stage: PipelineStageDetail
   color: string
+  onDropLead: (stage: PipelineStageDetail) => void
 }) {
   return (
-    <div className="flex flex-col rounded-[8px] border-2 border-dashed border-[var(--color-saul-border)] overflow-hidden min-h-[220px]">
+    <div
+      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
+      onDrop={(e) => { e.preventDefault(); onDropLead(stage) }}
+      className="flex flex-col rounded-[8px] border-2 border-dashed border-[var(--color-saul-border)] overflow-hidden min-h-[220px]"
+    >
       {/* Dim color bar */}
       <div style={{ height: 3, background: `${color}40` }} />
 
@@ -289,20 +321,28 @@ function EmptyStageColumn({
 function StageColumn({
   stage,
   colIndex,
+  onDragStartLead,
+  onDropLead,
 }: {
   stage: PipelineStageDetail
   colIndex: number
+  onDragStartLead: (lead: PipelineTopLead, stageId: string) => void
+  onDropLead: (stage: PipelineStageDetail) => void
 }) {
   const searchParams = useSearchParams()
   const tenantParam = searchParams.get('tenant') || 'exotiq'
   const color = stageAccentColor(stage)
 
   if (stage.lead_count === 0) {
-    return <EmptyStageColumn stage={stage} color={color} />
+    return <EmptyStageColumn stage={stage} color={color} onDropLead={onDropLead} />
   }
 
   return (
-    <div className="flex flex-col rounded-[8px] border border-[var(--color-saul-border)] bg-[var(--color-saul-bg-700)] overflow-hidden">
+    <div
+      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
+      onDrop={(e) => { e.preventDefault(); onDropLead(stage) }}
+      className="flex flex-col rounded-[8px] border border-[var(--color-saul-border)] bg-[var(--color-saul-bg-700)] overflow-hidden"
+    >
       {/* Color accent bar */}
       <div style={{ height: 3, background: color, flexShrink: 0 }} />
 
@@ -340,7 +380,12 @@ function StageColumn({
       {/* Lead preview cards */}
       <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1.5 max-h-[400px]">
         {stage.top_leads.map((lead, i) => (
-          <LeadPreviewCard key={lead.id} lead={lead} index={i} />
+          <LeadPreviewCard
+            key={lead.id}
+            lead={lead}
+            index={i}
+            onDragStart={(l) => onDragStartLead(l, stage.id)}
+          />
         ))}
       </div>
 
@@ -393,17 +438,65 @@ function DropoffConnector({
   )
 }
 
+function tenantSlugToId(slug: string): string {
+  if (slug === 'medspa-boulder') return '11111111-1111-1111-1111-111111111111'
+  return '00000000-0000-0000-0000-000000000001'
+}
+
 // ─── Main client component ────────────────────────────────────────────────────
 
 interface PipelinePageClientProps {
   data: PipelinePageData
+  tenantId: string
 }
 
-export function PipelinePageClient({ data }: PipelinePageClientProps) {
+export function PipelinePageClient({ data, tenantId }: PipelinePageClientProps) {
   const searchParams = useSearchParams()
   const tenantParam = searchParams.get('tenant') || 'exotiq'
-  const { stages } = data
+  const [localData, setLocalData] = useState<PipelinePageData>(data)
+  const [dragged, setDragged] = useState<{ lead: PipelineTopLead; stageId: string } | null>(null)
+  const { stages } = localData
   const activeStages = stages.filter((s) => !s.is_terminal)
+
+  async function refreshPipeline() {
+    const params = new URLSearchParams()
+    params.set('tenant_id', tenantId)
+    const res = await fetch(`/api/dashboard/pipeline-detail?${params.toString()}`)
+    if (res.ok) setLocalData(await res.json() as PipelinePageData)
+  }
+
+  async function moveDraggedLead(targetStage: PipelineStageDetail) {
+    if (!dragged || dragged.stageId === targetStage.id) return
+    const moving = dragged
+    setDragged(null)
+    setLocalData((cur) => ({
+      ...cur,
+      stages: cur.stages.map((stage) => {
+        if (stage.id === moving.stageId) {
+          return {
+            ...stage,
+            lead_count: Math.max(0, stage.lead_count - 1),
+            top_leads: stage.top_leads.filter((lead) => lead.id !== moving.lead.id),
+          }
+        }
+        if (stage.id === targetStage.id) {
+          const alreadyVisible = stage.top_leads.some((lead) => lead.id === moving.lead.id)
+          return {
+            ...stage,
+            lead_count: stage.lead_count + 1,
+            top_leads: alreadyVisible ? stage.top_leads : [moving.lead, ...stage.top_leads].slice(0, 5),
+          }
+        }
+        return stage
+      }),
+    }))
+    const res = await fetch(`/api/leads/${moving.lead.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tenant_id: tenantId, stage_id: targetStage.id }),
+    })
+    if (!res.ok) void refreshPipeline()
+  }
 
   if (!stages.length) {
     return (
@@ -432,7 +525,7 @@ export function PipelinePageClient({ data }: PipelinePageClientProps) {
             Pipeline
           </h1>
           <p className="text-[13px] text-[var(--color-saul-text-secondary)] mt-1 leading-none">
-            {stages.length} stage{stages.length !== 1 ? 's' : ''} · {formatNumber(data.total_leads)} total lead{data.total_leads !== 1 ? 's' : ''}
+            {stages.length} stage{stages.length !== 1 ? 's' : ''} · {formatNumber(localData.total_leads)} total lead{localData.total_leads !== 1 ? 's' : ''}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -444,7 +537,7 @@ export function PipelinePageClient({ data }: PipelinePageClientProps) {
       </div>
 
       {/* Summary KPI bar */}
-      <SummaryBar data={data} />
+      <SummaryBar data={localData} />
 
       {/* Stage columns — horizontally scrollable */}
       <div
@@ -469,7 +562,12 @@ export function PipelinePageClient({ data }: PipelinePageClientProps) {
               animate="visible"
               style={{ width: 272, minWidth: 272, flexShrink: 0 }}
             >
-              <StageColumn stage={stage} colIndex={i} />
+              <StageColumn
+                stage={stage}
+                colIndex={i}
+                onDragStartLead={(lead, stageId) => setDragged({ lead, stageId })}
+                onDropLead={(targetStage) => void moveDraggedLead(targetStage)}
+              />
             </motion.div>,
           ]
 

@@ -77,6 +77,57 @@ function normalizeDomainUrl(raw: string | null | undefined): string | null {
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
 }
 
+function firstText(...values: unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return null
+}
+
+function daysOld(value: unknown): number | null {
+  if (typeof value !== 'string' || !value.trim()) return null
+  const ts = new Date(value).getTime()
+  if (!Number.isFinite(ts)) return null
+  return Math.floor((Date.now() - ts) / 86_400_000)
+}
+
+function personalizationInfo(scoreBreakdown: Record<string, unknown> | null | undefined) {
+  const sb = scoreBreakdown ?? {}
+  const ig = firstText(sb.latest_instagram_post_summary, sb.recent_ig_post)
+  if (ig) {
+    const age = daysOld(sb.latest_instagram_post_observed_at) ?? daysOld(sb.latest_instagram_post_fetched_at)
+    return { label: 'IG hook', summary: ig, ageDays: age, stale: age != null && age > 30 }
+  }
+  const partnership = firstText(sb.latest_brand_partnership_summary)
+  if (partnership) {
+    const age = daysOld(sb.latest_brand_partnership_published_at) ?? daysOld(sb.latest_brand_partnership_fetched_at)
+    return { label: 'Partnership hook', summary: partnership, ageDays: age, stale: age != null && age > 60 }
+  }
+  const news = firstText(sb.latest_news_pr_summary, sb.recent_news_pr)
+  if (news) {
+    const age = daysOld(sb.latest_news_pr_published_at) ?? daysOld(sb.latest_news_pr_fetched_at)
+    return { label: 'News hook', summary: news, ageDays: age, stale: age != null && age > 30 }
+  }
+  const business = firstText(sb.latest_business_observation_summary)
+  if (business) {
+    const age = daysOld(sb.latest_business_observation_fetched_at)
+    return { label: 'Business hook', summary: business, ageDays: age, stale: age != null && age > 30 }
+  }
+  return { label: 'Business hook', summary: 'No recent IG/news hook captured yet. Use the business observation fallback.', ageDays: null, stale: false }
+}
+
+function lintDraftCopy(copy: string): string[] {
+  const warnings: string[] = []
+  if (copy.includes('{personalization_hook}')) warnings.push('Missing personalization hook')
+  if (copy.includes('—')) warnings.push('Contains em dash')
+  if (/book a demo/i.test(copy)) warnings.push('Says “book a demo”')
+  if (/\b(streamline|leverage|synergy|circle back|touch base)\b/i.test(copy)) warnings.push('Generic SaaS wording')
+  if (/\bguarantee(?:d|s)?\b/i.test(copy)) warnings.push('Guarantee language')
+  if (/up to 30%/i.test(copy) && !/illustrative|typically|can/i.test(copy)) warnings.push('30% claim needs careful framing')
+  if (copy.length > 900) warnings.push('Long for IG/manual first touch')
+  return warnings
+}
+
 export function ApprovalCard({
   item,
   tenantId,
@@ -121,6 +172,8 @@ export function ApprovalCard({
     score_breakdown: lead?.score_breakdown,
   })
   const phoneHref = callPrep.phoneHref
+  const personalization = personalizationInfo(lead?.score_breakdown)
+  const copyWarnings = lintDraftCopy(editing ? draft : item.message_draft)
 
   async function copyDraft() {
     try {
@@ -247,6 +300,19 @@ export function ApprovalCard({
         </div>
         <div className="flex items-center gap-1.5 flex-wrap justify-end">
           <Badge className="font-mono text-[10px]">{channelLabel(item.channel)}</Badge>
+          <Badge
+            className={[
+              'text-[10px]',
+              personalization.label === 'IG hook' && 'bg-pink-500/15 text-pink-200',
+              personalization.label === 'Partnership hook' && 'bg-violet-500/15 text-violet-200',
+              personalization.label === 'News hook' && 'bg-blue-500/15 text-blue-200',
+              personalization.label === 'Business hook' && 'bg-slate-500/20 text-slate-200',
+            ].filter(Boolean).join(' ')}
+          >
+            {personalization.label}{personalization.ageDays != null ? ` · ${personalization.ageDays}d` : ''}
+          </Badge>
+          {personalization.stale && <Badge className="text-[10px] bg-amber-500/15 text-amber-200">stale hook</Badge>}
+          {copyWarnings.length > 0 && <Badge className="text-[10px] bg-rose-500/15 text-rose-200">copy warnings {copyWarnings.length}</Badge>}
           {lead?.score != null && (
             <span className="text-[12px] font-mono text-[var(--color-saul-cyan)]">★ {lead.score}</span>
           )}
@@ -264,6 +330,23 @@ export function ApprovalCard({
             {item.status}
           </Badge>
         </div>
+      </div>
+
+      <div className="mb-3 rounded-md border border-[var(--color-saul-border)] bg-[var(--color-saul-bg-900)]/60 p-3">
+        <div className="flex flex-wrap items-center gap-2 mb-1">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-saul-text-tertiary)]">Personalization</span>
+          <span className="text-[11px] text-[var(--color-saul-text-secondary)]">Source: {personalization.label}</span>
+        </div>
+        <p className="text-[12px] text-[var(--color-saul-text-primary)]/90 leading-relaxed">{personalization.summary}</p>
+        {copyWarnings.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {copyWarnings.map((warning) => (
+              <span key={warning} className="rounded border border-rose-400/25 bg-rose-500/10 px-1.5 py-0.5 text-[10px] text-rose-200">
+                {warning}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="mb-4 rounded-md border border-[color-mix(in_srgb,var(--color-saul-cyan)_24%,transparent)] bg-[color-mix(in_srgb,var(--color-saul-cyan)_6%,transparent)] p-3">

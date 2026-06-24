@@ -5,8 +5,8 @@ interface FilterStore {
   setSearch: (s: string) => void
   statusFilter: string[]
   setStatusFilter: (s: string[]) => void
-  assignedToFilter: 'all' | 'gregory' | 'team'
-  setAssignedToFilter: (a: 'all' | 'gregory' | 'team') => void
+  assignedToFilter: 'all' | 'gregory' | 'benjamin' | 'team'
+  setAssignedToFilter: (a: 'all' | 'gregory' | 'benjamin' | 'team') => void
   sourceFilter: string[]
   setSourceFilter: (s: string[]) => void
   redFlagsOnly: boolean

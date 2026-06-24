@@ -87,6 +87,8 @@ export async function GET(req: NextRequest) {
     if (assignedTo && assignedTo !== 'all') {
       if (assignedTo === 'gregory') {
         query = query.eq('assigned_to', 'gregory')
+      } else if (assignedTo === 'benjamin') {
+        query = query.eq('assigned_to', 'benjamin')
       } else if (assignedTo === 'team') {
         query = query.eq('assigned_to', 'team')
       }
@@ -126,6 +128,7 @@ export async function GET(req: NextRequest) {
     const [
       { count: redFlagCount },
       { count: gregoryCount },
+      { count: benjaminCount },
       { count: convertedThisMonth },
     ] = await Promise.all([
       supabase
@@ -139,6 +142,11 @@ export async function GET(req: NextRequest) {
         .select('id', { count: 'exact', head: true })
         .eq('tenant_id', tenantId)
         .eq('assigned_to', 'gregory'),
+      supabase
+        .from('leads')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .eq('assigned_to', 'benjamin'),
       supabase
         .from('leads')
         .select('id', { count: 'exact', head: true })
@@ -158,6 +166,7 @@ export async function GET(req: NextRequest) {
         has_more: offset + limit < total,
         red_flag_count: redFlagCount ?? 0,
         gregory_count: gregoryCount ?? 0,
+        benjamin_count: benjaminCount ?? 0,
         converted_this_month: convertedThisMonth ?? 0,
       },
       // Legacy fields kept for transitional compatibility; new clients

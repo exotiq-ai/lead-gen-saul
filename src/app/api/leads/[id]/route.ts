@@ -88,6 +88,9 @@ const VALID_STATUSES = [
   'qualified', 'converted', 'lost', 'disqualified',
 ] as const
 
+const VALID_ASSIGNEES = ['gregory', 'benjamin', 'team'] as const
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -98,28 +101,41 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid lead id' }, { status: 400 })
   }
 
-  let body: { status?: string; tenant_id?: string }
+  let body: { status?: string; assigned_to?: string | null; stage_id?: string | null; tenant_id?: string }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const { status, tenant_id } = body
-  if (!status || !tenant_id) {
-    return NextResponse.json({ error: 'status and tenant_id are required' }, { status: 400 })
+  const { status, assigned_to, stage_id, tenant_id } = body
+  if (!tenant_id) {
+    return NextResponse.json({ error: 'tenant_id is required' }, { status: 400 })
   }
-  if (!(VALID_STATUSES as readonly string[]).includes(status)) {
+  if (!status && assigned_to === undefined && stage_id === undefined) {
+    return NextResponse.json({ error: 'status, assigned_to, or stage_id is required' }, { status: 400 })
+  }
+  if (status && !(VALID_STATUSES as readonly string[]).includes(status)) {
     return NextResponse.json({ error: `Invalid status: ${status}` }, { status: 400 })
+  }
+  if (
+    assigned_to !== undefined &&
+    assigned_to !== null &&
+    !(VALID_ASSIGNEES as readonly string[]).includes(assigned_to)
+  ) {
+    return NextResponse.json({ error: `Invalid assigned_to: ${assigned_to}` }, { status: 400 })
+  }
+  if (stage_id !== undefined && stage_id !== null && !UUID_RE.test(stage_id)) {
+    return NextResponse.json({ error: 'Invalid stage_id' }, { status: 400 })
   }
 
   try {
     const supabase = createServerClient()
 
-    // Fetch current lead to get old status
+    // Fetch current lead to log deltas accurately.
     const { data: existing, error: fetchErr } = await supabase
       .from('leads')
-      .select('status')
+      .select('status, assigned_to, stage_id')
       .eq('id', idResult.data)
       .eq('tenant_id', tenant_id)
       .single()
@@ -128,12 +144,14 @@ export async function PATCH(
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
     }
 
-    const oldStatus = existing.status
+    const update: Record<string, string | null> = { updated_at: new Date().toISOString() }
+    if (status) update.status = status
+    if (assigned_to !== undefined) update.assigned_to = assigned_to
+    if (stage_id !== undefined) update.stage_id = stage_id
 
-    // Update status
     const { data: updated, error: updateErr } = await supabase
       .from('leads')
-      .update({ status, updated_at: new Date().toISOString() })
+      .update(update)
       .eq('id', idResult.data)
       .eq('tenant_id', tenant_id)
       .select('*')
@@ -141,15 +159,39 @@ export async function PATCH(
 
     if (updateErr) throw updateErr
 
-    // Log activity
-    await supabase.from('lead_activities').insert({
-      lead_id: idResult.data,
-      tenant_id,
-      activity_type: 'status_changed',
-      channel: 'dashboard',
-      metadata: { old_status: oldStatus, new_status: status },
-      created_at: new Date().toISOString(),
-    })
+    const now = new Date().toISOString()
+    const activities = []
+    if (status && status !== existing.status) {
+      activities.push({
+        lead_id: idResult.data,
+        tenant_id,
+        activity_type: 'status_changed',
+        channel: 'dashboard',
+        metadata: { old_status: existing.status, new_status: status },
+        created_at: now,
+      })
+    }
+    if (assigned_to !== undefined && assigned_to !== existing.assigned_to) {
+      activities.push({
+        lead_id: idResult.data,
+        tenant_id,
+        activity_type: assigned_to ? 'lead_claimed' : 'lead_unclaimed',
+        channel: 'dashboard',
+        metadata: { old_assigned_to: existing.assigned_to, new_assigned_to: assigned_to },
+        created_at: now,
+      })
+    }
+    if (stage_id !== undefined && stage_id !== existing.stage_id) {
+      activities.push({
+        lead_id: idResult.data,
+        tenant_id,
+        activity_type: 'pipeline_stage_changed',
+        channel: 'dashboard',
+        metadata: { old_stage_id: existing.stage_id, new_stage_id: stage_id },
+        created_at: now,
+      })
+    }
+    if (activities.length) await supabase.from('lead_activities').insert(activities)
 
     return NextResponse.json(updated)
   } catch (err) {

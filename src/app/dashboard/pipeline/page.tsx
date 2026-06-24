@@ -21,7 +21,7 @@ export default async function PipelinePage({ searchParams }: Props) {
   const data = await fetchPipelineDetail(tenantId)
   return (
     <Suspense fallback={null}>
-      <PipelinePageClient data={data} />
+      <PipelinePageClient data={data} tenantId={tenantId} />
     </Suspense>
   )
 }

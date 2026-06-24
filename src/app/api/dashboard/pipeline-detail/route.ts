@@ -31,6 +31,7 @@ export interface PipelineStageDetail {
   lead_count: number
   avg_score: number | null
   gregory_count: number
+  benjamin_count: number
   high_score_count: number
   flagged_count: number
   active_this_week: number
@@ -44,6 +45,7 @@ export interface PipelineDetailResponse {
   conversion_rate: number
   added_this_week: number
   total_gregory: number
+  total_benjamin: number
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -100,6 +102,7 @@ export async function fetchPipelineDetail(tenantId: string): Promise<PipelineDet
       conversion_rate: 0,
       added_this_week: 0,
       total_gregory: 0,
+      total_benjamin: 0,
     }
   }
 
@@ -149,6 +152,7 @@ export async function fetchPipelineDetail(tenantId: string): Promise<PipelineDet
   const nowMs = Date.now()
   const sevenDaysMs = 7 * 24 * 60 * 60 * 1000
   let totalGregory = 0
+  let totalBenjamin = 0
   let totalConverted = 0
 
   const enrichedStages: PipelineStageDetail[] = stages.map((stage) => {
@@ -161,6 +165,7 @@ export async function fetchPipelineDetail(tenantId: string): Promise<PipelineDet
         : null
 
     const gregory_count = stageLeads.filter((l) => l.assigned_to === 'gregory').length
+    const benjamin_count = stageLeads.filter((l) => l.assigned_to === 'benjamin').length
     const high_score_count = stageLeads.filter((l) => (l.score ?? 0) >= 80).length
     const flagged_count = stageLeads.filter((l) => redFlagged(l.red_flags)).length
     const active_this_week = stageLeads.filter(
@@ -170,6 +175,7 @@ export async function fetchPipelineDetail(tenantId: string): Promise<PipelineDet
     ).length
 
     totalGregory += gregory_count
+    totalBenjamin += benjamin_count
 
     if (
       isWonStage({
@@ -191,7 +197,7 @@ export async function fetchPipelineDetail(tenantId: string): Promise<PipelineDet
         first_name: l.first_name,
         last_name: l.last_name,
         company_name: l.company_name,
-        city: null,
+        city: l.company_location,
         state: null,
         score: l.score,
         assigned_to: l.assigned_to,
@@ -210,6 +216,7 @@ export async function fetchPipelineDetail(tenantId: string): Promise<PipelineDet
       lead_count: stageLeads.length,
       avg_score,
       gregory_count,
+      benjamin_count,
       high_score_count,
       flagged_count,
       active_this_week,
@@ -227,6 +234,7 @@ export async function fetchPipelineDetail(tenantId: string): Promise<PipelineDet
     conversion_rate,
     added_this_week: addedThisWeek,
     total_gregory: totalGregory,
+    total_benjamin: totalBenjamin,
   }
 }
 

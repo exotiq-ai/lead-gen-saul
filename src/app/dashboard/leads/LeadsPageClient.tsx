@@ -21,7 +21,7 @@ import { useTenantId } from '@/lib/hooks/useTenant'
 import { LeadRow } from '@/components/leads/LeadRow'
 import { CsvImportModal } from '@/components/leads/CsvImportModal'
 import { EmptyState } from '@/components/ui/EmptyState'
-import type { Lead, LeadStatus } from '@/types/lead'
+import type { AssignedTo, Lead, LeadStatus } from '@/types/lead'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -70,6 +70,7 @@ interface LeadsResponse {
     offset: number
     red_flag_count: number
     gregory_count: number
+    benjamin_count: number
     converted_this_month: number
   }
 }
@@ -284,9 +285,11 @@ interface StatsRowProps {
   total: number
   redFlagCount: number
   gregoryCount: number
+  benjaminCount: number
   convertedThisMonth: number
   onRedFlagClick: () => void
   onGregoryClick: () => void
+  onBenjaminClick: () => void
   loading: boolean
 }
 
@@ -294,9 +297,11 @@ function StatsRow({
   total,
   redFlagCount,
   gregoryCount,
+  benjaminCount,
   convertedThisMonth,
   onRedFlagClick,
   onGregoryClick,
+  onBenjaminClick,
   loading,
 }: StatsRowProps) {
   if (loading) {
@@ -330,6 +335,14 @@ function StatsRow({
       >
         {gregoryCount}{' '}
         <span className="font-normal text-[var(--color-saul-text-secondary)]">Gregory leads</span>
+      </button>
+
+      <button
+        onClick={onBenjaminClick}
+        className="text-[12px] font-mono font-semibold tabular-nums transition-opacity duration-150 hover:opacity-80 cursor-pointer text-[var(--color-saul-violet)]"
+      >
+        {benjaminCount}{' '}
+        <span className="font-normal text-[var(--color-saul-text-secondary)]">Benjamin leads</span>
       </button>
 
       <span className="text-[12px] font-mono font-semibold text-[var(--color-saul-success)] tabular-nums">
@@ -412,6 +425,20 @@ export function LeadsPageClient() {
       if (res.ok) void mutate()
     } catch (err) {
       console.error('[stage-change]', err)
+    }
+  }
+
+  // Lead owner/claim handler
+  const handleAssigneeChange = async (leadId: string, assignee: AssignedTo) => {
+    try {
+      const res = await fetch(`/api/leads/${leadId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assigned_to: assignee, tenant_id: tenantId }),
+      })
+      if (res.ok) void mutate()
+    } catch (err) {
+      console.error('[assignee-change]', err)
     }
   }
 
@@ -515,13 +542,13 @@ export function LeadsPageClient() {
           <div className="h-5 w-px bg-[var(--color-saul-border)]" />
 
           {/* Assigned filter */}
-          {(['all', 'gregory', 'team'] as const).map((v) => (
+          {(['all', 'gregory', 'benjamin', 'team'] as const).map((v) => (
             <Pill
               key={v}
               active={assignedToFilter === v}
               onClick={() => setAssignedToFilter(v)}
             >
-              {v === 'all' ? 'All' : v === 'gregory' ? 'Gregory' : 'Team'}
+              {v === 'all' ? 'All' : v === 'gregory' ? 'Gregory' : v === 'benjamin' ? 'Benjamin' : 'Team'}
             </Pill>
           ))}
 
@@ -584,6 +611,7 @@ export function LeadsPageClient() {
         total={meta?.total ?? 0}
         redFlagCount={meta?.red_flag_count ?? 0}
         gregoryCount={meta?.gregory_count ?? 0}
+        benjaminCount={meta?.benjamin_count ?? 0}
         convertedThisMonth={meta?.converted_this_month ?? 0}
         loading={isLoading && !data}
         onRedFlagClick={() => {
@@ -592,6 +620,10 @@ export function LeadsPageClient() {
         }}
         onGregoryClick={() => {
           setAssignedToFilter('gregory')
+          setPage(1)
+        }}
+        onBenjaminClick={() => {
+          setAssignedToFilter('benjamin')
           setPage(1)
         }}
       />
@@ -636,6 +668,7 @@ export function LeadsPageClient() {
                       index={i}
                       onClick={() => router.push(`/dashboard/leads/${lead.id}?tenant=${tenantId}`)}  
                       onStageChange={handleStageChange}
+                      onAssigneeChange={handleAssigneeChange}
                       onStatusClick={(status) => {
                         if (!statusFilter.includes(status)) {
                           setStatusFilter([status])

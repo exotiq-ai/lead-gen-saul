@@ -12,9 +12,9 @@ Nothing goes out without a human click. This is Phase 1 -- manual
 approval mode. Phase 2 will add auto-send after trust is established.
 
 Template selection logic:
-- Score 80+: premium booking-handoff note
-- Score 60-79: fast-market paid-booking-gap note
-- Score 55-59: regional clean-booking-details note
+- Score 80+: premium recent-content + operator-control note
+- Score 60-79: recent-content + paid-booking-gap note
+- Score 55-59: recent-content + clean-handoff note
 """
 
 from datetime import datetime, timezone
@@ -29,35 +29,41 @@ MEDSPA_TENANT_ID = "11111111-1111-1111-1111-111111111111"
 # Exotiq (automotive) templates
 TEMPLATES = {
     "tier1_proof": {
-        "name": "IG DM -- Premium Booking Handoff (Score 80+)",
+        "name": "IG DM -- Premium Recent Content + Control (Score 80+)",
         "channel": "instagram_dm",
         "body": """Hey {first_name}, Gregory Ringler here. I run Exotiq.
+
+{personalization_hook}
 
 At your scale, the hard part usually is not getting attention. It is keeping quote, availability, renter check, deposit, and handoff tight without making the customer experience feel ordinary.
 
-That is where Exotiq fits. It gives exotic operators one cleaner workflow around the booking instead of scattered texts and manual follow-up.
+That is where Exotiq fits. One command center for pricing, bookings, compliance, and guest comms, with Rari handling the admin that steals nights and weekends.
 
-Worth a quick look this week?""",
+Worth comparing notes for 15 minutes?""",
     },
     "peer_intro": {
-        "name": "IG DM -- Fast Market Paid Booking Gap (Score 60-79)",
+        "name": "IG DM -- Fast Market Recent Content + Paid Booking Gap (Score 60-79)",
         "channel": "instagram_dm",
         "body": """Hey {first_name}, Gregory Ringler here. I run Exotiq.
 
-Renters in your market move fast, but a premium operator can’t treat every inquiry like a generic quote. The opportunity is tightening the few minutes after someone asks what is available: the right car, right rate, renter check, deposit, and pickup details before they shop around.
+{personalization_hook}
 
-Exotiq gives exotic operators one cleaner workflow around the booking instead of scattered texts and manual follow-up.
+Renters in your market move fast, but a premium operator can’t treat every inquiry like a generic quote. The money is usually made or lost between “what do you have this weekend?” and a paid, verified booking.
+
+Exotiq gives exotic operators one command center for pricing, availability, deposits, docs, follow-up, and Rari-assisted guest comms.
 
 Worth a quick look this week?""",
     },
     "visual_fleet": {
-        "name": "IG DM -- Regional Clean Booking Details (Score 55-59)",
+        "name": "IG DM -- Regional Recent Content + Clean Handoff (Score 55-59)",
         "channel": "instagram_dm",
         "body": """Hey {first_name}, Gregory Ringler here. I run Exotiq.
 
+{personalization_hook}
+
 For operators growing past the early stage, a missed handoff can cost more than a missed lead. The gap is usually between someone asking what is available and a paid, verified booking with the details handled cleanly.
 
-That is what Exotiq is built around: fewer scattered steps between inquiry, verification, deposit, and handoff.
+That is what Exotiq is built around: one cleaner path from inquiry to renter check, deposit, agreement, and handoff.
 
 Worth comparing notes for 15 minutes?""",
     },
@@ -130,6 +136,58 @@ def _fetch_db_templates(tenant_id: str) -> list[dict]:
     return out
 
 
+def _first_text(*values: Any) -> str | None:
+    for value in values:
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
+
+
+def _personalization_hook(lead: dict) -> str:
+    """Use the newest content/business context captured by enrichment.
+
+    Preference order: latest IG post, recent news/PR, then a safe company-specific
+    fallback. This keeps outreach engaged without inventing compliments.
+    """
+    breakdown = lead.get("score_breakdown") or {}
+    metadata = lead.get("metadata") or {}
+    latest_ig = _first_text(
+        breakdown.get("latest_instagram_post_summary"),
+        metadata.get("latest_instagram_post_summary"),
+        breakdown.get("recent_ig_post"),
+        metadata.get("recent_ig_post"),
+    )
+    if latest_ig:
+        return f"Saw the recent post about {latest_ig}. It reads like you are already selling the experience, not just renting cars."
+
+    partnership = _first_text(
+        breakdown.get("latest_brand_partnership_summary"),
+        metadata.get("latest_brand_partnership_summary"),
+    )
+    if partnership:
+        return f"I saw the recent partnership/event mention about {partnership}. That kind of visibility makes the booking handoff matter even more."
+
+    news = _first_text(
+        breakdown.get("latest_news_pr_summary"),
+        metadata.get("latest_news_pr_summary"),
+        breakdown.get("recent_news_pr"),
+        metadata.get("recent_news_pr"),
+    )
+    if news:
+        return f"I saw the recent mention about {news}. That kind of visibility makes the booking handoff matter even more."
+
+    business_observation = _first_text(
+        breakdown.get("latest_business_observation_summary"),
+        metadata.get("latest_business_observation_summary"),
+    )
+    if business_observation:
+        return f"I was looking at {lead.get('company_name') or 'your operation'} and noticed {business_observation}. My read is that the opportunity is tightening the path from interest to a paid, verified booking."
+
+    company = lead.get("company_name") or "your operation"
+    location = lead.get("company_location") or "your market"
+    return f"I was looking at {company} in {location}. My read is that the opportunity is tightening the path from interest to a paid, verified booking."
+
+
 def _interpolate(body: str, lead: dict) -> str:
     """Render template with the variables we know about. {booking_note}
     only resolves for MedSpa leads -- for Exotiq it formats to empty."""
@@ -139,6 +197,7 @@ def _interpolate(body: str, lead: dict) -> str:
             first_name=lead.get("first_name") or "there",
             company_name=lead.get("company_name") or "your company",
             booking_note=booking_note,
+            personalization_hook=_personalization_hook(lead),
         )
     except (KeyError, IndexError):
         # Body referenced an unknown variable; surface the raw template so
@@ -198,7 +257,7 @@ def draft_outreach(
 
     # Leads that are scored and above threshold
     resp = db.table("leads")\
-        .select("id, first_name, last_name, company_name, score, company_location, company_industry")\
+        .select("id, first_name, last_name, company_name, score, company_location, company_industry, score_breakdown, metadata")\
         .eq("tenant_id", tenant_id)\
         .eq("status", "scored")\
         .gte("score", OUTREACH_SCORE_THRESHOLD)\

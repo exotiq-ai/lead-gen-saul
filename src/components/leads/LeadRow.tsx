@@ -9,7 +9,7 @@ import { LeadScoreCard } from './LeadScoreCard'
 import { RedFlagBadge } from './RedFlagBadge'
 import { formatRelative } from '@/lib/utils/formatters'
 import { differenceInDays } from 'date-fns'
-import type { Lead, LeadStatus, LeadSource } from '@/types/lead'
+import type { AssignedTo, Lead, LeadStatus, LeadSource } from '@/types/lead'
 
 interface LeadRowProps {
   lead: Lead
@@ -18,6 +18,7 @@ interface LeadRowProps {
   onScoreClick?: (score: number) => void
   onStatusClick?: (status: LeadStatus) => void
   onStageChange?: (leadId: string, newStatus: LeadStatus) => void
+  onAssigneeChange?: (leadId: string, assignee: AssignedTo) => void
 }
 
 // Stage display config
@@ -54,6 +55,49 @@ function getSourceConfig(source: LeadSource | null) {
   return SOURCE_CONFIG[source] ?? { label: source, variant: 'default' as const }
 }
 
+const ASSIGNEE_OPTIONS: Array<{ value: AssignedTo; label: string }> = [
+  { value: 'gregory', label: 'Claim: Gregory' },
+  { value: 'benjamin', label: 'Claim: Benjamin' },
+  { value: 'team', label: 'Team / shared' },
+  { value: null, label: 'Unclaimed' },
+]
+
+function assigneeInitial(assignee: AssignedTo): string {
+  if (assignee === 'gregory') return 'G'
+  if (assignee === 'benjamin') return 'B'
+  if (assignee === 'team') return 'T'
+  return '—'
+}
+
+function assigneeStyle(assignee: AssignedTo): React.CSSProperties {
+  if (assignee === 'gregory') {
+    return {
+      background: 'rgba(0,212,170,0.15)',
+      border: '1px solid rgba(0,212,170,0.3)',
+      color: 'var(--color-saul-cyan)',
+    }
+  }
+  if (assignee === 'benjamin') {
+    return {
+      background: 'rgba(139,92,246,0.15)',
+      border: '1px solid rgba(139,92,246,0.3)',
+      color: 'var(--color-saul-violet)',
+    }
+  }
+  if (assignee === 'team') {
+    return {
+      background: 'rgba(139,149,168,0.12)',
+      border: '1px solid rgba(139,149,168,0.2)',
+      color: 'var(--color-saul-text-secondary)',
+    }
+  }
+  return {
+    background: 'transparent',
+    border: '1px dashed var(--color-saul-border-strong)',
+    color: 'var(--color-saul-text-tertiary)',
+  }
+}
+
 function getLastActiveColor(dateStr: string | null): string {
   if (!dateStr) return 'text-[var(--color-saul-text-tertiary)]'
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -83,8 +127,9 @@ function isStale(lastActivity: string | null): boolean {
   return differenceInDays(new Date(), new Date(lastActivity)) > 7
 }
 
-export function LeadRow({ lead, index, onClick, onScoreClick, onStatusClick, onStageChange }: LeadRowProps) {
+export function LeadRow({ lead, index, onClick, onScoreClick, onStatusClick, onStageChange, onAssigneeChange }: LeadRowProps) {
   const [stageDropdownOpen, setStageDropdownOpen] = useState(false)
+  const [assigneeDropdownOpen, setAssigneeDropdownOpen] = useState(false)
   const fullName = [lead.first_name, lead.last_name].filter(Boolean).join(' ') || lead.full_name || null
   const displayName = lead.company_name || fullName || '—'
   // Cast through unknown because the API returns extra columns
@@ -216,35 +261,50 @@ export function LeadRow({ lead, index, onClick, onScoreClick, onStatusClick, onS
 
       {/* Assigned */}
       <td className="hidden md:table-cell px-4 py-2.5">
-        {lead.assigned_to === 'gregory' ? (
-          <Tooltip content="Gregory Ringler" position="top">
-            <span
-              className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold leading-none cursor-default select-none"
-              style={{
-                background: 'rgba(0,212,170,0.15)',
-                border: '1px solid rgba(0,212,170,0.3)',
-                color: 'var(--color-saul-cyan)',
+        <div className="relative inline-block">
+          <Tooltip content="Claim lead" position="top">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                setAssigneeDropdownOpen((p) => !p)
               }}
+              className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold leading-none cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
+              style={assigneeStyle(lead.assigned_to)}
             >
-              G
-            </span>
+              {assigneeInitial(lead.assigned_to)}
+            </button>
           </Tooltip>
-        ) : lead.assigned_to === 'team' ? (
-          <Tooltip content="Team" position="top">
-            <span
-              className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold leading-none cursor-default select-none"
-              style={{
-                background: 'rgba(139,149,168,0.12)',
-                border: '1px solid rgba(139,149,168,0.2)',
-                color: 'var(--color-saul-text-secondary)',
-              }}
-            >
-              T
-            </span>
-          </Tooltip>
-        ) : (
-          <span className="text-[var(--color-saul-text-tertiary)] text-[11px]">—</span>
-        )}
+          {assigneeDropdownOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={(e) => { e.stopPropagation(); setAssigneeDropdownOpen(false) }}
+              />
+              <div className="absolute top-full left-0 mt-1 z-50 min-w-[150px] py-1 rounded-lg bg-[var(--color-saul-bg-600)] border border-[var(--color-saul-border-strong)] shadow-lg">
+                {ASSIGNEE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.label}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setAssigneeDropdownOpen(false)
+                      if (opt.value !== lead.assigned_to) onAssigneeChange?.(lead.id, opt.value)
+                    }}
+                    className={[
+                      'w-full text-left px-3 py-1.5 text-[12px] font-medium transition-colors duration-100',
+                      opt.value === lead.assigned_to
+                        ? 'text-[var(--color-saul-cyan)] bg-[color-mix(in_srgb,var(--color-saul-cyan)_8%,transparent)]'
+                        : 'text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-low)]',
+                    ].join(' ')}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </td>
 
       {/* Red Flags */}
