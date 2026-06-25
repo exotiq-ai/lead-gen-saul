@@ -62,3 +62,22 @@ test('confirmation text uses Mountain time wording', () => {
   assert.match(text, /Gregory/);
   assert.match(text, /Mountain|MDT|MST/);
 });
+
+test('system prompt prevents demo roleplay from collecting real customer PII', async () => {
+  const { buildSystemPrompt } = await import('./prompts.ts');
+  const prompt = buildSystemPrompt('Saul');
+
+  assert.match(prompt, /Demo mode must not collect, confirm, save, or book real role-play customer PII/i);
+  assert.match(prompt, /this is where I would take your customer's full details/i);
+  assert.match(prompt, /log them directly into your CRM/i);
+});
+
+test('system prompt contains demo exit, booking, filler, and final-close guardrails', async () => {
+  const { buildSystemPrompt } = await import('./prompts.ts');
+  const prompt = buildSystemPrompt('Saul');
+
+  assert.match(prompt, /stepping out of demo mode/i);
+  assert.match(prompt, /one filler/i);
+  assert.match(prompt, /Only say "booked"/i);
+  assert.match(prompt, /one short goodbye/i);
+});
