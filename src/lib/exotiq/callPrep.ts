@@ -16,9 +16,6 @@ export type CallPrep = {
   phoneConfidence: 'HIGH' | 'MEDIUM' | 'LOW' | 'MISSING'
   phoneSource: string
   opener: string
-  openingLines: string[]
-  gatekeeperLines: string[]
-  gatekeeperQuestions: string[]
   qualifyingQuestions: string[]
   proofPoints: string[]
   doNotSay: string[]
@@ -115,39 +112,16 @@ export function buildCallPrep(lead: CallPrepLead): CallPrep {
   const phoneSource = directPhone ? 'Lead phone field' : rationalePhone ? 'Recovered from scoring rationale' : lead.phone ? 'Phone field looked invalid, verify before calling' : 'No phone yet'
   const proofPoints = makeProofPoints(lead, sb)
   const openerName = owner ? owner.split(/\s+/)[0] : title
-  const firstProof = proofPoints[0]
-  const specificProof = firstProof ? ` I saw ${firstProof.replace(/^Fleet evidence: /, '').replace(/^Market: /, 'you are in ')}.` : ''
-  const fleetDescriptor = fleet ? `operators running about ${fleet} cars` : 'an exotic rental operation'
-  const marketDescriptor = lead.company_location ? ` in ${lead.company_location}` : ''
+  const specificProof = proofPoints[0] ? ` I saw ${proofPoints[0].replace(/^Fleet evidence: /, '').replace(/^Market: /, 'you are in ')}.` : ''
 
-  const openingLines = [
-    `Hey ${openerName}, Gregory Ringler here. I run Exotiq. I know this is out of the blue. Can I take 20 seconds and you can tell me if it is irrelevant?`,
-    `Reason I am calling: for ${fleetDescriptor}${marketDescriptor}, the leak is usually not demand. It is rate, availability, renter check, deposit, and handoff all moving fast enough to turn the inquiry into a paid booking.`,
-    'I am a founder looking for founder/operator feedback. If the gap is real, I can load your fleet and show you the command center in 15 minutes.'
-  ]
-
-  const opener = `${openingLines.join(' ')}${specificProof} Quick question: how are you handling pricing and availability today when demand spikes around weekends or events?`
-
-  const gatekeeperLines = [
-    `Hey, this is Gregory Ringler with Exotiq. I am trying to reach the owner or operator who handles fleet revenue and bookings for ${title}.`,
-    'It is not an ad call. We help exotic rental operators find money leaking between pricing, availability, deposits, renter checks, and follow-up.',
-    'If they are the wrong person, who usually owns booking software or fleet operations there?'
-  ]
-
-  const gatekeeperQuestions = [
-    'Are they still using a rental platform like Turo plus spreadsheets, or do they have dedicated fleet/booking software?',
-    'Who handles pricing when weekends, events, or high-demand cars move faster than usual?',
-    'Do most inquiries come through phone, Instagram/DMs, website, Turo, or referrals?',
-    'What is the best way to get a founder-to-founder note to the person who owns that workflow?'
-  ]
+  const opener = `Hey ${openerName}, this is Gregory Ringler. I run Exotiq, we build fleet management tools for exotic rental operators. I will be quick.${specificProof} I am calling to compare notes on how you are handling direct bookings, fleet availability, pricing, deposits, and insurance workflows. Is it worth five minutes?`
 
   const qualifyingQuestions = [
-    'How many cars are you running right now, and how are you pricing them today?',
-    'Where do most bookings come from today: direct, Instagram, Google, referrals, Turo, or partners?',
-    'When demand spikes around weekends or events, how do you decide when and how much to move rates?',
-    'How do you keep availability, deposits, agreements, renter verification, and handoffs from falling through the cracks?',
-    'What would you fix first: more revenue per car, less admin time, or less renter/compliance risk?',
-    'If this is worth seeing, should I load your fleet and walk you through it for 15 minutes?'
+    'Where do most bookings come from today, direct, Instagram, Google, referrals, Turo, or partners?',
+    'How do you track availability, deposits, agreements, driver verification, and handoffs across the fleet?',
+    'How often do you adjust pricing around weekends, events, and high-demand cars?',
+    'Which bottleneck would you fix first if it saved time or increased direct bookings this month?',
+    'If the fit is real, would it be worth grabbing 15 minutes to look at the operator command center?'
   ]
 
   const doNotSay = [
@@ -169,9 +143,6 @@ export function buildCallPrep(lead: CallPrepLead): CallPrep {
     `CALL PRIORITY: ${nextBestAction}`,
     `PHONE: ${callablePhone ?? 'Missing, verify before call'} (${phoneConfidence}, ${phoneSource})`,
     `OPENER: ${opener}`,
-    `OPENING LINES: ${openingLines.join(' | ')}`,
-    `GATEKEEPER: ${gatekeeperLines.join(' | ')}`,
-    `GATEKEEPER QUALIFIERS: ${gatekeeperQuestions.join(' | ')}`,
     `QUESTIONS: ${qualifyingQuestions.join(' | ')}`,
     `PROOF POINTS: ${proofPoints.length ? proofPoints.join(' | ') : 'No verified proof points, keep call discovery-led.'}`,
     `VOICEMAIL: ${voicemail}`,
@@ -184,9 +155,6 @@ export function buildCallPrep(lead: CallPrepLead): CallPrep {
     phoneConfidence,
     phoneSource,
     opener,
-    openingLines,
-    gatekeeperLines,
-    gatekeeperQuestions,
     qualifyingQuestions,
     proofPoints,
     doNotSay,

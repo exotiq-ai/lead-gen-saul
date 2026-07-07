@@ -369,42 +369,6 @@ A draft is not operator-ready unless all are true:
 
 This section updates the older “first call is discovery, not pitch” guidance with the Call Cockpit structure. Keep call prep in the dashboard aligned with this.
 
-### Gatekeeper and cold-call opener layer
-
-Use this in the Call Cockpit and GHL call script before the five-stage call map. The goal is not to pitch the gatekeeper. The goal is to be concise, respectful, and specific enough that the right person gets identified or the call gets passed through.
-
-Research-backed cold-call guardrails folded into this layer:
-
-- State your name/company and the reason for the call early. Gong’s cold-call analysis says opening with the reason for calling increases success, and it recommends research-backed, targeted value props.
-- Do not start with heavy discovery. Use one high-signal question to earn the meeting, then move to the 15-minute fleet-loaded next step.
-- Use collaborative language: founder-to-founder / compare notes / load your fleet together.
-- Treat gatekeepers as knowledgeable operators, not obstacles. Apollo and Cognism both emphasize concise, honest, respectful gatekeeper handling; Cognism specifically warns not to pitch the gatekeeper.
-
-Default owner opener:
-
-> Hey [Name], Gregory Ringler here. I run Exotiq. I know this is out of the blue. Can I take 20 seconds and you can tell me if it is irrelevant?
->
-> Reason I am calling: for [fleet/market], the leak is usually not demand. It is rate, availability, renter check, deposit, and handoff all moving fast enough to turn the inquiry into a paid booking.
->
-> I am a founder looking for founder/operator feedback. If the gap is real, I can load your fleet and show you the command center in 15 minutes.
->
-> Quick question: how are you handling pricing and availability today when demand spikes around weekends or events?
-
-Default gatekeeper opener:
-
-> Hey, this is Gregory Ringler with Exotiq. I am trying to reach the owner or operator who handles fleet revenue and bookings for [Company].
->
-> It is not an ad call. We help exotic rental operators find money leaking between pricing, availability, deposits, renter checks, and follow-up.
->
-> If they are the wrong person, who usually owns booking software or fleet operations there?
-
-Gatekeeper qualifiers that can surface fit without overpitching:
-
-1. Are they still using a rental platform like Turo plus spreadsheets, or do they have dedicated fleet/booking software?
-2. Who handles pricing when weekends, events, or high-demand cars move faster than usual?
-3. Do most inquiries come through phone, Instagram/DMs, website, Turo, or referrals?
-4. What is the best way to get a founder-to-founder note to the person who owns that workflow?
-
 ### Five-stage call map
 
 1. **Connection:** disarm in the first 60 seconds.

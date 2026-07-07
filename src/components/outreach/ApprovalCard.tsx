@@ -370,13 +370,7 @@ export function ApprovalCard({
         <p className="text-[12px] text-[var(--color-saul-text-primary)]/90 leading-relaxed whitespace-pre-wrap">
           {callPrep.opener}
         </p>
-        <div className="mt-2 grid gap-2 md:grid-cols-3">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-saul-text-tertiary)] mb-1">Gatekeeper</p>
-            <ul className="space-y-1 text-[12px] text-[var(--color-saul-text-secondary)] list-disc pl-4">
-              {callPrep.gatekeeperLines.map((line) => <li key={line}>{line}</li>)}
-            </ul>
-          </div>
+        <div className="mt-2 grid gap-2 md:grid-cols-2">
           <div>
             <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-saul-text-tertiary)] mb-1">Questions</p>
             <ul className="space-y-1 text-[12px] text-[var(--color-saul-text-secondary)] list-disc pl-4">
@@ -384,17 +378,11 @@ export function ApprovalCard({
             </ul>
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-saul-text-tertiary)] mb-1">Gatekeeper qualifiers</p>
+            <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-saul-text-tertiary)] mb-1">Proof points</p>
             <ul className="space-y-1 text-[12px] text-[var(--color-saul-text-secondary)] list-disc pl-4">
-              {callPrep.gatekeeperQuestions.slice(0, 3).map((q) => <li key={q}>{q}</li>)}
+              {(callPrep.proofPoints.length ? callPrep.proofPoints.slice(0, 3) : ['No verified proof points yet, keep discovery-led.']).map((p) => <li key={p}>{p}</li>)}
             </ul>
           </div>
-        </div>
-        <div className="mt-2">
-          <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--color-saul-text-tertiary)] mb-1">Proof points</p>
-          <ul className="space-y-1 text-[12px] text-[var(--color-saul-text-secondary)] list-disc pl-4">
-            {(callPrep.proofPoints.length ? callPrep.proofPoints.slice(0, 3) : ['No verified proof points yet, keep discovery-led.']).map((p) => <li key={p}>{p}</li>)}
-          </ul>
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <span className="text-[12px] font-medium text-[var(--color-saul-text-primary)]">Next: {callPrep.nextBestAction}</span>
