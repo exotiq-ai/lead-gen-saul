@@ -139,20 +139,41 @@ def build_call_prep(item: dict[str, Any]) -> dict[str, str | None]:
     phone_confidence = "HIGH" if direct_phone else "MEDIUM" if rationale_phone else "LOW" if lead.get("phone") else "MISSING"
     phone_source = "Lead phone field" if direct_phone else "Recovered from scoring rationale" if rationale_phone else "Phone field looked invalid, verify before calling" if lead.get("phone") else "No phone yet"
     points = proof_points(lead, sb)
-    specific = f" I saw {points[0].replace('Fleet evidence: ', '')}." if points else ""
-    opener = f"Hey {opener_name}, this is Gregory Ringler. I run Exotiq, we build fleet management tools for exotic rental operators. I will be quick.{specific} I am calling to compare notes on how you are handling direct bookings, fleet availability, pricing, deposits, and insurance workflows. Is it worth five minutes?"
-    questions = [
-        "Where do most bookings come from today, direct, Instagram, Google, referrals, Turo, or partners?",
-        "How do you track availability, deposits, agreements, driver verification, and handoffs across the fleet?",
-        "How often do you adjust pricing around weekends, events, and high-demand cars?",
-        "Which bottleneck would you fix first if it saved time or increased direct bookings this month?",
-        "If the fit is real, would it be worth grabbing 15 minutes to look at the operator command center?",
-    ]
-    score = int(lead.get("score") or 0)
+    first_point = points[0] if points else None
+    specific = f" I saw {first_point.replace('Fleet evidence: ', '')}." if first_point else ""
     try:
         fleet = int(sb.get("fleet_size") or sb.get("fleet_raw") or 0)
     except Exception:
         fleet = 0
+    market = lead.get("company_location")
+    fleet_descriptor = f"operators running about {fleet} cars" if fleet else "an exotic rental operation"
+    market_descriptor = f" in {market}" if market else ""
+    opening_lines = [
+        f"Hey {opener_name}, Gregory Ringler here. I run Exotiq. I know this is out of the blue. Can I take 20 seconds and you can tell me if it is irrelevant?",
+        f"Reason I am calling: for {fleet_descriptor}{market_descriptor}, the leak is usually not demand. It is rate, availability, renter check, deposit, and handoff all moving fast enough to turn the inquiry into a paid booking.",
+        "I am a founder looking for founder/operator feedback. If the gap is real, I can load your fleet and show you the command center in 15 minutes.",
+    ]
+    opener = " ".join(opening_lines) + specific + " Quick question: how are you handling pricing and availability today when demand spikes around weekends or events?"
+    gatekeeper_lines = [
+        f"Hey, this is Gregory Ringler with Exotiq. I am trying to reach the owner or operator who handles fleet revenue and bookings for {company}.",
+        "It is not an ad call. We help exotic rental operators find money leaking between pricing, availability, deposits, renter checks, and follow-up.",
+        "If they are the wrong person, who usually owns booking software or fleet operations there?",
+    ]
+    gatekeeper_questions = [
+        "Are they still using a rental platform like Turo plus spreadsheets, or do they have dedicated fleet/booking software?",
+        "Who handles pricing when weekends, events, or high-demand cars move faster than usual?",
+        "Do most inquiries come through phone, Instagram/DMs, website, Turo, or referrals?",
+        "What is the best way to get a founder-to-founder note to the person who owns that workflow?",
+    ]
+    questions = [
+        "How many cars are you running right now, and how are you pricing them today?",
+        "Where do most bookings come from today: direct, Instagram, Google, referrals, Turo, or partners?",
+        "When demand spikes around weekends or events, how do you decide when and how much to move rates?",
+        "How do you keep availability, deposits, agreements, renter verification, and handoffs from falling through the cracks?",
+        "What would you fix first: more revenue per car, less admin time, or less renter/compliance risk?",
+        "If this is worth seeing, should I load your fleet and walk you through it for 15 minutes?",
+    ]
+    score = int(lead.get("score") or 0)
     if score >= 100 or fleet >= 25:
         next_action = "Gregory-only priority call. Phone first, then manual IG/email if no answer."
     elif phone:
@@ -165,6 +186,9 @@ def build_call_prep(item: dict[str, Any]) -> dict[str, str | None]:
         f"CALL PRIORITY: {next_action}",
         f"PHONE: {phone or 'Missing, verify before call'} ({phone_confidence}, {phone_source})",
         f"OPENER: {opener}",
+        f"OPENING LINES: {' | '.join(opening_lines)}",
+        f"GATEKEEPER: {' | '.join(gatekeeper_lines)}",
+        f"GATEKEEPER QUALIFIERS: {' | '.join(gatekeeper_questions)}",
         f"QUESTIONS: {' | '.join(questions)}",
         f"PROOF POINTS: {' | '.join(points) if points else 'No verified proof points, keep call discovery-led.'}",
         f"VOICEMAIL: {voicemail}",
@@ -175,6 +199,9 @@ def build_call_prep(item: dict[str, Any]) -> dict[str, str | None]:
         "phone_confidence": phone_confidence,
         "phone_source": phone_source,
         "call_opener": opener,
+        "call_opening_lines": " | ".join(opening_lines),
+        "call_gatekeeper_lines": " | ".join(gatekeeper_lines),
+        "call_gatekeeper_questions": " | ".join(gatekeeper_questions),
         "call_questions": " | ".join(questions),
         "call_proof_points": " | ".join(points),
         "call_voicemail": voicemail,
@@ -219,6 +246,9 @@ def field_value_map(item: dict[str, Any]) -> dict[str, Any]:
         "contact.phone_confidence": call["phone_confidence"],
         "contact.phone_source": call["phone_source"],
         "contact.call_opener": call["call_opener"],
+        "contact.call_opening_lines": call["call_opening_lines"],
+        "contact.call_gatekeeper_lines": call["call_gatekeeper_lines"],
+        "contact.call_gatekeeper_questions": call["call_gatekeeper_questions"],
         "contact.call_questions": call["call_questions"],
         "contact.call_proof_points": call["call_proof_points"],
         "contact.call_voicemail": call["call_voicemail"],
