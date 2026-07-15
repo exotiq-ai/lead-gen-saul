@@ -1,10 +1,9 @@
 # Exotiq GTM environment template
 # Do not commit real secrets. Production values belong in Netlify encrypted env vars.
 
-# Keep mutation endpoints fail-closed until the admin token exists.
-OUTREACH_MUTATIONS_ENABLED=false
-OUTREACH_ADMIN_TOKEN=
-OUTREACH_ADMIN_ACTOR=gregory
+# Proper passwordless dashboard login. Supabase Auth sets HttpOnly session cookies.
+# Only these confirmed Workspace identities may enter the dashboard.
+DASHBOARD_ADMIN_EMAILS=gregory@exotiq.ai
 
 # Exotiq-specific GHL credentials. Do not fall back to AskSaul or other tenants.
 GHL_EXOTIQ_API_KEY=
@@ -20,7 +19,14 @@ EXOTIQ_GTM_PHASE1_COUNTRIES=US
 EXOTIQ_GTM_PHASE2_COUNTRIES=GB,UK
 EXOTIQ_GTM_PHASE2_ENABLED=false
 EXOTIQ_GTM_FROM_NAME="Gregory Ringler | Exotiq"
-EXOTIQ_GTM_SENDING_ADDRESS=gregory@hello.exotiq.ai
+EXOTIQ_GTM_SENDING_ADDRESS=gregory@outreach.exotiq.ai
 EXOTIQ_GTM_REPLY_TO=hello@exotiq.ai
 EXOTIQ_GTM_PHYSICAL_ADDRESS="1001 S Main St #6709, Kalispell, MT 59901"
 EXOTIQ_GTM_DAILY_BRIEF_DESTINATION=telegram:origin
+
+# Resend is the email delivery rail. Keep prospect sends double-gated until
+# Gregory approves the first batch and daily cap.
+RESEND_API_KEY=
+RESEND_WEBHOOK_SECRET=
+RESEND_OUTBOUND_DRY_RUN=true
+OUTREACH_LIVE_SENDS_ENABLED=false

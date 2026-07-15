@@ -16,7 +16,7 @@ export async function PATCH(
   const parsed = await parseJsonBody(req, outreachQueuePatchBodySchema)
   if (!parsed.success) return parsed.response
 
-  const mutationAuth = requireOutreachMutation(req)
+  const mutationAuth = await requireOutreachMutation(req)
   if (!mutationAuth.ok) return mutationAuth.response
 
   const { tenant_id: tenantId, action, message_draft } = parsed.data

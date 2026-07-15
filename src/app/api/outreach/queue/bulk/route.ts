@@ -29,7 +29,7 @@ export async function PATCH(req: NextRequest) {
   const parsed = await parseJsonBody(req, bulkBody)
   if (!parsed.success) return parsed.response
 
-  const mutationAuth = requireOutreachMutation(req)
+  const mutationAuth = await requireOutreachMutation(req)
   if (!mutationAuth.ok) return mutationAuth.response
 
   const { tenant_id, action, queue_ids } = parsed.data
