@@ -12,6 +12,8 @@ test('magic-link email uses cross-device token-hash confirmation', () => {
   assert.match(routeSource, /token_hash/)
   assert.match(routeSource, /verifyOtp/)
   assert.match(routeSource, /isAllowedDashboardAdmin/)
+  assert.match(routeSource, /resolvePublicOrigin/)
+  assert.doesNotMatch(routeSource, /new URL\(next, req\.url\)/)
   assert.match(templateSource, /\/auth\/confirm\?token_hash=\{\{ \.TokenHash \}\}/)
   assert.doesNotMatch(templateSource, /\{\{ \.ConfirmationURL \}\}/)
 })
