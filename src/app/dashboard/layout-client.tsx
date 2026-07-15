@@ -84,6 +84,12 @@ export function DashboardClientLayout({ children }: DashboardClientLayoutProps) 
           </div>
         )}
         </div>
+        <a
+          href="/auth/logout"
+          className="ml-auto text-[11px] font-medium text-[var(--color-saul-text-tertiary)] hover:text-[var(--color-saul-cyan)]"
+        >
+          Sign out
+        </a>
       </div>
       {children}
     </div>

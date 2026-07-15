@@ -15,7 +15,7 @@ test('phase 1 allows US and plans UK as disabled phase 2', () => {
 test('founder sender uses Gregory with hello reply-to and approved address', () => {
   assert.deepEqual(buildFounderSenderConfig(DEFAULT_EXOTIQ_GTM_CONFIG), {
     fromName: 'Gregory Ringler | Exotiq',
-    sendingAddress: 'gregory@hello.exotiq.ai',
+    sendingAddress: 'gregory@outreach.exotiq.ai',
     replyTo: 'hello@exotiq.ai',
     physicalAddress: '1001 S Main St #6709, Kalispell, MT 59901',
   })

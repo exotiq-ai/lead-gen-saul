@@ -18,7 +18,7 @@ export const DEFAULT_EXOTIQ_GTM_CONFIG: ExotiqGtmConfig = {
   cta: '15-minute founder call',
   sender: {
     fromName: 'Gregory Ringler | Exotiq',
-    sendingAddress: 'gregory@hello.exotiq.ai',
+    sendingAddress: 'gregory@outreach.exotiq.ai',
     replyTo: 'hello@exotiq.ai',
     physicalAddress: '1001 S Main St #6709, Kalispell, MT 59901',
   },

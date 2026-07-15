@@ -19,7 +19,8 @@
 - [ ] Offer is a 15-minute founder call.
 - [ ] First-touch copy uses one pain hypothesis and at least three research signals.
 - [ ] From name: `Gregory Ringler | Exotiq`.
-- [ ] Sending identity: `gregory@hello.exotiq.ai` or approved equivalent.
+- [x] Primary sending identity: `gregory@outreach.exotiq.ai` through Resend.
+- [x] Reserve sending identity: `gregory@connect.exotiq.ai` through Resend.
 - [ ] Reply-To: `hello@exotiq.ai`.
 - [ ] Physical address: `1001 S Main St #6709, Kalispell, MT 59901`.
 

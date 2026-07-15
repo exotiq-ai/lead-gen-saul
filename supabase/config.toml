@@ -22,7 +22,37 @@ pop3_port = 54326
 file_size_limit = "50MiB"
 
 [auth]
-site_url = "http://localhost:3000"
-additional_redirect_urls = ["https://localhost:3000"]
+site_url = "https://leadsbysaul.netlify.app"
+additional_redirect_urls = [
+  "https://leadsbysaul.netlify.app/auth/callback",
+  "http://localhost:8888/auth/callback",
+  "http://localhost:3000/auth/callback",
+]
 jwt_expiry = 3600
+enable_signup = false
+
+[auth.email]
 enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+secure_password_change = true
+max_frequency = "60s"
+otp_length = 6
+otp_expiry = 900
+
+[auth.email.smtp]
+enabled = true
+host = "smtp.resend.com"
+port = 587
+user = "resend"
+pass = "env(RESEND_API_KEY)"
+admin_email = "login@mail.exotiq.ai"
+sender_name = "Exotiq Command Center"
+
+[auth.email.template.magic_link]
+subject = "Your secure Exotiq Command Center sign-in"
+content_path = "./supabase/templates/magic-link.html"
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
