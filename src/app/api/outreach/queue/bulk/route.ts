@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase/server'
 import { parseJsonBody } from '@/lib/validation/parse'
+import { requireOutreachMutation } from '@/lib/outreach/serverAuth'
 
 export const runtime = 'nodejs'
 
@@ -27,13 +28,17 @@ const bulkBody = z
 export async function PATCH(req: NextRequest) {
   const parsed = await parseJsonBody(req, bulkBody)
   if (!parsed.success) return parsed.response
-  const { tenant_id, action, queue_ids, reviewed_by } = parsed.data
+
+  const mutationAuth = requireOutreachMutation(req)
+  if (!mutationAuth.ok) return mutationAuth.response
+
+  const { tenant_id, action, queue_ids } = parsed.data
   const supabase = createServerClient()
   const now = new Date().toISOString()
 
   const patch: Record<string, unknown> = {
     updated_at: now,
-    reviewed_by: reviewed_by ?? 'gregory',
+    reviewed_by: mutationAuth.actor,
   }
   if (action === 'approve') {
     patch.status = 'approved'

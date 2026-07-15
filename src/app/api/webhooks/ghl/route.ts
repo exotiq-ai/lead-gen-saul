@@ -1,46 +1,40 @@
-import { createHmac, timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import {
+  classifyGhlEvent,
+  extractGhlEventIdentity,
+  shouldSuppressForEvent,
+  verifyGhlWebhookSignature,
+  type CanonicalGhlEventType,
+} from '@/lib/ghl/events'
 
 export const runtime = 'nodejs'
 
+type SupabaseLike = ReturnType<typeof createServerClient>
+
+function eventType(payload: Record<string, unknown>) {
+  return String(payload.type || payload.event || payload['Event-Name'] || 'unknown')
+}
+
+function expectedLocationId() {
+  return process.env.GHL_EXOTIQ_WEBHOOK_LOCATION_ID || process.env.GHL_EXOTIQ_LOCATION_ID || process.env.GHL_LOCATION_ID || ''
+}
+
 function verifySignature(rawBody: string, req: NextRequest): { ok: boolean; reason?: string } {
-  if (process.env.GHL_SKIP_SIGNATURE === 'true') {
-    return { ok: true }
-  }
+  if (process.env.NODE_ENV === 'development' && process.env.GHL_SKIP_SIGNATURE === 'true') return { ok: true }
 
-  const secret = process.env.GHL_WEBHOOK_SECRET
-  if (!secret) {
-    if (process.env.NODE_ENV === 'development') {
-      return { ok: true }
-    }
-    return { ok: false, reason: 'GHL_WEBHOOK_SECRET not configured' }
-  }
-
-  const sig = req.headers.get('x-saul-hmac') || req.headers.get('X-Saul-Hmac')
-  if (!sig) {
-    return { ok: false, reason: 'Missing X-Saul-Hmac header' }
-  }
-
-  const expected = createHmac('sha256', secret).update(rawBody, 'utf8').digest('hex')
-  const got = sig.replace(/^sha256=/i, '').trim()
-  const a = Buffer.from(expected, 'utf8')
-  const b = Buffer.from(got, 'utf8')
-  if (a.length !== b.length) {
-    return { ok: false, reason: 'Bad signature' }
-  }
-  if (!timingSafeEqual(a, b)) {
-    return { ok: false, reason: 'Bad signature' }
-  }
-  return { ok: true }
+  const publicKey = process.env.GHL_WEBHOOK_PUBLIC_KEY || `-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEAi2HR1srL4o18O8BRa7gVJY7G7bupbN3H9AwJrHCDiOg=
+-----END PUBLIC KEY-----`
+  const sig = req.headers.get('x-ghl-signature')
+  const verified = verifyGhlWebhookSignature(rawBody, sig, publicKey)
+  return verified.ok ? { ok: true } : { ok: false, reason: verified.reason }
 }
 
 export async function POST(req: NextRequest) {
   const rawBody = await req.text()
-  const v = verifySignature(rawBody, req)
-  if (!v.ok) {
-    return NextResponse.json({ error: v.reason ?? 'Unauthorized' }, { status: 401 })
-  }
+  const sig = verifySignature(rawBody, req)
+  if (!sig.ok) return NextResponse.json({ error: sig.reason ?? 'Unauthorized' }, { status: 401 })
 
   let payload: Record<string, unknown>
   try {
@@ -49,102 +43,139 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  void processGhlPayload(payload)
+  const result = await processGhlPayload(payload)
+  return NextResponse.json(result)
+}
 
-  return NextResponse.json({ received: true })
+async function quarantineEvent(
+  supabase: SupabaseLike,
+  tenantId: string,
+  providerEventId: string,
+  eventTypeValue: CanonicalGhlEventType,
+  payload: Record<string, unknown>,
+  reason: string,
+  providerMessageId?: string | null,
+) {
+  await supabase.from('outreach_events').upsert(
+    {
+      tenant_id: tenantId,
+      provider: 'ghl',
+      provider_event_id: providerEventId,
+      provider_message_id: providerMessageId,
+      event_type: eventTypeValue,
+      payload,
+      status: 'quarantined',
+      quarantine_reason: reason,
+    },
+    { onConflict: 'tenant_id,provider,provider_event_id' },
+  )
+  return { received: true, status: 'quarantined', reason }
 }
 
 async function processGhlPayload(payload: Record<string, unknown>) {
   const supabase = createServerClient()
   const tenantId = process.env.GHL_DEFAULT_TENANT_ID || '00000000-0000-0000-0000-000000000001'
+  const expectedLocation = expectedLocationId()
+  const identity = extractGhlEventIdentity(payload)
+  const canonicalType = classifyGhlEvent(eventType(payload))
+  const providerEventId = identity.eventId || `${identity.contactId || 'unknown'}:${eventType(payload)}:${Date.now()}`
+  const providerMessageId = typeof payload.messageId === 'string' ? payload.messageId : null
 
-  const type = (payload.type as string) || (payload.event as string) || (payload['Event-Name'] as string) || 'unknown'
-  const contact = (payload.contact as Record<string, unknown> | undefined) || {}
-  const email = (typeof contact.email === 'string' ? contact.email : null) || (typeof payload.email === 'string' ? payload.email : null)
-  const ghlId = (typeof contact.id === 'string' ? contact.id : null) || (typeof payload.contactId === 'string' ? payload.contactId : null)
-  const firstName = (typeof contact.firstName === 'string' && contact.firstName) || (typeof contact.first_name === 'string' && contact.first_name) || 'Contact'
-  const lastName = (typeof contact.lastName === 'string' && contact.lastName) || (typeof contact.last_name === 'string' && contact.last_name) || ''
-  const company =
-    (typeof contact.companyName === 'string' && contact.companyName) ||
-    (typeof (contact as { name?: string }).name === 'string' && (contact as { name?: string }).name) ||
-    'Unknown'
+  if (!expectedLocation) {
+    return quarantineEvent(supabase, tenantId, providerEventId, canonicalType, payload, 'missing_expected_location', providerMessageId)
+  }
+  if (!identity.locationId || identity.locationId !== expectedLocation) {
+    return quarantineEvent(supabase, tenantId, providerEventId, canonicalType, payload, 'wrong_or_missing_location', providerMessageId)
+  }
+
+  const { data: existing } = await supabase
+    .from('outreach_events')
+    .select('id,status')
+    .eq('tenant_id', tenantId)
+    .eq('provider', 'ghl')
+    .eq('provider_event_id', providerEventId)
+    .maybeSingle()
+  if (existing) return { received: true, status: 'duplicate' }
 
   let leadId: string | null = null
-
-  if (ghlId) {
-    const { data: byGhl } = await supabase
+  if (identity.contactId) {
+    const { data } = await supabase
       .from('leads')
       .select('id')
       .eq('tenant_id', tenantId)
-      .eq('ghl_contact_id', ghlId)
+      .eq('ghl_contact_id', identity.contactId)
       .maybeSingle()
-    if (byGhl) leadId = (byGhl as { id: string }).id
+    leadId = (data as { id?: string } | null)?.id || null
   }
-  if (!leadId && email) {
-    const { data: byEmail } = await supabase
+  if (!leadId && identity.email) {
+    const { data } = await supabase
       .from('leads')
       .select('id')
       .eq('tenant_id', tenantId)
-      .ilike('email', email)
+      .ilike('email', identity.email)
       .maybeSingle()
-    if (byEmail) leadId = (byEmail as { id: string }).id
-  }
-
-  if (!leadId && (email || ghlId)) {
-    const { data: created, error } = await supabase
-      .from('leads')
-      .insert({
-        tenant_id: tenantId,
-        first_name: firstName,
-        last_name: lastName,
-        email,
-        company_name: company,
-        source: 'api',
-        source_detail: 'ghl_webhook',
-        status: 'engaged',
-        ghl_contact_id: ghlId,
-        ghl_last_sync: new Date().toISOString(),
-      })
-      .select('id')
-      .single()
-    if (!error && created) {
-      leadId = (created as { id: string }).id
-    } else {
-      console.warn('[ghl-webhook] lead insert failed:', error?.message)
-    }
+    leadId = (data as { id?: string } | null)?.id || null
   }
 
   if (!leadId) {
-    console.warn('[ghl-webhook] no lead resolved; skipping activity')
-    return
+    return quarantineEvent(supabase, tenantId, providerEventId, canonicalType, payload, 'lead_not_resolved', providerMessageId)
   }
 
-  await supabase
-    .from('leads')
-    .update({
-      last_activity_at: new Date().toISOString(),
-      ghl_last_sync: new Date().toISOString(),
-      ghl_contact_id: ghlId,
-      updated_at: new Date().toISOString(),
+  const { data: sendAttempt } = providerMessageId
+    ? await supabase
+        .from('outreach_send_attempts')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .eq('provider', 'ghl')
+        .eq('provider_message_id', providerMessageId)
+        .maybeSingle()
+    : { data: null }
+
+  const { data: eventRow } = await supabase
+    .from('outreach_events')
+    .insert({
+      tenant_id: tenantId,
+      lead_id: leadId,
+      send_attempt_id: (sendAttempt as { id?: string } | null)?.id || null,
+      provider: 'ghl',
+      provider_event_id: providerEventId,
+      provider_message_id: providerMessageId,
+      event_type: canonicalType,
+      payload,
+      status: 'received',
     })
-    .eq('id', leadId)
-    .eq('tenant_id', tenantId)
+    .select('id')
+    .single()
+
+  if (shouldSuppressForEvent(canonicalType) && identity.email) {
+    await supabase.from('outreach_suppressions').upsert(
+      {
+        tenant_id: tenantId,
+        scope: 'email',
+        normalized_value: identity.email,
+        reason: canonicalType,
+        source: 'ghl_webhook',
+        active: true,
+        provider_event_id: providerEventId,
+      },
+      { onConflict: 'tenant_id,scope,normalized_value' },
+    )
+  }
 
   await supabase.from('lead_activities').insert({
     tenant_id: tenantId,
     lead_id: leadId,
-    activity_type: mapGhlTypeToActivity(String(type)),
+    activity_type: `ghl_${canonicalType}`,
     channel: 'ghl',
-    metadata: { ghl_type: type, contact_id: ghlId, email },
+    metadata: { provider_event_id: providerEventId, provider_message_id: providerMessageId, event_id: (eventRow as { id?: string } | null)?.id },
   })
-}
 
-function mapGhlTypeToActivity(t: string): string {
-  const x = t.toLowerCase()
-  if (x.includes('reply') || x.includes('inbound') || x.includes('sms_inbound')) return 'dm_replied'
-  if (x.includes('email') && x.includes('open')) return 'dm_opened'
-  if (x.includes('email')) return 'dm_replied'
-  if (x.includes('call')) return 'call_made'
-  if (x.includes('submit')) return 'form_submitted'
-  return 'form_submitted'
+  await supabase
+    .from('outreach_events')
+    .update({ status: 'processed', processed_at: new Date().toISOString() })
+    .eq('tenant_id', tenantId)
+    .eq('provider', 'ghl')
+    .eq('provider_event_id', providerEventId)
+
+  return { received: true, status: 'processed', event_type: canonicalType }
 }

@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test \"src/**/*.test.ts\"",
+    "test:unit": "tsx --test \"src/lib/**/*.test.ts\"",
     "lint": "eslint",
     "setup:git-hooks": "git config core.hooksPath .githooks",
     "git:push-main": "git pull --rebase origin main && git push origin main",

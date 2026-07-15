@@ -3,6 +3,8 @@ import { createServerClient } from '@/lib/supabase/server'
 import { parseJsonBody } from '@/lib/validation/parse'
 import { outreachQueuePatchBodySchema } from '@/lib/validation/schemas'
 import { sendMessage } from '@/lib/ghl/outbound'
+import { requireOutreachMutation } from '@/lib/outreach/serverAuth'
+import { buildSendStateTransition } from '@/lib/outreach/safety'
 
 export const runtime = 'nodejs'
 
@@ -14,11 +16,15 @@ export async function PATCH(
   const parsed = await parseJsonBody(req, outreachQueuePatchBodySchema)
   if (!parsed.success) return parsed.response
 
-  const { tenant_id: tenantId, action, message_draft, reviewed_by } = parsed.data
+  const mutationAuth = requireOutreachMutation(req)
+  if (!mutationAuth.ok) return mutationAuth.response
+
+  const { tenant_id: tenantId, action, message_draft } = parsed.data
+  const actor = mutationAuth.actor
   const supabase = createServerClient()
   const now = new Date().toISOString()
 
-  const base = { updated_at: now, reviewed_by: reviewed_by ?? 'gregory' }
+  const base = { updated_at: now, reviewed_by: actor }
 
   let patch: Record<string, unknown> = { ...base }
   let sendResult: Awaited<ReturnType<typeof sendMessage>> | null = null
@@ -110,18 +116,17 @@ export async function PATCH(
         )
       }
 
+      const transition = buildSendStateTransition({
+        mode: sendResult.mode,
+        provider: sendResult.provider,
+        messageId: sendResult.messageId,
+        channel: queueItem.channel as string,
+        now,
+      })
+
       patch = {
         ...patch,
-        status: 'sent',
-        sent_at: now,
-        // Stash the transport message id + mode in rejection_reason for now.
-        // (Schema doesn't have a dedicated column; the outreach_queue
-        // table's free-text fields are limited. A future migration can
-        // add ghl_message_id / send_mode if needed.)
-        rejection_reason:
-          sendResult.mode === 'dry_run'
-            ? `dry_run:${sendResult.provider}:${sendResult.messageId}${sendResult.reason ? `:${sendResult.reason}` : ''}`
-            : `live:${sendResult.provider}:${sendResult.messageId}`,
+        ...transition.queuePatch,
       }
       break
     }
@@ -144,17 +149,23 @@ export async function PATCH(
     return NextResponse.json({ error: 'Queue item not found' }, { status: 404 })
   }
 
-  // For mark_sent, also create a lead_activities entry so the activity feed
-  // and re-scoring loop see it. Channel-aware activity_type.
+  // For mark_sent, record either a dry-run attempt or canonical live send.
   if (action === 'mark_sent' && sendResult?.ok) {
-    const channel = (data as Record<string, unknown>).channel as string
-    const activityType = channel === 'email' ? 'email_sent' : channel === 'sms' ? 'sms_sent' : 'dm_sent'
+    const channel = ((data as Record<string, unknown>).channel as string) || 'unknown'
+    const transition = buildSendStateTransition({
+      mode: sendResult.mode,
+      provider: sendResult.provider,
+      messageId: sendResult.messageId,
+      channel,
+      now,
+    })
     await supabase.from('lead_activities').insert({
       tenant_id: tenantId,
       lead_id: (data as Record<string, unknown>).lead_id as string,
-      activity_type: activityType,
+      activity_type: transition.activityType,
       channel: channel === 'email' ? 'email' : channel === 'sms' ? 'sms' : 'ghl',
       metadata: {
+        canonical_sent: transition.canonicalSent,
         message_id: sendResult.messageId,
         provider: sendResult.provider,
         service: sendResult.service,
