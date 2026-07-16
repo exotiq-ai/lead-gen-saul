@@ -22,6 +22,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard/enrichment': 'Enrichment',
   '/dashboard/outreach': 'Outreach',
   '/dashboard/outreach/templates': 'Outreach Templates',
+  '/dashboard/guide': 'Exotiq GTM Guide',
   '/dashboard/agents': 'Agents',
   '/dashboard/economics': 'Economics',
   '/dashboard/roi': 'ROI',

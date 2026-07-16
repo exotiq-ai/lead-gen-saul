@@ -63,3 +63,7 @@ export function buildSendStateTransition(input: SendTransitionInput) {
     canonicalSent: true,
   }
 }
+
+export function liveProspectSendingEnabled(rawValue: string | undefined): boolean {
+  return rawValue === 'true'
+}

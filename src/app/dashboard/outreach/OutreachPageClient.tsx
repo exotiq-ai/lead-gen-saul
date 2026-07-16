@@ -5,7 +5,7 @@ import useSWR from 'swr'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { MagnifyingGlass, PaperPlaneTilt, ChatCircle, NotePencil, Check, Prohibit, Tray, Warning, X } from '@phosphor-icons/react'
+import { MagnifyingGlass, PaperPlaneTilt, ChatCircle, NotePencil, Check, Prohibit, Tray, Warning, X, BookOpenText } from '@phosphor-icons/react'
 import { ApprovalCard, type QueueItem } from '@/components/outreach/ApprovalCard'
 import { EmptyState, SkeletonBlock } from '@/components/ui'
 import { useTenantId } from '@/lib/hooks/useTenant'
@@ -22,7 +22,11 @@ const TABS = [
 const fetcher = (url: string) =>
   fetch(url).then((r) => {
     if (!r.ok) throw new Error('Failed to load')
-    return r.json() as Promise<{ items: QueueItem[]; pending_count: number }>
+    return r.json() as Promise<{
+      items: QueueItem[]
+      pending_count: number
+      live_sending_enabled: boolean
+    }>
   })
 
 export function OutreachPageClient() {
@@ -42,12 +46,13 @@ export function OutreachPageClient() {
     { revalidateOnFocus: true, refreshInterval: 15_000 },
   )
 
-  const items = data?.items ?? []
+  const items = useMemo(() => data?.items ?? [], [data?.items])
   const visibleItems = useMemo(() => {
     const scoped = leadFilter ? items.filter((item) => item.lead_id === leadFilter) : items
     return filterOutreachItems(scoped, query)
   }, [items, leadFilter, query])
   const pendingCount = data?.pending_count ?? 0
+  const liveSendingEnabled = data?.live_sending_enabled === true
 
   const pendingIdsInView = useMemo(
     () => visibleItems.filter((i) => i.status === 'pending').map((i) => i.id),
@@ -143,13 +148,22 @@ export function OutreachPageClient() {
           <h1 className="text-2xl font-bold text-[var(--color-saul-text-primary)] tracking-tight">
             Outreach approval
           </h1>
-          <Link
-            href="/dashboard/outreach/templates"
-            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-[6px] border border-[var(--color-saul-border-strong)] text-[var(--color-saul-text-secondary)] hover:border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-soft)] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
-          >
-            <NotePencil size={14} weight="bold" />
-            Templates
-          </Link>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <Link
+              href="/dashboard/guide?tenant=exotiq"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-[6px] border border-[var(--color-saul-border-strong)] text-[var(--color-saul-text-secondary)] hover:border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-soft)] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)]"
+            >
+              <BookOpenText size={14} weight="bold" />
+              How it works
+            </Link>
+            <Link
+              href="/dashboard/outreach/templates"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-[6px] border border-[var(--color-saul-border-strong)] text-[var(--color-saul-text-secondary)] hover:border-[color-mix(in_srgb,var(--color-saul-cyan)_30%,transparent)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-soft)] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)]"
+            >
+              <NotePencil size={14} weight="bold" />
+              Templates
+            </Link>
+          </div>
         </div>
         <p className="text-[14px] text-[var(--color-saul-text-secondary)] max-w-2xl">
           Approved drafts are ready for Gregory review, edits, copy/paste, and controlled send/logging. Pending is mostly empty for Exotiq because generated drafts now auto-approve but never auto-send.
@@ -301,6 +315,7 @@ export function OutreachPageClient() {
             selectable={item.status === 'pending'}
             selected={selected.has(item.id)}
             onToggleSelect={() => toggle(item.id)}
+            liveSendingEnabled={liveSendingEnabled}
           />
         ))}
       </div>

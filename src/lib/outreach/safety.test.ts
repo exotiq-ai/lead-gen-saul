@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   authorizeOutreachMutation,
   buildSendStateTransition,
+  liveProspectSendingEnabled,
   type MutationGateConfig,
 } from './safety'
 
@@ -78,4 +79,11 @@ test('only a live provider-accepted send becomes canonical sent history', () => 
       canonicalSent: true,
     },
   )
+})
+
+test('prospect sending is locked unless the global gate is explicitly true', () => {
+  assert.equal(liveProspectSendingEnabled(undefined), false)
+  assert.equal(liveProspectSendingEnabled('false'), false)
+  assert.equal(liveProspectSendingEnabled('1'), false)
+  assert.equal(liveProspectSendingEnabled('true'), true)
 })

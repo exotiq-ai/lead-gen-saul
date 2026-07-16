@@ -3,10 +3,11 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { Check, PencilSimple, Prohibit, PaperPlaneTilt, Copy, Phone, ClipboardText } from '@phosphor-icons/react'
+import { Check, PencilSimple, Prohibit, PaperPlaneTilt, Copy, Phone, ClipboardText, LockKey } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { buildCallPrep } from '@/lib/exotiq/callPrep'
+import { buildPersonalizationContext } from '@/lib/exotiq/personalization'
 
 export type QueueItem = {
   id: string
@@ -77,45 +78,6 @@ function normalizeDomainUrl(raw: string | null | undefined): string | null {
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
 }
 
-function firstText(...values: unknown[]): string | null {
-  for (const value of values) {
-    if (typeof value === 'string' && value.trim()) return value.trim()
-  }
-  return null
-}
-
-function daysOld(value: unknown): number | null {
-  if (typeof value !== 'string' || !value.trim()) return null
-  const ts = new Date(value).getTime()
-  if (!Number.isFinite(ts)) return null
-  return Math.floor((Date.now() - ts) / 86_400_000)
-}
-
-function personalizationInfo(scoreBreakdown: Record<string, unknown> | null | undefined) {
-  const sb = scoreBreakdown ?? {}
-  const ig = firstText(sb.latest_instagram_post_summary, sb.recent_ig_post)
-  if (ig) {
-    const age = daysOld(sb.latest_instagram_post_observed_at) ?? daysOld(sb.latest_instagram_post_fetched_at)
-    return { label: 'IG hook', summary: ig, ageDays: age, stale: age != null && age > 30 }
-  }
-  const partnership = firstText(sb.latest_brand_partnership_summary)
-  if (partnership) {
-    const age = daysOld(sb.latest_brand_partnership_published_at) ?? daysOld(sb.latest_brand_partnership_fetched_at)
-    return { label: 'Partnership hook', summary: partnership, ageDays: age, stale: age != null && age > 60 }
-  }
-  const news = firstText(sb.latest_news_pr_summary, sb.recent_news_pr)
-  if (news) {
-    const age = daysOld(sb.latest_news_pr_published_at) ?? daysOld(sb.latest_news_pr_fetched_at)
-    return { label: 'News hook', summary: news, ageDays: age, stale: age != null && age > 30 }
-  }
-  const business = firstText(sb.latest_business_observation_summary)
-  if (business) {
-    const age = daysOld(sb.latest_business_observation_fetched_at)
-    return { label: 'Business hook', summary: business, ageDays: age, stale: age != null && age > 30 }
-  }
-  return { label: 'Business hook', summary: 'No recent IG/news hook captured yet. Use the business observation fallback.', ageDays: null, stale: false }
-}
-
 function lintDraftCopy(copy: string): string[] {
   const warnings: string[] = []
   if (copy.includes('{personalization_hook}')) warnings.push('Missing personalization hook')
@@ -135,6 +97,7 @@ export function ApprovalCard({
   selectable = false,
   selected = false,
   onToggleSelect,
+  liveSendingEnabled = false,
 }: {
   item: QueueItem
   tenantId: string
@@ -142,6 +105,7 @@ export function ApprovalCard({
   selectable?: boolean
   selected?: boolean
   onToggleSelect?: () => void
+  liveSendingEnabled?: boolean
 }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(item.message_draft)
@@ -172,7 +136,10 @@ export function ApprovalCard({
     score_breakdown: lead?.score_breakdown,
   })
   const phoneHref = callPrep.phoneHref
-  const personalization = personalizationInfo(lead?.score_breakdown)
+  const personalization = buildPersonalizationContext({
+    companyLocation: lead?.company_location,
+    scoreBreakdown: lead?.score_breakdown,
+  })
   const copyWarnings = lintDraftCopy(editing ? draft : item.message_draft)
 
   async function copyDraft() {
@@ -307,11 +274,15 @@ export function ApprovalCard({
               personalization.label === 'Partnership hook' && 'bg-violet-500/15 text-violet-200',
               personalization.label === 'News hook' && 'bg-blue-500/15 text-blue-200',
               personalization.label === 'Business hook' && 'bg-slate-500/20 text-slate-200',
+              personalization.label === 'Fleet evidence' && 'bg-emerald-500/15 text-emerald-200',
+              personalization.label === 'Operator evidence' && 'bg-cyan-500/15 text-cyan-200',
+              personalization.label === 'Research needed' && 'bg-amber-500/15 text-amber-200',
             ].filter(Boolean).join(' ')}
           >
             {personalization.label}{personalization.ageDays != null ? ` · ${personalization.ageDays}d` : ''}
           </Badge>
           {personalization.stale && <Badge className="text-[10px] bg-amber-500/15 text-amber-200">stale hook</Badge>}
+          {!personalization.ready && <Badge className="text-[10px] bg-amber-500/15 text-amber-200">verify before use</Badge>}
           {copyWarnings.length > 0 && <Badge className="text-[10px] bg-rose-500/15 text-rose-200">copy warnings {copyWarnings.length}</Badge>}
           {lead?.score != null && (
             <span className="text-[12px] font-mono text-[var(--color-saul-cyan)]">★ {lead.score}</span>
@@ -335,7 +306,17 @@ export function ApprovalCard({
       <div className="mb-3 rounded-md border border-[var(--color-saul-border)] bg-[var(--color-saul-bg-900)]/60 p-3">
         <div className="flex flex-wrap items-center gap-2 mb-1">
           <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-saul-text-tertiary)]">Personalization</span>
-          <span className="text-[11px] text-[var(--color-saul-text-secondary)]">Source: {personalization.label}</span>
+          <span className="text-[11px] text-[var(--color-saul-text-secondary)]">Confidence: {personalization.confidence}</span>
+          {personalization.sourceUrl && (
+            <a
+              href={personalization.sourceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-[11px] font-medium text-[var(--color-saul-cyan)] hover:underline"
+            >
+              Check source
+            </a>
+          )}
         </div>
         <p className="text-[12px] text-[var(--color-saul-text-primary)]/90 leading-relaxed">{personalization.summary}</p>
         {copyWarnings.length > 0 && (
@@ -478,11 +459,11 @@ export function ApprovalCard({
             </Button>
           </>
         )}
-        {item.status === 'approved' && (
+        {item.status === 'approved' && liveSendingEnabled && (
           <Button
             size="sm"
             onClick={() => {
-              if (!window.confirm(`Send this approved outreach now? SMS will send through Sendblue; GHL is only logged/mirrored.`)) return
+              if (!window.confirm('Send this approved outreach now through the configured provider?')) return
               void patch('mark_sent')
             }}
             disabled={loading}
@@ -491,6 +472,12 @@ export function ApprovalCard({
             <PaperPlaneTilt size={16} weight="bold" />
             Send approved
           </Button>
+        )}
+        {item.status === 'approved' && !liveSendingEnabled && (
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-saul-border)] bg-[var(--color-saul-overlay-soft)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--color-saul-text-secondary)]">
+            <LockKey size={13} weight="bold" />
+            Sending locked, copy or call manually
+          </span>
         )}
       </div>
     </motion.article>

@@ -16,6 +16,7 @@ import {
   Gear,
   DownloadSimple,
   TrendUp,
+  BookOpenText,
 } from '@phosphor-icons/react'
 import { TenantSelector } from './TenantSelector'
 import { useSidebarStore } from '@/stores/sidebarStore'
@@ -34,6 +35,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Scoring', href: '/dashboard/scoring', icon: ChartBar },
   { label: 'Enrichment', href: '/dashboard/enrichment', icon: MagnifyingGlass },
   { label: 'Outreach', href: '/dashboard/outreach', icon: PaperPlaneTilt },
+  { label: 'GTM Guide', href: '/dashboard/guide', icon: BookOpenText },
   { label: 'Agents', href: '/dashboard/agents', icon: Robot },
   { label: 'Economics', href: '/dashboard/economics', icon: CurrencyDollar },
   { label: 'ROI', href: '/dashboard/roi', icon: TrendUp },

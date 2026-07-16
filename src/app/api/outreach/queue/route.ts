@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { parseQuery } from '@/lib/validation/parse'
 import { outreachQueueQuerySchema } from '@/lib/validation/schemas'
+import { liveProspectSendingEnabled } from '@/lib/outreach/safety'
 
 export const runtime = 'nodejs'
 
@@ -58,5 +59,6 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     items: data ?? [],
     pending_count: pendingCount ?? 0,
+    live_sending_enabled: liveProspectSendingEnabled(process.env.OUTREACH_LIVE_SENDS_ENABLED),
   })
 }

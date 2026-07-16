@@ -4,7 +4,7 @@ import { parseJsonBody } from '@/lib/validation/parse'
 import { outreachQueuePatchBodySchema } from '@/lib/validation/schemas'
 import { sendMessage } from '@/lib/ghl/outbound'
 import { requireOutreachMutation } from '@/lib/outreach/serverAuth'
-import { buildSendStateTransition } from '@/lib/outreach/safety'
+import { buildSendStateTransition, liveProspectSendingEnabled } from '@/lib/outreach/safety'
 
 export const runtime = 'nodejs'
 
@@ -63,6 +63,13 @@ export async function PATCH(
       break
     }
     case 'mark_sent': {
+      if (!liveProspectSendingEnabled(process.env.OUTREACH_LIVE_SENDS_ENABLED)) {
+        return NextResponse.json(
+          { error: 'Prospect sending is locked. Review, copy, and CRM sync remain available.' },
+          { status: 503 },
+        )
+      }
+
       // Look up the queue item + lead so we can route the actual send.
       // SMS is routed through Sendblue; GHL is only the mirror/log layer.
       const { data: queueItem, error: lookupErr } = await supabase
