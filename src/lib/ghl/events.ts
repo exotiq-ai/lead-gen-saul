@@ -56,6 +56,19 @@ export function shouldSuppressForEvent(type: CanonicalGhlEventType): boolean {
   return type === 'hard_bounce' || type === 'complaint' || type === 'unsubscribe'
 }
 
+export function sequenceExitEventFromGhl(type: CanonicalGhlEventType): string | null {
+  switch (type) {
+    case 'reply': return 'replied'
+    case 'unsubscribe': return 'unsubscribed'
+    case 'hard_bounce': return 'hard_bounced'
+    case 'complaint': return 'complained'
+    case 'call': return 'replied'
+    case 'appointment': return 'meeting_booked'
+    case 'opportunity': return 'opportunity_opened'
+    default: return null
+  }
+}
+
 export function verifyGhlWebhookSignature(body: string, signature: string | null, publicKeyPem: string) {
   if (!signature || signature === 'N/A') return { ok: false, reason: 'missing_signature' }
   if (!publicKeyPem.trim()) return { ok: false, reason: 'missing_public_key' }

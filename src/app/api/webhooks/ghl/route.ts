@@ -3,10 +3,12 @@ import { createServerClient } from '@/lib/supabase/server'
 import {
   classifyGhlEvent,
   extractGhlEventIdentity,
+  sequenceExitEventFromGhl,
   shouldSuppressForEvent,
   verifyGhlWebhookSignature,
   type CanonicalGhlEventType,
 } from '@/lib/ghl/events'
+import { exitActiveSequences } from '@/lib/outreach/sequenceExit'
 
 export const runtime = 'nodejs'
 
@@ -169,6 +171,16 @@ async function processGhlPayload(payload: Record<string, unknown>) {
     channel: 'ghl',
     metadata: { provider_event_id: providerEventId, provider_message_id: providerMessageId, event_id: (eventRow as { id?: string } | null)?.id },
   })
+
+  const sequenceExitEvent = sequenceExitEventFromGhl(canonicalType)
+  if (sequenceExitEvent) {
+    await exitActiveSequences(supabase, {
+      tenantId,
+      leadId,
+      eventType: sequenceExitEvent,
+      source: 'ghl_webhook',
+    })
+  }
 
   await supabase
     .from('outreach_events')

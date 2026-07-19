@@ -4,6 +4,7 @@ import test from 'node:test'
 import {
   classifyGhlEvent,
   extractGhlEventIdentity,
+  sequenceExitEventFromGhl,
   shouldSuppressForEvent,
   verifyGhlWebhookSignature,
 } from './events'
@@ -43,6 +44,15 @@ test('hard bounce, complaint, and unsubscribe create global suppression', () => 
   assert.equal(shouldSuppressForEvent('complaint'), true)
   assert.equal(shouldSuppressForEvent('unsubscribe'), true)
   assert.equal(shouldSuppressForEvent('reply'), false)
+})
+
+test('meaningful GHL engagement events stop active sequences', () => {
+  assert.equal(sequenceExitEventFromGhl('reply'), 'replied')
+  assert.equal(sequenceExitEventFromGhl('call'), 'replied')
+  assert.equal(sequenceExitEventFromGhl('appointment'), 'meeting_booked')
+  assert.equal(sequenceExitEventFromGhl('opportunity'), 'opportunity_opened')
+  assert.equal(sequenceExitEventFromGhl('open'), null)
+  assert.equal(sequenceExitEventFromGhl('delivered'), null)
 })
 
 test('verifies current GHL Ed25519 webhook signatures and rejects tampering', () => {

@@ -6,6 +6,7 @@ import {
   resendAttemptStatus,
   resendEventSuppresses,
 } from '@/lib/resend/events'
+import { exitActiveSequences } from '@/lib/outreach/sequenceExit'
 
 export const runtime = 'nodejs'
 
@@ -119,6 +120,14 @@ export async function POST(req: NextRequest) {
         },
         { onConflict: 'tenant_id,scope,normalized_value' },
       )
+    }
+    if (attemptRow.lead_id) {
+      await exitActiveSequences(supabase, {
+        tenantId: EXOTIQ_TENANT_ID,
+        leadId: attemptRow.lead_id,
+        eventType: canonicalType === 'hard_bounce' ? 'hard_bounced' : 'complained',
+        source: 'resend_webhook',
+      })
     }
   }
 

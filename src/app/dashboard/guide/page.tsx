@@ -65,6 +65,12 @@ export default function GtmGuidePage() {
                 >
                   Browse Leads
                 </Link>
+                <Link
+                  href="/dashboard/guide/sequence?tenant=exotiq"
+                  className="rounded-full border border-[#b9c6bd] bg-white px-5 py-2.5 text-sm font-semibold text-[#17372c] transition hover:border-[#17372c]"
+                >
+                  Automated Sequence Guide
+                </Link>
               </div>
             </div>
 
