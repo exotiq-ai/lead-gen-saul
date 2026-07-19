@@ -21,7 +21,11 @@ export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname
   const response = NextResponse.next({ request: req })
 
-  if (pathname.startsWith('/api/webhooks/') || pathname.startsWith('/api/auth/')) {
+  if (
+    pathname.startsWith('/api/webhooks/') ||
+    pathname.startsWith('/api/auth/') ||
+    pathname === '/api/outreach/sequences/run'
+  ) {
     return response
   }
 

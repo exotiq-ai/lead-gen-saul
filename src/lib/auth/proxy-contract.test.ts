@@ -14,3 +14,8 @@ test('Next proxy protects dashboard and mutation APIs while leaving login and we
   assert.match(source, /\/login/)
   assert.match(source, /getUser/)
 })
+
+test('sequence runner reaches its dedicated token gate without a dashboard session', () => {
+  const source = fs.readFileSync(path.join(process.cwd(), 'src/proxy.ts'), 'utf8')
+  assert.match(source, /pathname === '\/api\/outreach\/sequences\/run'/)
+})
