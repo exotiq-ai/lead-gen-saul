@@ -3,10 +3,12 @@ import { Webhook } from 'svix'
 import { createServerClient } from '@/lib/supabase/server'
 import {
   classifyResendEvent,
+  readableResendEventNote,
   resendAttemptStatus,
   resendEventSuppresses,
 } from '@/lib/resend/events'
 import { exitActiveSequences } from '@/lib/outreach/sequenceExit'
+import { createGhlNote } from '@/lib/ghl/sequence'
 
 export const runtime = 'nodejs'
 
@@ -63,14 +65,19 @@ export async function POST(req: NextRequest) {
   const { data: attempt } = providerMessageId
     ? await supabase
         .from('outreach_send_attempts')
-        .select('id,lead_id')
+        .select('id,lead_id,subject,leads(ghl_contact_id)')
         .eq('tenant_id', EXOTIQ_TENANT_ID)
         .eq('provider', 'resend')
         .eq('provider_message_id', providerMessageId)
         .maybeSingle()
     : { data: null }
 
-  const attemptRow = attempt as { id?: string; lead_id?: string } | null
+  const attemptRow = attempt as {
+    id?: string
+    lead_id?: string
+    subject?: string | null
+    leads?: { ghl_contact_id?: string | null } | null
+  } | null
   const eventStatus = attemptRow?.id ? 'processed' : 'quarantined'
   const quarantineReason = attemptRow?.id ? null : 'send_attempt_not_resolved'
 
@@ -102,6 +109,16 @@ export async function POST(req: NextRequest) {
       .update(patch)
       .eq('id', attemptRow.id)
       .eq('tenant_id', EXOTIQ_TENANT_ID)
+  }
+
+  const deliveryNote = readableResendEventNote({
+    type: canonicalType,
+    subject: attemptRow.subject,
+    providerMessageId,
+  })
+  const ghlContactId = attemptRow.leads?.ghl_contact_id || null
+  if (deliveryNote && ghlContactId) {
+    await createGhlNote(ghlContactId, deliveryNote).catch(() => undefined)
   }
 
   if (resendEventSuppresses(canonicalType)) {

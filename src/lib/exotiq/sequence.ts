@@ -12,6 +12,21 @@ export type ExotiqSequenceStep = {
 export const EXOTIQ_SEQUENCE_KEY = 'exotiq-tier2-founder-outreach'
 export const EXOTIQ_SEQUENCE_VERSION = 1
 export const EXOTIQ_CUSTOMER_BATCH_LIMIT = 25
+export const EXOTIQ_DEFAULT_DAILY_EMAIL_CAP = 25
+
+export function sequenceDailyEmailCap(raw = process.env.EXOTIQ_SEQUENCE_DAILY_EMAIL_CAP) {
+  const parsed = Number.parseInt(raw || '', 10)
+  if (!Number.isFinite(parsed)) return EXOTIQ_DEFAULT_DAILY_EMAIL_CAP
+  return Math.min(Math.max(parsed, 1), 100)
+}
+
+export function utcDayWindow(now: string) {
+  const current = new Date(now)
+  if (!Number.isFinite(current.getTime())) throw new Error('invalid daily-cap time')
+  const start = new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), current.getUTCDate()))
+  const end = new Date(start.getTime() + 86_400_000)
+  return { start: start.toISOString(), end: end.toISOString() }
+}
 
 const LIVE_STEPS: ExotiqSequenceStep[] = [
   { key: 'email_1', ordinal: 1, kind: 'email', offsetMinutes: 0, label: 'Personalized first-touch email' },

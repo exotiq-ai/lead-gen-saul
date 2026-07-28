@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { SequenceOperationsPanel } from '@/components/outreach/SequenceOperationsPanel'
 
 const timeline = [
   ['Day 0', 'Email 1', 'Personalized first touch from Gregory through Resend.'],
@@ -42,6 +43,8 @@ export default function SequenceGuidePage() {
             </div>
           </div>
         </header>
+
+        <SequenceOperationsPanel />
 
         <section className="mt-10">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#6d7e55]">Tier 2 sequence</p>

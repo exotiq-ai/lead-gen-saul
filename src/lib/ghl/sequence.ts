@@ -2,8 +2,8 @@ const GHL_BASE = 'https://services.leadconnectorhq.com'
 const EXOTIQ_TENANT_ID = '00000000-0000-0000-0000-000000000001'
 
 function config() {
-  const apiKey = process.env.GHL_API_KEY || ''
-  const locationId = process.env.GHL_LOCATION_ID || ''
+  const apiKey = process.env.GHL_EXOTIQ_API_KEY || process.env.GHL_API_KEY || ''
+  const locationId = process.env.GHL_EXOTIQ_LOCATION_ID || process.env.GHL_LOCATION_ID || ''
   if (!apiKey || !locationId) throw new Error('Exotiq GHL credentials are not configured')
   return { apiKey, locationId }
 }
@@ -103,6 +103,24 @@ export async function createGhlTask(contactId: string, input: { title: string; b
   return String(task.id)
 }
 
+export function ghlTaskIdempotencyMarker(idempotencyKey: string) {
+  return `[Exotiq action: ${idempotencyKey.trim()}]`
+}
+
+export async function createGhlTaskIdempotent(
+  contactId: string,
+  input: { title: string; body: string; dueDate: string },
+  idempotencyKey: string,
+) {
+  const marker = ghlTaskIdempotencyMarker(idempotencyKey)
+  const existingData = await request(`/contacts/${contactId}/tasks`)
+  const existingTasks = (existingData.tasks || []) as Array<Record<string, unknown>>
+  const existing = existingTasks.find((task) => String(task.body || '').includes(marker))
+  if (existing?.id) return { id: String(existing.id), created: false }
+  const id = await createGhlTask(contactId, { ...input, body: `${input.body.trim()}\n\n${marker}` })
+  return { id, created: true }
+}
+
 export async function createGhlNote(contactId: string, body: string) {
   const data = await request(`/contacts/${contactId}/notes`, { method: 'POST', body: JSON.stringify({ body }) })
   const note = (data.note || data) as Record<string, unknown>
@@ -112,6 +130,19 @@ export async function createGhlNote(contactId: string, body: string) {
 export async function getGhlContact(contactId: string) {
   const data = await request(`/contacts/${contactId}`)
   return (data.contact || data) as Record<string, unknown>
+}
+
+export function opportunityBlocksSequence(status: unknown) {
+  const normalized = String(status || '').trim().toLowerCase()
+  return normalized === 'open' || normalized === 'won'
+}
+
+export async function hasBlockingGhlOpportunity(contactId: string) {
+  const { locationId } = config()
+  const params = new URLSearchParams({ location_id: locationId, contact_id: contactId, limit: '20' })
+  const data = await request(`/opportunities/search?${params.toString()}`)
+  const opportunities = (data.opportunities || []) as Array<Record<string, unknown>>
+  return opportunities.some((opportunity) => opportunityBlocksSequence(opportunity.status))
 }
 
 export function isGhlContactSuppressed(contact: Record<string, unknown>) {

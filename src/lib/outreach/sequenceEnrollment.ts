@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { addGhlTags, createGhlNote, ensureGhlSequenceContact, updateGhlSequenceState } from '@/lib/ghl/sequence'
+import { addGhlTags, createGhlNote, ensureGhlSequenceContact, hasBlockingGhlOpportunity, updateGhlSequenceState } from '@/lib/ghl/sequence'
 import {
   EXOTIQ_CUSTOMER_BATCH_LIMIT,
   EXOTIQ_SEQUENCE_KEY,
@@ -222,6 +222,10 @@ export async function enrollSequenceBatch(
       phone: lead.phone,
       companyName: lead.company_name || 'Exotiq Operator',
     })
+    if (input.mode === 'live' && await hasBlockingGhlOpportunity(contactId)) {
+      results.push({ queueId: row.id, leadId: lead.id, status: 'held', reason: 'active_opportunity' })
+      continue
+    }
     await supabase.from('leads').update({ ghl_contact_id: contactId, ghl_last_sync: new Date().toISOString() }).eq('id', lead.id)
 
     const { data: existing } = await supabase

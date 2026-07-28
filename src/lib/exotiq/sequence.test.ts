@@ -4,9 +4,11 @@ import {
   EXOTIQ_CUSTOMER_BATCH_LIMIT,
   actionIdempotencyKey,
   scheduleSequence,
+  sequenceDailyEmailCap,
   sequenceEligibility,
   sequenceSteps,
   shouldExitSequence,
+  utcDayWindow,
 } from './sequence'
 
 test('live sequence is email, call, Instagram, then email follow-ups on the approved timeline', () => {
@@ -40,4 +42,16 @@ test('action keys are deterministic and every meaningful response exits the sequ
   }
   assert.equal(shouldExitSequence('delivered'), false)
   assert.equal(shouldExitSequence('opened'), false)
+})
+
+test('daily cap defaults safely, clamps configuration, and uses a UTC send window', () => {
+  assert.equal(sequenceDailyEmailCap(undefined), 25)
+  assert.equal(sequenceDailyEmailCap('0'), 1)
+  assert.equal(sequenceDailyEmailCap('250'), 100)
+  assert.equal(sequenceDailyEmailCap('40'), 40)
+  assert.deepEqual(utcDayWindow('2026-07-28T23:59:59.000Z'), {
+    start: '2026-07-28T00:00:00.000Z',
+    end: '2026-07-29T00:00:00.000Z',
+  })
+  assert.throws(() => utcDayWindow('not-a-date'), /invalid daily-cap time/)
 })

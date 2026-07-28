@@ -38,3 +38,23 @@ export function resendAttemptStatus(type: CanonicalResendEvent) {
     default: return null
   }
 }
+
+export function readableResendEventNote(input: {
+  type: CanonicalResendEvent
+  subject?: string | null
+  providerMessageId?: string | null
+}) {
+  const labels: Partial<Record<CanonicalResendEvent, string>> = {
+    sent: 'accepted by Resend',
+    delivered: 'accepted by the recipient mail server',
+    delivery_delayed: 'delayed by the recipient mail server',
+    hard_bounce: 'hard bounced and was suppressed',
+    complaint: 'reported as spam and was suppressed',
+    failed: 'failed at the email provider',
+  }
+  const label = labels[input.type]
+  if (!label) return null
+  const subject = input.subject?.trim() || '(subject unavailable)'
+  const messageId = input.providerMessageId?.trim() || '(message id unavailable)'
+  return `Exotiq email delivery update: ${label}. Subject: ${subject}. Resend message ID: ${messageId}.`
+}

@@ -30,3 +30,11 @@ RESEND_API_KEY=
 RESEND_WEBHOOK_SECRET=
 RESEND_OUTBOUND_DRY_RUN=true
 OUTREACH_LIVE_SENDS_ENABLED=false
+
+# API-first sequence controls. Test customer configuration does not authorize a
+# send by itself; demo sending remains separately locked.
+EXOTIQ_CUSTOMER_SEQUENCE_ENROLLMENT_ENABLED=false
+EXOTIQ_SEQUENCE_DAILY_EMAIL_CAP=25
+EXOTIQ_SEQUENCE_DEMO_EMAIL=gregory.ringler@gmail.com
+EXOTIQ_SEQUENCE_DEMO_SEND_ENABLED=false
+SEQUENCE_RUNNER_TOKEN=
