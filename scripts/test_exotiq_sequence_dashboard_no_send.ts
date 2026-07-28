@@ -8,6 +8,7 @@ import { config as loadDotenv } from 'dotenv'
 loadDotenv({ path: '.env.local', override: true })
 
 const TEST_EMAIL = 'gregory.ringler@gmail.com'
+const ADMIN_EMAIL = process.env.SEQUENCE_UI_QA_ADMIN_EMAIL || TEST_EMAIL
 const BASE_URL = process.env.SEQUENCE_UI_QA_BASE_URL || 'http://127.0.0.1:3100'
 const OUTPUT_DIR = process.env.SEQUENCE_UI_QA_OUTPUT_DIR || `${process.env.HOME}/.hermes/work/exotiq-gtm`
 
@@ -26,7 +27,7 @@ async function main() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
   if (!url || !serviceKey) throw new Error('Supabase QA credentials are unavailable')
   const supabase = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } })
-  const { data, error } = await supabase.auth.admin.generateLink({ type: 'magiclink', email: TEST_EMAIL })
+  const { data, error } = await supabase.auth.admin.generateLink({ type: 'magiclink', email: ADMIN_EMAIL })
   if (error) throw new Error(error.message)
   const tokenHash = data.properties?.hashed_token
   if (!tokenHash) throw new Error('Supabase did not return a no-send login token hash')
