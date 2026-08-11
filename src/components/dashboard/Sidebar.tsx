@@ -17,6 +17,7 @@ import {
   DownloadSimple,
   TrendUp,
   BookOpenText,
+  MapTrifold,
 } from '@phosphor-icons/react'
 import { TenantSelector } from './TenantSelector'
 import { useSidebarStore } from '@/stores/sidebarStore'
@@ -32,6 +33,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Overview', href: '/dashboard', icon: SquaresFour },
   { label: 'Pipeline', href: '/dashboard/pipeline', icon: Funnel },
   { label: 'Leads', href: '/dashboard/leads', icon: Users },
+  { label: 'Road Trip', href: '/dashboard/road-trip', icon: MapTrifold },
   { label: 'Scoring', href: '/dashboard/scoring', icon: ChartBar },
   { label: 'Enrichment', href: '/dashboard/enrichment', icon: MagnifyingGlass },
   { label: 'Outreach', href: '/dashboard/outreach', icon: PaperPlaneTilt },
@@ -53,7 +55,9 @@ export function Sidebar() {
   const tenantSlug = searchParams.get('tenant') ?? TENANT_UUID_TO_SLUG[tenantId] ?? null
 
   const withTenant = (href: string) =>
-    tenantSlug ? `${href}${href.includes('?') ? '&' : '?'}tenant=${tenantSlug}` : href
+    href === '/dashboard/road-trip'
+      ? href
+      : tenantSlug ? `${href}${href.includes('?') ? '&' : '?'}tenant=${tenantSlug}` : href
 
   const { data: outreachMeta } = useSWR(
     `/api/outreach/queue?tenant_id=${tenantId}&status=pending&limit=1`,

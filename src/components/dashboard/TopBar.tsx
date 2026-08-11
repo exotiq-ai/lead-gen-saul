@@ -18,6 +18,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Overview',
   '/dashboard/pipeline': 'Pipeline',
   '/dashboard/leads': 'Leads',
+  '/dashboard/road-trip': 'Road Trip',
   '/dashboard/scoring': 'Scoring',
   '/dashboard/enrichment': 'Enrichment',
   '/dashboard/outreach': 'Outreach',

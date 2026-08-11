@@ -119,6 +119,23 @@ const STATIC_RESPONSES: Record<string, unknown> = {
     leads: [mockLead], total: 1, page: 1, limit: 50, has_more: false,
   },
   '/api/outreach/queue': { items: [mockOutreachItem], pending_count: 1 },
+  '/api/leads/road-trip': {
+    data: [
+      {
+        id: 'road-dallas', first_name: 'Dana', last_name: 'Driver', company_name: 'Mock Dallas Exotics',
+        company_location: 'Dallas, TX', company_domain: 'mockdallas.example', email: 'dana@mockdallas.example',
+        phone: '(214) 555-0100', score: 88, status: 'scored', assigned_to: 'gregory', last_activity_at: null,
+        red_flags: [], score_breakdown: { company_ig_handle: '@mockdallas', phone_confidence: 'high', fleet_size: 20 },
+      },
+      {
+        id: 'road-miami', first_name: 'Mia', last_name: 'Owner', company_name: 'Mock Miami Luxury Cars',
+        company_location: 'Miami, FL', company_domain: 'mockmiami.example', email: 'mia@mockmiami.example',
+        phone: '(305) 555-0199', score: 79, status: 'engaged', assigned_to: 'gregory', last_activity_at: '2026-08-10T12:00:00Z',
+        red_flags: [], score_breakdown: { company_ig_handle: '@mockmiami', phone_confidence: 'high', fleet_size: 12 },
+      },
+    ],
+    generated_at: '2026-08-11T12:00:00Z',
+  },
 }
 
 export async function attachMocks(page: Page) {
