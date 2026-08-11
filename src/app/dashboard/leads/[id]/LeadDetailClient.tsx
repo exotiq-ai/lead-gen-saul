@@ -142,7 +142,7 @@ export function LeadDetailClient({
   return (
     <div className="flex flex-col gap-0 min-h-screen" style={{ color: 'var(--color-saul-text-primary)' }}>
       {/* ── Back nav ── */}
-      <div className="px-6 pt-4 pb-2">
+      <div className="px-0 sm:px-2 lg:px-6 pt-4 pb-2">
         <button
           onClick={() => router.push('/dashboard/leads')}
           className="flex items-center gap-1.5 text-sm rounded-[6px] px-2 py-1 -mx-2 text-[var(--color-saul-text-secondary)] hover:text-[var(--color-saul-text-primary)] hover:bg-[var(--color-saul-overlay-soft)] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-saul-cyan)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-saul-bg-800)]"
@@ -152,14 +152,14 @@ export function LeadDetailClient({
         </button>
       </div>
 
-      {/* ── 3-col grid ── */}
-      <div className="flex flex-1 gap-0 px-6 pb-8" style={{ alignItems: 'flex-start' }}>
+      {/* ── Lead workspace: stacked on mobile, split on desktop ── */}
+      <div className="flex flex-1 flex-col lg:flex-row gap-0 px-0 sm:px-2 lg:px-6 pb-8" style={{ alignItems: 'flex-start' }}>
 
         {/* ══ LEFT PANEL ══════════════════════════════════════════════════════ */}
         <ScoreBreakdownPanel lead={lead} isAssignedToGregory={isAssignedToGregory} />
 
         {/* ══ RIGHT MAIN ══════════════════════════════════════════════════════ */}
-        <main className="flex-1 flex flex-col gap-4 min-w-0">
+        <main className="order-1 lg:order-2 flex-1 flex flex-col gap-4 min-w-0 w-full">
           {/* Header */}
           <LeadHeader
             lead={lead}

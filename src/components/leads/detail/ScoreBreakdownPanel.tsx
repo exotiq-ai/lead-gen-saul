@@ -159,8 +159,7 @@ export function ScoreBreakdownPanel({ lead, isAssignedToGregory }: ScoreBreakdow
 
   return (
     <aside
-      className="w-72 shrink-0 flex flex-col gap-4 sticky top-6 mr-6"
-      style={{ maxHeight: 'calc(100vh - 80px)', overflowY: 'auto' }}
+      className="order-2 lg:order-1 w-full lg:w-72 shrink-0 flex flex-col gap-4 lg:sticky lg:top-6 lg:mr-6 max-h-none overflow-visible lg:max-h-[calc(100vh-80px)] lg:overflow-y-auto"
     >
       {/* Identity card */}
       <div
