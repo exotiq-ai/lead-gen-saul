@@ -70,6 +70,8 @@ jobs:
         with:
           name: next-build
           path: .next/
+      - name: generate e2e auth token
+        run: echo "E2E_AUTH_BYPASS_TOKEN=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
       - name: start prod server
         run: |
           npm run start -- -p 3000 &

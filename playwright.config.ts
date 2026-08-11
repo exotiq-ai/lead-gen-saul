@@ -19,6 +19,9 @@ export default defineConfig({
   reporter: process.env.CI ? [['list']] : 'list',
   use: {
     baseURL: process.env.BASE_URL ?? 'http://127.0.0.1:3000',
+    extraHTTPHeaders: process.env.E2E_AUTH_BYPASS_TOKEN
+      ? { 'x-e2e-auth-token': process.env.E2E_AUTH_BYPASS_TOKEN }
+      : undefined,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },

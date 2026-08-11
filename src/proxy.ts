@@ -21,6 +21,18 @@ export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname
   const response = NextResponse.next({ request: req })
 
+  // CI's Playwright server has no real Supabase credentials. Permit its
+  // browser only when the server and request share a per-run random token.
+  // Production has no E2E_AUTH_BYPASS_TOKEN, so this path stays disabled.
+  const e2eBypassToken = process.env.E2E_AUTH_BYPASS_TOKEN
+  if (
+    e2eBypassToken &&
+    e2eBypassToken.length >= 32 &&
+    req.headers.get('x-e2e-auth-token') === e2eBypassToken
+  ) {
+    return response
+  }
+
   if (
     pathname.startsWith('/api/webhooks/') ||
     pathname.startsWith('/api/auth/') ||

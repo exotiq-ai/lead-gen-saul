@@ -54,7 +54,7 @@ test.describe('pipeline walk', () => {
 
   test('agents page shows online gateway when heartbeat is fresh', async ({ page }) => {
     await page.goto('/dashboard/agents')
-    await expect(page.getByText('OpenClaw — Saul layer')).toBeVisible({
+    await expect(page.getByText('OpenClaw WebSocket (Gateway)')).toBeVisible({
       timeout: FIRST_PAINT_TIMEOUT,
     })
     await expect(page.getByText('online').first()).toBeVisible()
