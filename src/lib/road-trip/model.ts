@@ -70,7 +70,6 @@ export interface RoadTripLead {
     instagram: RoadTripAction | null
     website: RoadTripAction | null
     googleMaps: RoadTripAction
-    appleMaps: RoadTripAction
     lead: RoadTripAction
     outreach: RoadTripAction
   }
@@ -212,7 +211,6 @@ export function buildRoadTripLead(input: RoadTripLeadInput): RoadTripLead {
       instagram: contactLinks.instagram,
       website: contactLinks.website,
       googleMaps: { label: 'Google Maps', href: `https://www.google.com/maps/search/?api=1&query=${encodedQuery}` },
-      appleMaps: { label: 'Apple Maps', href: `https://maps.apple.com/?q=${encodedQuery}` },
       lead: { label: 'Lead details', href: `/dashboard/leads/${input.id}` },
       outreach: { label: 'Outreach', href: `/dashboard/outreach?lead_id=${input.id}` },
     },

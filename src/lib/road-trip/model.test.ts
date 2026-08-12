@@ -55,7 +55,7 @@ test('road-trip lead exposes safe one-tap actions and labels city-only precision
   assert.equal(lead.actions.website?.href, 'https://velocity.example')
   assert.match(lead.actions.googleMaps.href, /google\.com\/maps\/search/)
   assert.match(decodeURIComponent(lead.actions.googleMaps.href), /Velocity Exotics Dallas, TX/)
-  assert.match(lead.actions.appleMaps.href, /maps\.apple\.com/)
+  assert.equal('appleMaps' in lead.actions, false)
   assert.match(lead.callOpener, /Gregory Ringler/)
   assert.match(lead.callOpener, /Exotiq/)
 })

@@ -19,6 +19,8 @@ test.describe('Exotiq road-trip command center', () => {
     await expect(page.getByRole('link', { name: 'Email', exact: true }).first()).toHaveAttribute('href', 'mailto:dana@mockdallas.example')
     await expect(page.getByRole('link', { name: /Instagram/i }).first()).toHaveAttribute('href', 'https://www.instagram.com/mockdallas/')
     await expect(page.getByRole('link', { name: /Directions/i }).first()).toHaveAttribute('href', /google\.com\/maps\/search/)
+    await expect(page.getByRole('link', { name: 'Open in Google Maps' }).first()).toHaveAttribute('href', /google\.com\/maps\/search/)
+    await expect(page.getByRole('link', { name: /Apple Maps/i })).toHaveCount(0)
     await expect(page.getByText(/City-level location/).first()).toBeVisible()
 
     await page.getByRole('link', { name: /Miami.*1 lead/i }).click()

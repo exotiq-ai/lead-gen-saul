@@ -209,7 +209,7 @@ function LeadCard({ lead, rank }: { lead: RoadTripLead; rank: number }) {
         </details>
 
         <div className="mt-3 flex items-center justify-between gap-3 text-[11px]">
-          <a href={lead.actions.appleMaps.href} target="_blank" rel="noreferrer" className="text-[var(--color-saul-text-secondary)] underline decoration-[var(--color-saul-border-stronger)] underline-offset-4 hover:text-[var(--color-saul-cyan)]">Open in Apple Maps</a>
+          <a href={lead.actions.googleMaps.href} target="_blank" rel="noreferrer" className="text-[var(--color-saul-text-secondary)] underline decoration-[var(--color-saul-border-stronger)] underline-offset-4 hover:text-[var(--color-saul-cyan)]">Open in Google Maps</a>
           <span className="uppercase tracking-wide text-[var(--color-saul-text-tertiary)]">{lead.status}</span>
         </div>
       </div>
