@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { cityFromLocation, type RoadTripLeadInput } from '@/lib/road-trip/model'
+import { cityFromLocation, isRoadTripEligibleLead, type RoadTripLeadInput } from '@/lib/road-trip/model'
 import { DEMO_TENANT_ID } from '@/lib/validation/schemas'
 
 const ROAD_TRIP_SELECT = [
@@ -33,7 +33,7 @@ export async function GET() {
     if (error) throw error
 
     const routeLeads = ((data ?? []) as unknown as RoadTripLeadInput[])
-      .filter((lead) => cityFromLocation(lead.company_location) !== null)
+      .filter((lead) => isRoadTripEligibleLead(lead) && cityFromLocation(lead.company_location) !== null)
 
     return NextResponse.json({
       data: routeLeads,

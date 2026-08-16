@@ -266,6 +266,15 @@ export function RoadTripPageClient() {
         </div>
       </header>
 
+      <div className="mb-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]" aria-label="Road-trip views">
+        <Link href={`/dashboard/road-trip?city=${selectedCity}`} className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border border-[var(--color-saul-cyan)] bg-[var(--color-saul-cyan)] px-3 text-[11px] font-bold text-[var(--color-saul-text-on-accent)]">
+          <RoadHorizon size={15} weight="fill" /> City roadmap
+        </Link>
+        <Link href="/dashboard/road-trip/orlando" className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border border-[var(--color-saul-border)] bg-[var(--color-saul-bg-700)] px-3 text-[11px] font-bold text-[var(--color-saul-text-secondary)] hover:border-[var(--color-saul-cyan)]/50 hover:text-[var(--color-saul-cyan)]">
+          <NavigationArrow size={15} weight="fill" /> Orlando visit route
+        </Link>
+      </div>
+
       <nav className="sticky top-[60px] z-10 -mx-4 mb-4 border-y border-[var(--color-saul-border-soft)] bg-[color-mix(in_srgb,var(--color-saul-bg-800)_92%,transparent)] px-4 py-2 backdrop-blur-xl md:-mx-6 md:px-6" aria-label="Road-trip cities">
         <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
           {ROAD_TRIP_CITIES.map((city, index) => (

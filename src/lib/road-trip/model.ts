@@ -35,7 +35,7 @@ export interface RoadTripLeadInput {
   status?: string | null
   assigned_to?: string | null
   last_activity_at?: string | null
-  red_flags?: Array<{ code?: string; reason?: string }> | null
+  red_flags?: Array<string | { code?: string; reason?: string }> | null
 }
 
 export interface RoadTripAction {
@@ -114,7 +114,10 @@ function priorityFor(input: RoadTripLeadInput, hasPhone: boolean, hasInstagram: 
   const score = Math.max(0, Number(input.score) || 0)
   const status = input.status?.toLowerCase() ?? ''
   const followUp = status === 'engaged' || status === 'qualified'
-  const redFlagPenalty = (input.red_flags ?? []).some((flag) => ['bad_data', 'wrong_icp', 'duplicate', 'competitor'].includes(flag.code ?? '')) ? 20 : 0
+  const redFlagPenalty = (input.red_flags ?? []).some((flag) => {
+    const code = typeof flag === 'string' ? flag : (flag.code ?? '')
+    return ['bad_data', 'wrong_icp', 'duplicate', 'competitor'].includes(code)
+  }) ? 20 : 0
 
   return score
     + (followUp ? 25 : 0)
@@ -123,6 +126,16 @@ function priorityFor(input: RoadTripLeadInput, hasPhone: boolean, hasInstagram: 
     + (hasInstagram ? 8 : 0)
     + (hasWebsite ? 5 : 0)
     - redFlagPenalty
+}
+
+export function isRoadTripEligibleLead(input: RoadTripLeadInput): boolean {
+  const status = input.status?.trim().toLowerCase() ?? ''
+  if (status === 'lost' || status === 'disqualified') return false
+
+  return !(input.red_flags ?? []).some((flag) => {
+    const code = typeof flag === 'string' ? flag : (flag.code ?? '')
+    return ['wrong_icp', 'competitor', 'duplicate'].includes(code)
+  })
 }
 
 export function buildRoadTripLead(input: RoadTripLeadInput): RoadTripLead {

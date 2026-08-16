@@ -6,6 +6,7 @@ import {
   buildRoadTripLead,
   cityFromLocation,
   filterRoadTripLeads,
+  isRoadTripEligibleLead,
   summarizeRoadTripCity,
 } from './model'
 
@@ -36,6 +37,13 @@ test('road-trip cities preserve Gregory’s route order', () => {
     ROAD_TRIP_CITIES.map((city) => city.slug),
     ['dallas', 'austin', 'houston', 'jacksonville', 'orlando', 'tampa', 'miami'],
   )
+})
+
+test('road-trip eligibility excludes disqualified and wrong-ICP records in both red-flag shapes', () => {
+  assert.equal(isRoadTripEligibleLead(baseLead), true)
+  assert.equal(isRoadTripEligibleLead({ ...baseLead, status: 'disqualified' }), false)
+  assert.equal(isRoadTripEligibleLead({ ...baseLead, red_flags: ['wrong_icp'] }), false)
+  assert.equal(isRoadTripEligibleLead({ ...baseLead, red_flags: [{ code: 'wrong_icp', reason: 'Auto wrap shop' }] }), false)
 })
 
 test('city matching is case-insensitive and supports metro labels', () => {
