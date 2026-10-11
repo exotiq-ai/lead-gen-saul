@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { UserPlus, Flag } from '@phosphor-icons/react'
 
@@ -35,6 +36,8 @@ interface LeadHeaderProps {
 
 export function LeadHeader({ lead, stageName, isAssignedToGregory }: LeadHeaderProps) {
   const [showFlagMenu, setShowFlagMenu] = useState(false)
+  const intelligence = (lead.score_breakdown as unknown as Record<string, unknown> | null)?.road_trip_2026
+  const hasTripResearch = Boolean(intelligence && typeof intelligence === 'object' && 'trip_id' in intelligence && intelligence.trip_id === 'denver-miami-2026')
 
   return (
     <div
@@ -78,6 +81,7 @@ export function LeadHeader({ lead, stageName, isAssignedToGregory }: LeadHeaderP
 
         {/* Action buttons */}
         <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          {hasTripResearch && <Link href={`/dashboard/road-trip/denver-miami#lead-${lead.id}`} className="inline-flex min-h-11 items-center rounded-lg border border-[var(--color-saul-border-strong)] px-3 text-sm font-semibold text-[var(--color-saul-cyan)]">Road-trip research</Link>}
           {!isAssignedToGregory && (
             <button
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] text-sm font-medium transition-colors duration-150 cursor-pointer"

@@ -56,7 +56,7 @@ export function Sidebar() {
 
   const withTenant = (href: string) =>
     href === '/dashboard/road-trip'
-      ? href
+      ? '/dashboard/road-trip/denver-miami'
       : tenantSlug ? `${href}${href.includes('?') ? '&' : '?'}tenant=${tenantSlug}` : href
 
   const { data: outreachMeta } = useSWR(

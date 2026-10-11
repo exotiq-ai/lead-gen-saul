@@ -12,5 +12,5 @@ test('road-trip navigation carries only city state and never adds tenant paramet
   ])
 
   assert.doesNotMatch(client, /tenant=/)
-  assert.match(sidebar, /href === '\/dashboard\/road-trip'[\s\S]{0,40}\? href/)
+  assert.match(sidebar, /href === '\/dashboard\/road-trip'[\s\S]{0,40}\? '\/dashboard\/road-trip\/denver-miami'/)
 })
