@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CaretDown, Check } from '@phosphor-icons/react'
 import { useDashboardStore } from '@/stores/dashboardStore'
@@ -12,17 +12,19 @@ export function TenantSelector() {
   const { setActiveTenantId } = useDashboardStore()
   const currentTenantId = useTenantId()
   const tenants = useTenants()
-  const router = useRouter()
+
   const pathname = usePathname()
 
-  const active = tenants.find((t) => t.id === currentTenantId) ?? tenants[0]
+  const active = tenants.find((t) => t.id === currentTenantId)
 
   function select(id: string) {
     setActiveTenantId(id) // store UUID directly
     setOpen(false)
     const tenant = tenants.find((t) => t.id === id)
     if (tenant) {
-      router.push(`${pathname}?tenant=${tenant.slug}`)
+      // A workspace change resets tenant-scoped client caches, just like the
+      // header's ordinary link. Do not retain the previous tenant's route tree.
+      window.location.assign(`${pathname}?tenant=${encodeURIComponent(tenant.slug)}`)
     }
   }
 
@@ -35,14 +37,14 @@ export function TenantSelector() {
         aria-haspopup="listbox"
       >
         <span className="flex items-center justify-center w-7 h-7 rounded-[4px] bg-[color-mix(in_srgb,var(--color-saul-cyan)_12%,transparent)] text-sm">
-          {active.icon}
+          {active?.icon ?? '🏢'}
         </span>
         <span className="flex flex-col items-start flex-1 min-w-0">
           <span className="text-[11px] text-[var(--color-saul-text-secondary)] font-medium leading-none mb-0.5">
             Tenant
           </span>
           <span className="text-[13px] text-[var(--color-saul-text-primary)] font-semibold truncate w-full text-left leading-none">
-            {active.name}
+            {active?.name ?? 'Select tenant'}
           </span>
         </span>
         <motion.span
@@ -79,7 +81,7 @@ export function TenantSelector() {
               </div>
               <div className="pb-1.5 px-1.5 flex flex-col gap-0.5">
                 {tenants.map((t) => {
-                  const isActive = t.id === active.id
+                  const isActive = t.id === active?.id
                   return (
                     <button
                       key={t.id}

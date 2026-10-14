@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import useSWR from 'swr'
 import {
@@ -21,7 +21,7 @@ import {
 } from '@phosphor-icons/react'
 import { TenantSelector } from './TenantSelector'
 import { useSidebarStore } from '@/stores/sidebarStore'
-import { useTenantId, TENANT_UUID_TO_SLUG } from '@/lib/hooks/useTenant'
+import { useTenantId, useTenantSlug } from '@/lib/hooks/useTenant'
 
 interface NavItem {
   label: string
@@ -50,9 +50,8 @@ const outreachFetcher = (url: string) =>
 
 export function Sidebar() {
   const pathname = usePathname()
-  const searchParams = useSearchParams()
   const tenantId = useTenantId()
-  const tenantSlug = searchParams.get('tenant') ?? TENANT_UUID_TO_SLUG[tenantId] ?? null
+  const tenantSlug = useTenantSlug()
 
   const withTenant = (href: string) =>
     href === '/dashboard/road-trip'
