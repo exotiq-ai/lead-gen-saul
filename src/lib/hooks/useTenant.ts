@@ -3,14 +3,14 @@
 import { useSearchParams } from 'next/navigation'
 import useSWR from 'swr'
 import { useDashboardStore } from '@/stores/dashboardStore'
-import { TENANTS, findTenant, resolveTenantId, type Tenant } from '@/lib/tenants/catalog'
+import { TENANTS, findTenant, resolveTenantId, parseTenantCatalog, type Tenant } from '@/lib/tenants/catalog'
 
 export { TENANTS, TENANT_SLUG_TO_UUID, TENANT_UUID_TO_SLUG, type Tenant } from '@/lib/tenants/catalog'
 
 const tenantsFetcher = (url: string) =>
   fetch(url).then((r) => {
     if (!r.ok) throw new Error('Failed to load tenants')
-    return r.json() as Promise<{ tenants: Tenant[] }>
+    return r.json().then(parseTenantCatalog)
   })
 
 /** Shared live catalog for both selectors, with all seeded tenants available

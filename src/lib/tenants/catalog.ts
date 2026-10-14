@@ -14,6 +14,26 @@ export const TENANT_UUID_TO_SLUG: Record<string, string> = Object.fromEntries(
   TENANTS.map(t => [t.id, t.slug]),
 )
 
+/** Reject corrupt/empty metadata so SWR retains the last good catalog or seeds.
+ * This catalog is display/routing metadata, not an authorization grant. */
+export function parseTenantCatalog(payload: unknown): { tenants: Tenant[] } {
+  const entries = payload && typeof payload === 'object' && 'tenants' in payload ? payload.tenants : null
+  if (!Array.isArray(entries) || !entries.length) throw new Error('Invalid tenant catalog')
+  const ids = new Set<string>()
+  const slugs = new Set<string>()
+  for (const tenant of entries) {
+    if (!tenant || typeof tenant !== 'object'
+      || typeof tenant.id !== 'string' || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(tenant.id)
+      || typeof tenant.slug !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(tenant.slug)
+      || typeof tenant.name !== 'string' || !tenant.name.trim()
+      || typeof tenant.icon !== 'string' || !tenant.icon.trim()
+      || ids.has(tenant.id) || slugs.has(tenant.slug)) throw new Error('Invalid tenant catalog')
+    ids.add(tenant.id)
+    slugs.add(tenant.slug)
+  }
+  return { tenants: entries as Tenant[] }
+}
+
 export function findTenant(value: string | null, tenants: Tenant[]): Tenant | undefined {
   return tenants.find(t => t.slug === value || t.id === value)
 }

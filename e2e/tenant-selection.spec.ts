@@ -57,6 +57,35 @@ test('unknown URL shows a tenant selection state instead of Exotiq data', async 
   await expect(page.getByText('Exotiq fixture', { exact: true })).toHaveCount(0)
 })
 
+test('explicit empty tenant stays unselected despite a saved Ask Saul workspace', async ({ page }) => {
+  const requests = await setup(page)
+  await page.addInitScript(() => localStorage.setItem('saul-dashboard', JSON.stringify({ state: { activeTenantId: '22222222-2222-2222-2222-222222222222' }, version: 0 })))
+  await page.goto('/dashboard/leads?tenant=', { waitUntil: 'networkidle' })
+  await expect(page.getByRole('main').getByRole('button', { name: /Select tenant/ })).toBeVisible()
+  await expect(page).toHaveURL(/tenant=$/)
+  expect(requests).not.toContain(ASK_SAUL)
+  expect(requests).not.toContain(EXOTIQ)
+})
+
+for (const [label, payload] of [
+  ['empty', { tenants: [] }],
+  ['null entry', { tenants: [null] }],
+  ['non-array', { tenants: 'bad catalog' }],
+] as const) {
+  test(`${label} catalog recovers with the seeded Ask Saul workspace`, async ({ page }) => {
+    const requests = await setup(page)
+    const errors: string[] = []
+    page.on('pageerror', error => errors.push(error.message))
+    await page.route('**/api/tenants', route => route.fulfill({ json: payload }))
+    await page.goto('/dashboard/leads?tenant=ask-saul', { waitUntil: 'networkidle' })
+    await expect(page.getByRole('main').getByRole('button', { name: /Ask Saul/ })).toBeVisible()
+    await expect(page.getByText('Ask Saul service-business fixture', { exact: true })).toBeVisible()
+    expect(errors).toEqual([])
+    expect(requests.length).toBeGreaterThan(0)
+    expect(requests.every(id => id === ASK_SAUL)).toBe(true)
+  })
+}
+
 // Local fixture coverage only. No leads, CRM records or sends are changed.
 test('top dropdown includes Ask Saul and switches leads to its UUID', async ({ page }) => {
   const requests = await setup(page)

@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { TENANTS, resolveTenantId, UNRESOLVED_TENANT_ID } from './catalog'
+import { TENANTS, resolveTenantId, UNRESOLVED_TENANT_ID, parseTenantCatalog } from './catalog'
+
+test('catalog validation accepts the live seeded shape and rejects corrupt metadata', () => {
+  assert.deepEqual(parseTenantCatalog({ tenants: TENANTS }), { tenants: TENANTS })
+  for (const payload of [null, {}, { tenants: [] }, { tenants: 'bad' }, { tenants: [null] }, { tenants: [{}] }, { tenants: [TENANTS[0], TENANTS[0]] }, { tenants: [{ ...TENANTS[0], slug: 'bad&tenant=exotiq' }] }]) {
+    assert.throws(() => parseTenantCatalog(payload), /Invalid tenant catalog/)
+  }
+})
 
 for (const tenant of TENANTS) {
   for (const value of [tenant.slug, tenant.id]) {

@@ -24,8 +24,9 @@ export function TenantGuard() {
   useEffect(() => {
     const urlTenant = searchParams.get('tenant')
 
-    // If URL already has ?tenant= we're good
-    if (urlTenant) return
+    // Explicit selections (including an empty/invalid value) belong to the
+    // resolver. Only an absent parameter may inherit the saved workspace.
+    if (urlTenant !== null) return
 
     // Resolve which slug to inject from Zustand store
     let slug: string | null = null
