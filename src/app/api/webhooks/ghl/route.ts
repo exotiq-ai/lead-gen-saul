@@ -8,6 +8,7 @@ import {
   verifyGhlWebhookSignature,
   type CanonicalGhlEventType,
 } from '@/lib/ghl/events'
+import { buildLocationTenantMap, describeQuarantineReason } from '@/lib/ghl/webhookTenant'
 import { exitActiveSequences } from '@/lib/outreach/sequenceExit'
 
 export const runtime = 'nodejs'
@@ -87,7 +88,9 @@ async function processGhlPayload(payload: Record<string, unknown>) {
     return quarantineEvent(supabase, tenantId, providerEventId, canonicalType, payload, 'missing_expected_location', providerMessageId)
   }
   if (!identity.locationId || identity.locationId !== expectedLocation) {
-    return quarantineEvent(supabase, tenantId, providerEventId, canonicalType, payload, 'wrong_or_missing_location', providerMessageId)
+    const locationMap = buildLocationTenantMap(process.env)
+    const reason = describeQuarantineReason(identity.locationId, locationMap)
+    return quarantineEvent(supabase, tenantId, providerEventId, canonicalType, payload, reason, providerMessageId)
   }
 
   const { data: existing } = await supabase
