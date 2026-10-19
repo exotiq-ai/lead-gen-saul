@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import { fetchPipelineDetail } from '@/app/api/dashboard/pipeline-detail/route'
+import { fetchPipelineDetail } from '@/lib/dashboard/pipelineDetail'
 import { PipelinePageClient } from './PipelinePageClient'
 
 export const metadata = {

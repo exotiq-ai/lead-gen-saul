@@ -39,7 +39,7 @@ export function sequenceActionPayload(step: ExotiqSequenceStep, context: Sequenc
   if (step.key === 'call_1') {
     return {
       title: `${context.mode === 'demo' ? '[DEMO] ' : ''}Call ${company}`,
-      body: `Call ${name} at ${company}. Review the approved personalization and ask whether it is worth comparing notes for 15 minutes.${context.phone ? ` Phone: ${context.phone}` : ' Verify a callable number first.'}`,
+      body: `Call ${name} at ${company}. Review the approved personalization, lead with the Drive Exotiq launch, and ask directly for a 15-minute conversation.${context.phone ? ` Phone: ${context.phone}` : ' Verify a callable number first.'}`,
     }
   }
   if (step.key === 'instagram_1') {
@@ -50,18 +50,18 @@ export function sequenceActionPayload(step: ExotiqSequenceStep, context: Sequenc
   }
   if (step.key === 'email_2') {
     return {
-      subject: `${company} booking workflow`,
-      text: `Hey ${name},\n\nOne reason I followed up: exotic rental demand often moves faster than the systems behind it. The expensive gap is usually between the first inquiry and a paid, verified booking with the right car, rate, deposit, and handoff confirmed.\n\nThat is the operator workflow Exotiq is built around. Worth comparing notes for 15 minutes?`,
+      subject: `The operation behind Drive Exotiq`,
+      text: `Hey ${name},\n\nDrive Exotiq is more than another place to list your cars. The renter-facing platform connects to the Exotiq Command Center, so pricing, bookings and day-to-day fleet operations stay together. One connected system, not another silo.\n\nDo you have 15 minutes this week to discuss how this could fit ${company}?\n\nGregory`,
     }
   }
   if (step.key === 'email_3') {
     return {
-      subject: `Quick operator question`,
-      text: `Hey ${name},\n\nI will keep this short. If pricing, availability, deposits, agreements, and follow-up are already clean at ${company}, there may not be much to fix.\n\nIf one of those still depends heavily on you or scattered tools, I can show you how Exotiq approaches it in 15 minutes.`,
+      subject: `Cars, fleets and Drive Exotiq`,
+      text: `Hey ${name},\n\nThe cars are why I’m in this business. Building a better way to rent them and run the fleet is why I built Exotiq.\n\nWith Drive Exotiq launched, I’m bringing select luxury and exotic rental fleets onto the platform. I’d enjoy comparing notes on what you’re building at ${company}.\n\nCould we connect for 15 minutes next week?\n\nGregory`,
     }
   }
   return {
-    subject: `Closing the loop`,
-    text: `Hey ${name},\n\nI have not heard back, so I will close the loop here. I reached out because ${company} looked like the kind of operator Exotiq was built to support.\n\nIf tightening the path from inquiry to paid, verified booking becomes a priority, reply anytime and I will send the short version.`,
+    subject: `Drive Exotiq + ${company}`,
+    text: `Hey ${name},\n\nI’ll leave it here. Drive Exotiq is live for luxury and exotic rentals, with the Exotiq Command Center connecting the rental operation behind it.\n\nIf you’d like to revisit onboarding ${company}, reply here and we can arrange a short call.\n\nGregory`,
   }
 }

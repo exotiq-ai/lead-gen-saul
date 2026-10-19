@@ -41,7 +41,7 @@ export function OutreachPageClient() {
   const [bulkBusy, setBulkBusy] = useState(false)
 
   const { data, error, isLoading, mutate } = useSWR(
-    `/api/outreach/queue?tenant_id=${tenantId}&status=${tab}&limit=500`,
+    `/api/outreach/queue?tenant_id=${tenantId}&status=${tab}&limit=1000`,
     fetcher,
     { revalidateOnFocus: true, refreshInterval: 15_000 },
   )
@@ -166,7 +166,7 @@ export function OutreachPageClient() {
           </div>
         </div>
         <p className="text-[14px] text-[var(--color-saul-text-secondary)] max-w-2xl">
-          Approved drafts are ready for Gregory review, edits, copy/paste, and controlled send/logging. Pending is mostly empty for Exotiq because generated drafts now auto-approve but never auto-send.
+          New and refreshed copy is in Pending for Gregory review. Check the lead’s research and relationship notes before approving. Drafted or approved does not mean sent.
         </p>
         <div className="mt-4 flex items-center gap-2 text-[12px] text-[var(--color-saul-text-secondary)]">
           <ChatCircle size={16} />

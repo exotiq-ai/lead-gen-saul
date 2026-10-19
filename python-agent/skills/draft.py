@@ -29,43 +29,49 @@ MEDSPA_TENANT_ID = "11111111-1111-1111-1111-111111111111"
 # Exotiq (automotive) templates
 TEMPLATES = {
     "tier1_proof": {
-        "name": "IG DM -- Premium Recent Content + Control (Score 80+)",
+        "name": "IG DM -- Founder Launch + Operator Proof (Score 80+)",
         "channel": "instagram_dm",
-        "body": """Hey {first_name}, Gregory Ringler here. I run Exotiq.
+        "body": """Hey {first_name},
+
+I’m Gregory, founder of Exotiq. We’ve launched Drive Exotiq exclusively for luxury and exotic car rentals, and we’re onboarding select fleets in key cities.
 
 {personalization_hook}
 
-At your scale, the hard part usually is not getting attention. It is keeping quote, availability, renter check, deposit, and handoff tight without making the customer experience feel ordinary.
+The Exotiq Command Center runs the rental backend, from dynamic pricing to bookings and fleet operations. One connected system, not a stack of separate tools.
 
-That is where Exotiq fits. One command center for pricing, bookings, compliance, and guest comms, with Rari handling the admin that steals nights and weekends.
+Ed at Revel + Roam put it simply after switching: “The operational gains were immediate.”
 
-Worth comparing notes for 15 minutes?""",
+Do you have 15 minutes this week to talk about bringing {company_name} onto the platform?""",
     },
     "peer_intro": {
-        "name": "IG DM -- Fast Market Recent Content + Paid Booking Gap (Score 60-79)",
+        "name": "IG DM -- Founder Launch + Connected Backend (Score 60-79)",
         "channel": "instagram_dm",
-        "body": """Hey {first_name}, Gregory Ringler here. I run Exotiq.
+        "body": """Hey {first_name},
+
+I’m Gregory, founder of Exotiq. We’ve launched Drive Exotiq, our renter-facing platform exclusively for luxury and exotic rentals. We’re onboarding select fleets in key cities.
 
 {personalization_hook}
 
-Renters in your market move fast, but a premium operator can’t treat every inquiry like a generic quote. The money is usually made or lost between “what do you have this weekend?” and a paid, verified booking.
+The Exotiq Command Center connects the rental backend, including dynamic pricing, bookings and fleet operations, in one system.
 
-Exotiq gives exotic operators one command center for pricing, availability, deposits, docs, follow-up, and Rari-assisted guest comms.
+Operators on Exotiq are already saving time and growing revenue with smarter pricing and less manual admin.
 
-Worth a quick look this week?""",
+Do you have 15 minutes this week to talk about {company_name} joining the platform?""",
     },
     "visual_fleet": {
-        "name": "IG DM -- Regional Recent Content + Clean Handoff (Score 55-59)",
+        "name": "IG DM -- Founder Launch + Fleet Fit (Score 55-59)",
         "channel": "instagram_dm",
-        "body": """Hey {first_name}, Gregory Ringler here. I run Exotiq.
+        "body": """Hey {first_name},
+
+I’m Gregory, founder of Exotiq. We’ve launched Drive Exotiq for luxury and exotic car rentals, and we’re inviting select fleets to join.
 
 {personalization_hook}
 
-For operators growing past the early stage, a missed handoff can cost more than a missed lead. The gap is usually between someone asking what is available and a paid, verified booking with the details handled cleanly.
+Drive Exotiq connects the renter experience to the Exotiq Command Center, the backend for pricing, bookings and day-to-day fleet operations.
 
-That is what Exotiq is built around: one cleaner path from inquiry to renter check, deposit, agreement, and handoff.
+Operators on Exotiq are already saving time and growing revenue with smarter pricing and less manual admin.
 
-Worth comparing notes for 15 minutes?""",
+Could we connect for 15 minutes this week to discuss whether it fits {company_name}?""",
     },
 }
 
@@ -144,48 +150,52 @@ def _first_text(*values: Any) -> str | None:
 
 
 def _personalization_hook(lead: dict) -> str:
-    """Use the newest content/business context captured by enrichment.
+    """Use dated, sourced, high-confidence context or omit the optional hook.
 
-    Preference order: latest IG post, recent news/PR, then a safe company-specific
-    fallback. This keeps outreach engaged without inventing compliments.
+    A fetch timestamp is not a publication date. Missing research must not become
+    a fabricated diagnosis, generic compliment or a search-query-shaped market.
     """
     breakdown = lead.get("score_breakdown") or {}
     metadata = lead.get("metadata") or {}
-    latest_ig = _first_text(
-        breakdown.get("latest_instagram_post_summary"),
-        metadata.get("latest_instagram_post_summary"),
-        breakdown.get("recent_ig_post"),
-        metadata.get("recent_ig_post"),
-    )
-    if latest_ig:
-        return f"Saw the recent post about {latest_ig}. It reads like you are already selling the experience, not just renting cars."
+    for prefix in ("latest_instagram_post", "latest_brand_partnership", "latest_news_pr"):
+        summary = _first_text(breakdown.get(prefix + "_summary"), metadata.get(prefix + "_summary"))
+        source = _first_text(breakdown.get(prefix + "_url"), metadata.get(prefix + "_url"))
+        published = _first_text(breakdown.get(prefix + "_published_at"), metadata.get(prefix + "_published_at"))
+        confidence = _first_text(breakdown.get(prefix + "_confidence"), metadata.get(prefix + "_confidence")) or ""
+        if not summary or len(summary) > 180 or not source or not source.startswith("https://"):
+            continue
+        if not published or not confidence.upper().startswith(("HIGH", "CONFIRMED")):
+            continue
+        try:
+            date = datetime.fromisoformat(published.replace("Z", "+00:00"))
+            if date.tzinfo is None:
+                date = date.replace(tzinfo=timezone.utc)
+            age = (datetime.now(timezone.utc) - date).total_seconds() / 86400
+        except (ValueError, TypeError):
+            continue
+        if 0 <= age <= 90:
+            return f"I saw your recent update about {summary.rstrip('.')}. That is why I wanted to connect."
+    return ""
 
-    partnership = _first_text(
-        breakdown.get("latest_brand_partnership_summary"),
-        metadata.get("latest_brand_partnership_summary"),
-    )
-    if partnership:
-        return f"I saw the recent partnership/event mention about {partnership}. That kind of visibility makes the booking handoff matter even more."
 
-    news = _first_text(
-        breakdown.get("latest_news_pr_summary"),
-        metadata.get("latest_news_pr_summary"),
-        breakdown.get("recent_news_pr"),
-        metadata.get("recent_news_pr"),
-    )
-    if news:
-        return f"I saw the recent mention about {news}. That kind of visibility makes the booking handoff matter even more."
+def _exotiq_drafting_hold(lead: dict) -> bool:
+    if lead.get("converted_at") or lead.get("stage_id") == "f9e0488f-fbd4-49a0-97cf-094aa74b80db":
+        return True
+    if lead.get("status") in {"converted", "engaged", "qualified", "lost", "disqualified"}:
+        return True
+    breakdown = lead.get("score_breakdown") or {}
+    if not isinstance(breakdown, dict):
+        return True
+    if breakdown.get("uk_lead") or str(breakdown.get("country_code", "US")).upper() not in {"US", "USA", "UNITED STATES"}:
+        return True
+    review = breakdown.get("launch_copy_review") or {}
+    if not isinstance(review, dict):
+        return True
+    return bool(review.get("review_holds") or (review.get("lane") and review["lane"] != "cold"))
 
-    business_observation = _first_text(
-        breakdown.get("latest_business_observation_summary"),
-        metadata.get("latest_business_observation_summary"),
-    )
-    if business_observation:
-        return f"I was looking at {lead.get('company_name') or 'your operation'} and noticed {business_observation}. My read is that the opportunity is tightening the path from interest to a paid, verified booking."
 
-    company = lead.get("company_name") or "your operation"
-    location = lead.get("company_location") or "your market"
-    return f"I was looking at {company} in {location}. My read is that the opportunity is tightening the path from interest to a paid, verified booking."
+def _automatic_review_allowed(tenant_id: str) -> bool:
+    return tenant_id != DEFAULT_TENANT_ID and OUTREACH_AUTO_APPROVE
 
 
 def _interpolate(body: str, lead: dict) -> str:
@@ -257,7 +267,7 @@ def draft_outreach(
 
     # Leads that are scored and above threshold
     resp = db.table("leads")\
-        .select("id, first_name, last_name, company_name, score, company_location, company_industry, score_breakdown, metadata")\
+        .select("id, first_name, last_name, company_name, score, company_location, company_industry, score_breakdown, status, converted_at, stage_id")\
         .eq("tenant_id", tenant_id)\
         .eq("status", "scored")\
         .gte("score", OUTREACH_SCORE_THRESHOLD)\
@@ -268,10 +278,14 @@ def draft_outreach(
 
     drafted = 0
     skipped_existing = 0
+    skipped_review_hold = 0
     used_db = 0
     used_fallback = 0
 
     for lead in candidates:
+        if tenant_id == DEFAULT_TENANT_ID and _exotiq_drafting_hold(lead):
+            skipped_review_hold += 1
+            continue
         # Check if a pending draft already exists
         existing = db.table("outreach_queue")\
             .select("id")\
@@ -304,7 +318,8 @@ def draft_outreach(
             draft_body = _interpolate(fb["body"], lead)
             used_fallback += 1
 
-        status = "approved" if OUTREACH_AUTO_APPROVE else "pending"
+        auto_review = _automatic_review_allowed(tenant_id)
+        status = "approved" if auto_review else "pending"
         insert_row = {
             "tenant_id": tenant_id,
             "lead_id": lead["id"],
@@ -315,7 +330,7 @@ def draft_outreach(
             "created_at": now,
             "updated_at": now,
         }
-        if OUTREACH_AUTO_APPROVE:
+        if auto_review:
             insert_row["reviewed_by"] = "gregory"
             insert_row["approved_at"] = now
 
@@ -333,6 +348,7 @@ def draft_outreach(
         "candidates": len(candidates),
         "drafted": drafted,
         "skipped_existing_draft": skipped_existing,
+        "skipped_review_hold": skipped_review_hold,
         "used_db_templates": used_db,
         "used_fallback_templates": used_fallback,
         "leads_processed": drafted,

@@ -1,5 +1,17 @@
 # Exotiq outreach copy SOP: operators and investors
 
+## Current operator campaign override: October 19, 2026
+
+Gregory approved launch-led drafting. This supersedes the older pain-first and prelaunch examples below for operator outreach, not investor copy. Lead with Gregory's founder identity and the launched Drive Exotiq renter platform, exclusively for luxury/exotic rentals, then select-fleet onboarding, the connected Exotiq Command Center rental backend, one credible proof point, and one direct 15-minute ask. For a general inbox, ask to be connected with the founder/owner instead of stacking asks.
+
+Retire “expensive leak/gap,” “tightening the path” and “Worth…” default CTAs. Keep emails short and personal. Use real, sourced fleet relevance without invented pain, familiarity, ownership counts or recent-post claims. Founder-reported qualitative time/revenue outcomes are approved for this draft direction; no percentage lift or realized renter-app revenue attribution is established by that approval. Ed at Revel + Roam's approved public quote is “The operational gains were immediate.” Use one proof point, not stacked claims.
+
+Drafting is not sending. Refreshed queue copy is pending human review. Preserve customer, prior-conversation, reported-send, decline, duplicate, country and research holds. Internal cautions stay outside recipient text. No scores or tier rules are changed by this copy update. Verify the intended renter destination before adding links; public pages may still carry prelaunch/demo wording.
+
+Current format: founder + launch → category/selective onboarding → connected backend → one proof point → direct call ask. Warm follow-ups use actual relationship notes rather than reintroducing Gregory as a stranger. Never characterize a manager or reviewer-mentioned person as the owner without evidence.
+
+Historical material follows for reference; its dated claims are not renewed approval.
+
 Updated: 2026-06-23
 Owner: Gregory Ringler / Avi
 Purpose: write truthful, tight Exotiq outbound copy for two separate audiences: exotic/luxury rental operators and investors. Do not blend the two.

@@ -11,50 +11,50 @@ db = create_client(url, key)
 steps = [
     {
         "variant": "premium_recent_content_to_control",
-        "label": "IG DM -- Premium Recent Content + Control",
+        "label": "IG DM -- Founder Launch + Operator Proof",
         "channel": "instagram_dm",
         "score_min": 80,
         "score_max": 100,
-        "body": "Hey {first_name}, Gregory Ringler here. I run Exotiq.\n\n{personalization_hook}\n\nAt your scale, the hard part usually is not getting attention. It is keeping quote, availability, renter check, deposit, and handoff tight without making the customer experience feel ordinary.\n\nThat is where Exotiq fits. One command center for pricing, bookings, compliance, and guest comms, with Rari handling the admin that steals nights and weekends.\n\nWorth comparing notes for 15 minutes?",
+        "body": "Hey {first_name},\n\nI’m Gregory, founder of Exotiq. We’ve launched Drive Exotiq exclusively for luxury and exotic car rentals, and we’re onboarding select fleets in key cities.\n\n{personalization_hook}\n\nThe Exotiq Command Center runs the rental backend, from dynamic pricing to bookings and fleet operations. One connected system, not a stack of separate tools.\n\nEd at Revel + Roam put it simply after switching: “The operational gains were immediate.”\n\nDo you have 15 minutes this week to talk about bringing {company_name} onto the platform?",
     },
     {
         "variant": "fast_market_recent_content_to_paid_booking",
-        "label": "IG DM -- Fast Market Recent Content + Paid Booking Gap",
+        "label": "IG DM -- Founder Launch + Connected Backend",
         "channel": "instagram_dm",
         "score_min": 60,
         "score_max": 79,
-        "body": "Hey {first_name}, Gregory Ringler here. I run Exotiq.\n\n{personalization_hook}\n\nRenters in your market move fast, but a premium operator can’t treat every inquiry like a generic quote. The money is usually made or lost between “what do you have this weekend?” and a paid, verified booking.\n\nExotiq gives exotic operators one command center for pricing, availability, deposits, docs, follow-up, and Rari-assisted guest comms.\n\nWorth a quick look this week?",
+        "body": "Hey {first_name},\n\nI’m Gregory, founder of Exotiq. We’ve launched Drive Exotiq, our renter-facing platform exclusively for luxury and exotic rentals. We’re onboarding select fleets in key cities.\n\n{personalization_hook}\n\nThe Exotiq Command Center connects the rental backend, including dynamic pricing, bookings and fleet operations, in one system.\n\nOperators on Exotiq are already saving time and growing revenue with smarter pricing and less manual admin.\n\nDo you have 15 minutes this week to talk about {company_name} joining the platform?",
     },
     {
         "variant": "regional_recent_content_to_clean_handoff",
-        "label": "IG DM -- Regional Recent Content + Clean Handoff",
+        "label": "IG DM -- Founder Launch + Fleet Fit",
         "channel": "instagram_dm",
         "score_min": 40,
         "score_max": 59,
-        "body": "Hey {first_name}, Gregory Ringler here. I run Exotiq.\n\n{personalization_hook}\n\nFor operators growing past the early stage, a missed handoff can cost more than a missed lead. The gap is usually between someone asking what is available and a paid, verified booking with the details handled cleanly.\n\nThat is what Exotiq is built around: one cleaner path from inquiry to renter check, deposit, agreement, and handoff.\n\nWorth comparing notes for 15 minutes?",
+        "body": "Hey {first_name},\n\nI’m Gregory, founder of Exotiq. We’ve launched Drive Exotiq for luxury and exotic car rentals, and we’re inviting select fleets to join.\n\n{personalization_hook}\n\nDrive Exotiq connects the renter experience to the Exotiq Command Center, the backend for pricing, bookings and day-to-day fleet operations.\n\nOperators on Exotiq are already saving time and growing revenue with smarter pricing and less manual admin.\n\nCould we connect for 15 minutes this week to discuss whether it fits {company_name}?",
     },
 ]
 
 description = (
-    'Customer-facing, founder-to-operator outreach. Lead with a specific recent-content/business hook, '
-    'then one money leak. No CRM shorthand, no fleet-signal language, no feature stuffing.'
+    'Founder launch-led invitation: Drive Exotiq luxury/exotic renter platform, select fleet onboarding, '
+    'connected Exotiq Command Center backend, one supported proof point and a direct call ask. '
+    'Only sourced personalization; review claims, relationship and qualification before release. No sending authorization.'
 )
 
-# Upsert by slug-like row. Update exotiq-default if present, else insert.
 resp = db.table('outreach_sequences').select('id').eq('tenant_id', TENANT_ID).eq('slug', 'exotiq-default').limit(1).execute()
 if resp.data:
     db.table('outreach_sequences').update({
-        'name': 'Exotiq Automotive -- Recent-Context Operator Outreach',
+        'name': 'Exotiq Automotive -- Founder Launch Outreach',
         'description': description,
         'steps': steps,
         'is_active': True,
-    }).eq('id', resp.data[0]['id']).execute()
+    }).eq('tenant_id', TENANT_ID).eq('id', resp.data[0]['id']).execute()
     print('updated exotiq-default')
 else:
     db.table('outreach_sequences').insert({
         'tenant_id': TENANT_ID,
         'slug': 'exotiq-default',
-        'name': 'Exotiq Automotive -- Recent-Context Operator Outreach',
+        'name': 'Exotiq Automotive -- Founder Launch Outreach',
         'description': description,
         'is_active': True,
         'steps': steps,

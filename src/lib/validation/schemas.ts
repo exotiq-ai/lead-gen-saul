@@ -119,7 +119,7 @@ export const outreachQueueQuerySchema = z.object({
     .preprocess((v) => (v === undefined || v === null || v === '' ? 'pending' : v), outreachStatus)
     .default('pending'),
   limit: z
-    .preprocess((v) => (v === undefined || v === null || v === '' ? 100 : v), z.coerce.number().int().min(1).max(500))
+    .preprocess((v) => (v === undefined || v === null || v === '' ? 100 : v), z.coerce.number().int().min(1).max(1000))
     .default(100),
 })
 
