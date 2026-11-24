@@ -7,7 +7,7 @@
 
 ## First use
 1. Administrator adds each rep's approved email and display name in Team Access. This does not send an invitation.
-2. Rep opens `/login?next=/sales`, requests a short-lived link, and uses their own email account. No shared logins or Supabase access.
+2. Rep opens `/login?next=/sales`, requests a short-lived link, and uses their own email account. No shared logins or Supabase access. Public signup remains disabled: only an active, admin-approved member can have an unconfirmed auth account prepared at this request. The rep still has to prove email ownership through the link; adding a member does not send an invitation.
 3. Rep submits business name plus at least one email, phone or website. Contact name and relationship notes are optional.
 4. The server records submitter/team/time, checks current accounts and submissions, and creates a pending receipt. Submission is not acceptance.
 5. Administrator reviews the source and identity, chooses an existing match where appropriate, and records an accept/decline reason. Decision notes are visible to the submitting rep.
