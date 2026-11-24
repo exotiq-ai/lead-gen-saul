@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { isAllowedDashboardAdmin, resolvePublicOrigin, safeRedirectPath } from '@/lib/auth/policy'
 import { createRouteAuthClient } from '@/lib/auth/server'
 import { activeSalesMember } from '@/lib/sales/auth'
+import { createServerClient as createAdminClient } from '@/lib/supabase/server'
+import { prepareApprovedAuthUser } from '@/lib/auth/approved-user'
 
 export const runtime = 'nodejs'
 
@@ -13,7 +15,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const email = (body.email || '').trim().toLowerCase()
+  const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
   const admin = isAllowedDashboardAdmin(email)
   const member = admin ? null : await activeSalesMember(email)
   if (!admin && !member) {
@@ -24,6 +26,14 @@ export async function POST(req: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
   if (!url || !key) return NextResponse.json({ error: 'Auth is not configured' }, { status: 503 })
+
+  if (member) {
+    try {
+      await prepareApprovedAuthUser(member.email, true, (input) => createAdminClient().auth.admin.createUser(input))
+    } catch {
+      return NextResponse.json({ error: 'Approved login could not be prepared. Please retry or contact your administrator.' }, { status: 503 })
+    }
+  }
 
   const response = NextResponse.json({ sent: true })
   const supabase = createRouteAuthClient(req, response)
@@ -37,7 +47,7 @@ export async function POST(req: NextRequest) {
   callback.searchParams.set('next', admin ? safeRedirectPath(body.next) : '/sales')
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: { shouldCreateUser: Boolean(member), emailRedirectTo: callback.toString() },
+    options: { shouldCreateUser: false, emailRedirectTo: callback.toString() },
   })
   if (error) return NextResponse.json({ error: 'Login email could not be sent' }, { status: 502 })
   return response
