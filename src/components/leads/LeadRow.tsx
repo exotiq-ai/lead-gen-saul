@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { motion, type Easing } from 'framer-motion'
 import { ArrowRight } from '@phosphor-icons/react'
 import { Tooltip } from '@/components/ui/Tooltip'
@@ -177,6 +178,8 @@ export function LeadRow({ lead, index, onClick, onScoreClick, onStatusClick, onS
               {location}
             </span>
           )}
+          {typeof apiRow.sales_source_label === 'string' && <span className="text-[11px] text-[var(--color-saul-text-secondary)]">{apiRow.sales_source_label}</span>}
+          {apiRow.sales_managed === true && <span className="text-[11px] text-[var(--color-saul-cyan)]">Owner: {String(apiRow.sales_owner_name ?? 'Unassigned')}</span>}
         </div>
       </td>
 
@@ -261,6 +264,7 @@ export function LeadRow({ lead, index, onClick, onScoreClick, onStatusClick, onS
 
       {/* Assigned */}
       <td className="hidden md:table-cell px-4 py-2.5">
+        {apiRow.sales_managed === true ? <Link className="text-xs text-[var(--color-saul-cyan)] underline" href={`/dashboard/team?tenant=exotiq&tab=accounts&q=${encodeURIComponent(displayName)}`} onClick={e=>e.stopPropagation()}>{String(apiRow.sales_owner_name ?? 'Unassigned')} · Hand Off</Link> : (
         <div className="relative inline-block">
           <Tooltip content="Claim lead" position="top">
             <button
@@ -305,6 +309,7 @@ export function LeadRow({ lead, index, onClick, onScoreClick, onStatusClick, onS
             </>
           )}
         </div>
+        )}
       </td>
 
       {/* Red Flags */}

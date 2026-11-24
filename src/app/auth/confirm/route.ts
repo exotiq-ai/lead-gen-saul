@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { EmailOtpType } from '@supabase/supabase-js'
 import { createRouteAuthClient } from '@/lib/auth/server'
-import { isAllowedDashboardAdmin, resolvePublicOrigin, safeRedirectPath } from '@/lib/auth/policy'
+import { resolvePublicOrigin, safeRedirectPath } from '@/lib/auth/policy'
+import { salesActorForUser } from '@/lib/sales/auth'
 
 export async function GET(req: NextRequest) {
   const tokenHash = req.nextUrl.searchParams.get('token_hash')
@@ -24,10 +25,12 @@ export async function GET(req: NextRequest) {
     token_hash: tokenHash,
     type: rawType as EmailOtpType,
   })
-  if (error || !isAllowedDashboardAdmin(data.user?.email)) {
+  const actor = error ? null : await salesActorForUser(data.user)
+  if (error || !actor) {
     await supabase.auth.signOut()
     return NextResponse.redirect(new URL('/login?error=expired_link', origin))
   }
 
+  if (!actor.isAdmin) response.headers.set('Location', new URL('/sales', origin).toString())
   return response
 }

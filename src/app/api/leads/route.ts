@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { parseQuery } from '@/lib/validation/parse'
 import { leadsListQuerySchema } from '@/lib/validation/schemas'
 import { buildLeadSearchOrFilter } from '@/lib/leads/search'
+import { withSalesContext } from '@/lib/sales/legacy-context'
 
 const LEAD_SELECT_FIELDS = [
   'id',
@@ -114,6 +115,7 @@ export async function GET(req: NextRequest) {
 
     if (error) throw error
 
+    const visibleRows = await withSalesContext((data ?? []) as unknown as Record<string, unknown>[], tenantId)
     const total = count ?? 0
     const totalPages = Math.max(1, Math.ceil(total / limit))
 
@@ -156,7 +158,7 @@ export async function GET(req: NextRequest) {
     ])
 
     return NextResponse.json({
-      data: data ?? [],
+      data: visibleRows,
       meta: {
         total,
         page,
@@ -171,7 +173,7 @@ export async function GET(req: NextRequest) {
       },
       // Legacy fields kept for transitional compatibility; new clients
       // should read `data` and `meta` instead.
-      leads: data ?? [],
+      leads: visibleRows,
       total,
       page,
       limit,

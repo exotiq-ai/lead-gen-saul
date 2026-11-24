@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { parseQuery } from '@/lib/validation/parse'
 import { leadDetailQuerySchema, leadIdParamSchema } from '@/lib/validation/schemas'
+import { withSalesContext } from '@/lib/sales/legacy-context'
 
 export async function GET(
   req: NextRequest,
@@ -67,7 +68,7 @@ export async function GET(
     if (activitiesResult.error) throw activitiesResult.error
     if (enrichmentsResult.error) throw enrichmentsResult.error
 
-    const lead = leadResult.data as Record<string, unknown>
+    const [lead] = await withSalesContext([leadResult.data as Record<string, unknown>], tenantId)
     const stage = lead.pipeline_stages ?? null
     delete lead.pipeline_stages
 
@@ -196,6 +197,9 @@ export async function PATCH(
     return NextResponse.json(updated)
   } catch (err) {
     console.error('[lead-patch]', err)
+    if ((err as { code?: string }).code === 'P0001') {
+      return NextResponse.json({ error: 'This account uses Team & Intake for explicit ownership handoffs.' }, { status: 409 })
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
