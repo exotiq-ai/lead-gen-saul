@@ -33,6 +33,8 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Overview', href: '/dashboard', icon: SquaresFour },
   { label: 'Pipeline', href: '/dashboard/pipeline', icon: Funnel },
   { label: 'Leads', href: '/dashboard/leads', icon: Users },
+  { label: 'Team & Intake', href: '/dashboard/team', icon: Users },
+  { label: 'My Leads', href: '/sales', icon: Funnel },
   { label: 'Road Trip', href: '/dashboard/road-trip', icon: MapTrifold },
   { label: 'Scoring', href: '/dashboard/scoring', icon: ChartBar },
   { label: 'Enrichment', href: '/dashboard/enrichment', icon: MagnifyingGlass },
@@ -52,6 +54,9 @@ export function Sidebar() {
   const pathname = usePathname()
   const tenantId = useTenantId()
   const tenantSlug = useTenantSlug()
+  const visibleNavItems = NAV_ITEMS.filter((item) =>
+    !['/dashboard/team', '/sales'].includes(item.href) || tenantSlug === 'exotiq',
+  )
 
   const withTenant = (href: string) =>
     href === '/dashboard/road-trip'
@@ -96,8 +101,8 @@ export function Sidebar() {
         <div className="mx-5 h-px bg-[var(--color-saul-border-soft)] mb-3" />
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 flex flex-col gap-0.5" aria-label="Primary navigation">
-          {NAV_ITEMS.map((item) => {
+        <nav className="flex-1 min-h-0 overflow-y-auto px-3 flex flex-col gap-0.5" aria-label="Primary navigation">
+          {visibleNavItems.map((item) => {
             const active = isActive(item.href)
             const Icon = item.icon
 
@@ -171,7 +176,7 @@ export function Sidebar() {
         />
         
         {/* Sidebar panel */}
-        <aside className={`fixed inset-y-0 left-0 z-50 w-[260px] bg-[var(--color-saul-bg-900)] border-r border-[var(--color-saul-border-soft)] transform transition-transform duration-300 ease-out ${open ? 'translate-x-0' : '-translate-x-full'}`}>
+        <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col w-[260px] bg-[var(--color-saul-bg-900)] border-r border-[var(--color-saul-border-soft)] transform transition-transform duration-300 ease-out ${open ? 'translate-x-0' : '-translate-x-full'}`}>
           {/* Logo */}
           <div className="px-5 pt-6 pb-5">
             <div className="flex flex-col gap-0.5">
@@ -188,8 +193,8 @@ export function Sidebar() {
           <div className="mx-5 h-px bg-[var(--color-saul-border-soft)] mb-3" />
 
           {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto px-3 flex flex-col gap-0.5" aria-label="Primary navigation">
-            {NAV_ITEMS.map((item) => {
+          <nav className="flex-1 min-h-0 overflow-y-auto px-3 flex flex-col gap-0.5" aria-label="Primary navigation">
+            {visibleNavItems.map((item) => {
               const active = isActive(item.href)
               const Icon = item.icon
 

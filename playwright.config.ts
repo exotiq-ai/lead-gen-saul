@@ -18,6 +18,9 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? [['list']] : 'list',
   use: {
+    launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+      ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
+      : undefined,
     baseURL: process.env.BASE_URL ?? 'http://127.0.0.1:3000',
     extraHTTPHeaders: process.env.E2E_AUTH_BYPASS_TOKEN
       ? { 'x-e2e-auth-token': process.env.E2E_AUTH_BYPASS_TOKEN }

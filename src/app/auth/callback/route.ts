@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteAuthClient } from '@/lib/auth/server'
-import { isAllowedDashboardAdmin, resolvePublicOrigin, safeRedirectPath } from '@/lib/auth/policy'
+import { resolvePublicOrigin, safeRedirectPath } from '@/lib/auth/policy'
+import { salesActorForUser } from '@/lib/sales/auth'
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get('code')
@@ -21,10 +22,12 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.redirect(new URL('/login?error=expired_link', origin))
 
   const { data } = await supabase.auth.getUser()
-  if (!isAllowedDashboardAdmin(data.user?.email)) {
+  const actor = await salesActorForUser(data.user)
+  if (!actor) {
     await supabase.auth.signOut()
     return NextResponse.redirect(new URL('/login?error=not_authorized', origin))
   }
 
+  if (!actor.isAdmin) response.headers.set('Location', new URL('/sales', origin).toString())
   return response
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isAllowedDashboardAdmin, resolvePublicOrigin, safeRedirectPath } from '@/lib/auth/policy'
 import { createRouteAuthClient } from '@/lib/auth/server'
+import { activeSalesMember } from '@/lib/sales/auth'
 
 export const runtime = 'nodejs'
 
@@ -13,7 +14,9 @@ export async function POST(req: NextRequest) {
   }
 
   const email = (body.email || '').trim().toLowerCase()
-  if (!isAllowedDashboardAdmin(email)) {
+  const admin = isAllowedDashboardAdmin(email)
+  const member = admin ? null : await activeSalesMember(email)
+  if (!admin && !member) {
     // Do not reveal the allowlist.
     return NextResponse.json({ sent: true })
   }
@@ -31,10 +34,10 @@ export async function POST(req: NextRequest) {
     requestOrigin: req.nextUrl.origin,
   })
   const callback = new URL('/auth/callback', origin)
-  callback.searchParams.set('next', safeRedirectPath(body.next))
+  callback.searchParams.set('next', admin ? safeRedirectPath(body.next) : '/sales')
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: { shouldCreateUser: false, emailRedirectTo: callback.toString() },
+    options: { shouldCreateUser: Boolean(member), emailRedirectTo: callback.toString() },
   })
   if (error) return NextResponse.json({ error: 'Login email could not be sent' }, { status: 502 })
   return response
