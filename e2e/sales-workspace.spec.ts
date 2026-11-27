@@ -8,6 +8,7 @@ async function mock(page:import('@playwright/test').Page,admin=false,failFirst=f
  await page.route('**/api/**',async route=>{
   const req=route.request(),url=new URL(req.url())
   if(url.pathname==='/api/sales/workspace')return route.fulfill({json:data})
+  if(url.pathname==='/api/sales/matches')return route.fulfill({json:{match:{lookup_id:'eeeeeeee-0000-4000-8000-000000000001',status:'no_match',expires_at:'2030-01-01T12:00:00Z'}}})
   if(req.method()!=='GET'){
    const body=req.postDataJSON();writes.push({url:url.pathname,body})
    if(url.pathname==='/api/sales/registrations'){
@@ -30,8 +31,9 @@ test('rep adds an operator, sees a receipt, and has no team administration contr
  await page.getByRole('button',{name:'Add Operator',exact:true}).click()
  await page.getByLabel('Business name').fill('Synthetic Submitted Fleet')
  await page.getByLabel('Website', {exact:true}).fill('submitted.invalid')
+ await page.getByRole('button',{name:'Check Prospect',exact:true}).click()
  await page.getByRole('button',{name:'Submit Operator',exact:true}).click()
- await expect(page.getByRole('status')).toContainText('Submission saved')
+ await expect(page.getByRole('status').filter({hasText:'Submission saved'})).toContainText('Submission saved')
  expect(writes[0].body.request_id).toMatch(/^[0-9a-f-]{36}$/)
  expect(writes[0].body).not.toHaveProperty('submitted_by_member_id')
  await page.getByRole('button',{name:'My Submissions',exact:true}).click()
@@ -42,9 +44,10 @@ test('rep adds an operator, sees a receipt, and has no team administration contr
 test('retry preserves submission request ID and input after an error',async({page})=>{
  const writes=await mock(page,false,true);await page.goto('/sales');await page.getByRole('button',{name:'Add Operator',exact:true}).click()
  await page.getByLabel('Business name').fill('Synthetic Submitted Fleet');await page.getByLabel('Email',{exact:true}).fill('owner@submitted.invalid')
+ await page.getByRole('button',{name:'Check Prospect',exact:true}).click()
  await page.getByRole('button',{name:'Submit Operator',exact:true}).click();await expect(page.getByRole('alert').filter({hasText:'Temporary failure'})).toContainText('Temporary failure')
  await expect(page.getByLabel('Business name')).toHaveValue('Synthetic Submitted Fleet')
- await page.getByRole('button',{name:'Submit Operator',exact:true}).click();await expect(page.getByRole('status')).toContainText('Submission saved')
+ await page.getByRole('button',{name:'Submit Operator',exact:true}).click();await expect(page.getByRole('status').filter({hasText:'Submission saved'})).toContainText('Submission saved')
  expect(writes[0].body.request_id).toBe(writes[1].body.request_id)
 })
 test('admin can decline with an explicit visible receipt reason',async({page})=>{
@@ -58,8 +61,8 @@ test('admin can decline with an explicit visible receipt reason',async({page})=>
 test('rep records the next action without changing attribution',async({page})=>{
  const writes=await mock(page);await page.goto('/sales')
  await page.getByRole('button',{name:'Update Next Step',exact:true}).click()
- await page.getByLabel('Next action').fill('Call the owner tomorrow')
+ await page.getByLabel('Next action',{exact:true}).fill('Call the owner tomorrow')
  await page.getByRole('button',{name:'Save Next Step',exact:true}).click()
- await expect(page.getByRole('status')).toContainText('Next step saved')
+ await expect(page.getByRole('status').filter({hasText:'Next step saved'})).toContainText('Next step saved')
  expect(writes[0].body.next_action).toBe('Call the owner tomorrow');expect(writes[0].body).not.toHaveProperty('source')
 })

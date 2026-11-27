@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase/server'
 import { parseQuery } from '@/lib/validation/parse'
+import { protectExport } from '@/lib/auth/export-guard'
 import { streamCsv, paginate } from '@/lib/utils/csv'
 
 export const runtime = 'nodejs'
@@ -20,7 +21,9 @@ const querySchema = z.object({
 // Streams a CSV of the requested dataset for the tenant. We page through
 // supabase 500 rows at a time so the export works for tenants with many
 // thousands of rows without holding everything in memory.
-export async function GET(req: NextRequest) {
+export const GET = protectExport(generateExport)
+
+async function generateExport(req: NextRequest) {
   const parsed = parseQuery(querySchema, req.nextUrl)
   if (!parsed.success) return parsed.response
   const { tenant_id: tenantId, dataset } = parsed.data

@@ -22,6 +22,8 @@ jobs:
           cache: npm
       - name: install
         run: npm ci --no-audit --no-fund
+      - name: unit and database regression tests
+        run: npx tsx --test --test-concurrency=1 "src/**/*.test.ts"
       - name: typecheck
         run: npm run typecheck
       - name: build
